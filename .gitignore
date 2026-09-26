@@ -3,3 +3,6 @@
 Thumbs.db
 .DS_Store
 node_modules/
+
+# ustawienia lokalne (ścieżki z tego komputera)
+.claude/
