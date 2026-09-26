@@ -14,7 +14,7 @@ Zakładka **Nauka**:
    Ikona suwaków otwiera **Ustawienia planu**: podgląd planu i prognoza (kiedy poznasz wszystkie słówka, czy zdążysz przed egzaminem), **co ćwiczyć** (wszystko / same słówka bez zwrotów / same zwroty — dotyczy nowych słów i powtórek w planie dnia), kolejność nowych słów (jak w lekcjach / najnowsze / losowo), rozgrzewka, najpierw powtórki, ćwiczenia ze słuchu i z pisania (do wyłączenia), nowe słowa dziennie, limit powtórek i dzienny cel.
 2. **Pakiety słówek** — według rodzaju: zwroty, rzeczowniki, przymiotniki, czasowniki, małe słówka.
    Po kliknięciu pakietu, tematu albo listy: ekran jak w WRD — tytuł i liczba słówek, zielony pasek postępu, szukajka, przełącznik Wszystko / Słówka / Zwroty, filtry Umiem / Uczę się / Nowe, lista słówek z ikonami (🔊 odsłuch, ✓ umiesz, ⋯ szczegóły) i przycisk „Ucz się” na dole. Menu ⋯ w nagłówku: Słuchaj w drodze, Powtórz poznane (i zmiana nazwy / usuwanie dla własnych list).
-   **Ucz się** w pakiecie otwiera ekran **Nauka**: nowe słowa po kolei — *Ucz się* (dodaj do lekcji), *Później* (pomiń), *Wiem* (od razu wyuczone). Po 5 wybranych rusza lekcja (razem z zaległymi powtórkami z pakietu); można też zacząć wcześniej. Klawisze: Enter / ← / →.
+   **Ucz się** w pakiecie otwiera ekran **Nauka**: nowe słowa po kolei — *Ucz się* (dodaj do lekcji), *Później* (pomiń), *Wiem* (od razu wyuczone, ale następnego dnia wraca na szybkie sprawdzenie — pomyłka cofa je do nauki). Po 5 wybranych rusza lekcja (razem z zaległymi powtórkami z pakietu); można też zacząć wcześniej. Po lekcji: „Ucz się dalej” w tym samym pakiecie albo „Wróć do pakietu”. Liczniki pokazują osobno słówka i zwroty (np. „21 słówek · 68 zwrotów”). Klawisze: Enter / ← / →.
    **Wznów** — na górze ekranu Pakietów karta ostatniego pakietu, którego się uczyłeś.
    **Kliknięcie słówka** otwiera jego ekran: grafika, wymowa, tłumaczenie, przykład, skojarzenie, postęp, listy, ❤️ (lista „Ulubione”). Na dole stan: *Ucz się / Wiem* (nowe), *Uczenie* z kółkiem postępu (w trakcie), *✓ Wyuczone* + *Naucz się ponownie* (słowo wraca na początek nauki). W wierszu listy kropki poziomu obok ⋯.
    Ikony słówek: `assets/words/` (na razie flagi krajów; przypisanie w `WORD_IMG` w `js/app.js`), pozostałe słowa mają emoji tematu.
@@ -72,7 +72,7 @@ Ręcznie (np. na telefonie): **Profil → Importuj slowka.md**.
 
 ```
 index.html          ekran aplikacji
-styles.css          wygląd (jasny i ciemny motyw)
+styles.css          wygląd (tylko jasny motyw; kolory ciemnego czekają pod data-theme="dark")
 js/app.js           ekrany, sesja nauki, statystyki, wymowa
 plan-hero.css       wygląd sekcji Plan dnia (gradient, karty zadań, efekty przycisków)
 assets/             ikony i ilustracja Planu dnia wycięte z design/plan-mockup.jpg

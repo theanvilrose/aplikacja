@@ -30,8 +30,9 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+/* Ciemny motyw na razie wyłączony — Plan dnia, Pakiety i ekran słówka mają tylko jasne kolory.
+   Kolory zostają na później: włącza je <html data-theme="dark">. */
+:root[data-theme="dark"] {
     --bg: #14121d;
     --surface: #1f1c2b;
     --surface-2: #28253a;
@@ -53,7 +54,6 @@
     --shadow: none;
     --shadow-sm: none;
     color-scheme: dark;
-  }
 }
 
 * { box-sizing: border-box; }

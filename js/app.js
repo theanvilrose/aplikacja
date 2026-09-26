@@ -92,6 +92,9 @@ const dayKey = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-
 const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const plural = (n, one, few, many) => (n === 1 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many);
 const wordsLabel = (n) => `${n} ${plural(n, 'słówko', 'słówka', 'słówek')}`;
+const phrasesLabel = (n) => `${n} ${plural(n, 'zwrot', 'zwroty', 'zwrotów')}`;
+// „21 słówek · 68 zwrotów” — osobno słowa i zwroty w zestawie
+const itemsLabel = (ws) => { const p = ws.filter(isPhrase).length, n = ws.length - p; return [n && wordsLabel(n), p && phrasesLabel(p)].filter(Boolean).join(' · ') || wordsLabel(0); };
 const daysLabel = (n) => `${n} ${plural(n, 'dzień', 'dni', 'dni')}`;
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const pct = (x) => `${Math.round(Math.max(0, Math.min(1, x)) * 100)}%`;
@@ -513,6 +516,7 @@ function startSession(opts = {}) {
     mode: exam ? 'exam' : opts.mode || 'learn', exam, recorded: false,
     answers: [], wrong: new Set(), newIds: new Set(), extraSteps: {}, cur: null, timer: null,
     gems: 0, streakUp: 0, chestOpened: false, badge: null, pathAdvanced: false,
+    coll: opts.coll || null, // pakiet / temat, z którego ruszyła lekcja (powrót po podsumowaniu)
   };
   view = 'session';
   window.scrollTo(0, 0);
@@ -1048,7 +1052,7 @@ function pkCard(c) {
     <button class="pk-card" data-coll="${esc(c.ref)}" style="--tint:${c.tint};--pill:${c.pill}">
       <span class="pk-text">
         <b class="pk-name">${esc(c.name)} <span class="pk-chev">›</span></b>
-        <span class="pk-count">${wordsLabel(c.total)}</span>
+        <span class="pk-count">${itemsLabel(c.ws)}</span>
         <span class="pk-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>${c.known}/${c.total}</span>
       </span>
       ${c.img ? IMG(c.img, 'pk-img') : `<span class="pk-img svg">${c.art}</span>`}
@@ -1508,8 +1512,26 @@ function viewSummary() {
       <h2 class="card-title small">Do przećwiczenia</h2>
       ${wrong.map((w) => `<div class="mini-word"><button class="icon-btn" data-say="${esc(w.en)}">🔊</button><b>${esc(w.en)}</b><span class="muted">${esc(w.pl)}</span></div>`).join('')}
     </section>` : ''}
+    ${collSummaryButtons() || `
     ${c.dueLeft + c.newLeft ? `<button class="btn pill wide" data-act="start">Jeszcze jedna sesja</button>` : ''}
-    <button class="btn wide" data-act="home">Wróć</button>`;
+    <button class="btn wide" data-act="home">Wróć</button>`}`;
+}
+
+// Po lekcji z pakietu: ucz się dalej w tym pakiecie albo wróć do jego listy.
+function collSummaryButtons() {
+  const coll = S.coll && collection(S.coll);
+  if (!coll) return '';
+  const now = Date.now();
+  const more = byKind(coll.ws).some((w) => !db.cards[w.id] || db.cards[w.id].due <= now);
+  return `
+    ${more ? `<button class="btn pill wide" data-act="coll-next">Ucz się dalej: ${esc(coll.name)}</button>` : ''}
+    <button class="btn wide" data-act="coll-return">Wróć do pakietu</button>`;
+}
+
+function reopenColl(ref) {
+  S = null;
+  wordsFilter = { q: '', coll: ref, status: '', kind: wordsFilter.kind || '' };
+  view = 'words';
 }
 
 function dueLabel(c) {
@@ -1609,7 +1631,7 @@ function viewWords() {
     <header class="cv-top">
       <div class="cv-bar">
         <button class="pk-back" data-view="${collFrom}" aria-label="Wróć">${ICON.back}</button>
-        <div class="cv-title"><h2>${esc(coll.name)}</h2><span>${wordsLabel(coll.total)}${coll.known ? ` · umiesz ${coll.known}` : ''}</span></div>
+        <div class="cv-title"><h2>${esc(coll.name)}</h2><span>${itemsLabel(coll.ws)}${coll.known ? ` · umiesz ${coll.known}` : ''}</span></div>
         <details class="cv-menu">
           <summary class="pk-back" aria-label="Więcej opcji" title="Więcej opcji"><span class="cv-dots"><i></i><i></i><i></i></span></summary>
           <div class="cv-pop">
@@ -1655,10 +1677,14 @@ function wordArt(w) {
   return img ? `<img class="wa-img" src="assets/words/${img}.png" alt="" draggable="false">` : `<span class="wa-emoji">${esc(w.icon || '💬')}</span>`;
 }
 
+// „Wiem”: słowo od razu liczy się jako wyuczone (s = 2 dni), ale już jutro wraca na szybkie sprawdzenie.
+// Dobra odpowiedź wydłuża przerwę jak zwykle; pomyłka cofa je do nauki (SRS.review).
 function markKnown(id) {
   const now = Date.now();
   const c = db.cards[id] || SRS.fresh();
-  db.cards[id] = { ...c, level: SRS.MAX_LEVEL, s: Math.max(c.s, 7), d: Math.min(c.d, 4), due: now + 7 * DAY, reps: c.reps + 1, last: now };
+  const tomorrow = new Date(now + DAY);
+  tomorrow.setHours(3, 0, 0, 0);
+  db.cards[id] = { ...c, level: Math.max(c.level, SRS.MAX_LEVEL - 1), s: Math.max(c.s, 2), d: Math.min(c.d, 5), due: tomorrow.getTime(), reps: c.reps + 1, last: now };
   save();
 }
 
@@ -1744,7 +1770,7 @@ function startPick(ref) {
   save();
   const ws = byKind(coll.ws);
   const ids = ws.filter((w) => !db.cards[w.id]).map((w) => w.id);
-  if (!ids.length) return startSession({ ids: ws.map((w) => w.id) }); // wszystko poznane — powtórka pakietu
+  if (!ids.length) return startSession({ ids: ws.map((w) => w.id), coll: ref }); // wszystko poznane — powtórka pakietu
   PK = { ref, ids, i: 0, picked: [], known: 0, back: view };
   go('pick');
   speakPick();
@@ -1773,11 +1799,11 @@ function finishPick() {
     const coll = collection(ref);
     const now = Date.now();
     const due = coll ? byKind(coll.ws).filter((w) => db.cards[w.id] && db.cards[w.id].due <= now).map((w) => w.id) : [];
-    return startSession({ ids: [...picked, ...due] });
+    return startSession({ ids: [...picked, ...due], coll: ref });
   }
   view = back;
   render();
-  toast(known ? `✓ Oznaczono jako wyuczone: ${known}` : 'Nie wybrano słówek do nauki');
+  toast(known ? `✓ Wyuczone: ${known} — jutro szybkie sprawdzenie` : 'Nie wybrano słówek do nauki');
 }
 
 function viewPick() {
@@ -1812,7 +1838,7 @@ function resumeCard() {
     <span class="rs-art">${c.img ? IMG(c.img, 'rs-img') : c.art}</span>
     <span class="rs-text">
       <b>${esc(c.name)}</b>
-      <span>${c.known} z ${wordsLabel(c.total)}</span>
+      <span>Umiesz ${c.known} z ${c.total}</span>
       <button class="rs-go" data-act="resume" data-ref="${esc(c.ref)}">Wznów</button>
     </span>
     <span class="rs-chev" aria-hidden="true">›</span>
@@ -2044,7 +2070,7 @@ document.addEventListener('click', (e) => {
     case 'word-fav': toggleFav(wordView.id); render(); break;
     case 'word-learn': startSession({ ids: [wordView.id] }); break;
     case 'word-practice': startSession({ ids: [wordView.id], mode: 'drill' }); break;
-    case 'word-known': markKnown(wordView.id); toast('✓ Oznaczone jako wyuczone'); render(); break;
+    case 'word-known': markKnown(wordView.id); toast('✓ Wyuczone — jutro szybkie sprawdzenie'); render(); break;
     case 'word-relearn': relearn(wordView.id); toast('Słowo wróciło do nauki'); startSession({ ids: [wordView.id], mode: 'drill', intro: true }); break;
     case 'retry-wrong': startSession({ ids: S.answers.filter((a) => !a.correct).map((a) => a.id), mode: 'drill' }); break;
     case 'drill-mistakes': startSession({ ids: db.mistakes, mode: 'drill' }); break;
@@ -2070,6 +2096,8 @@ document.addEventListener('click', (e) => {
     case 'dunno': S.cur.typed = $('#typed')?.value || ''; S.cur.result = 'wrong'; answer(false, false, S.cur.typed); break;
     case 'quit': quitSession(); break;
     case 'home': go('home'); break;
+    case 'coll-next': { const ref = S.coll; reopenColl(ref); startPick(ref); break; }
+    case 'coll-return': reopenColl(S.coll); go('words'); break;
     case 'buy-freeze': buyFreeze(); break;
     case 'chest-info': toast('🎁 Dzisiejsza skrzynia już otwarta — wróć jutro po kolejną!'); break;
     case 'plan-defaults':
