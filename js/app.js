@@ -213,7 +213,7 @@ const WORD_IMG = {
   'nationality': 'narodowosc',
   // przedstawianie się (Desktop/ikony_do_aplikacji)
   'first name': 'first_name', 'friend': 'friend', 'mr': 'mr', 'mrs': 'mrs', 'ms': 'ms', 'name': 'name', 'surname': 'surname',
-  "i'm": 'im', 'you': 'you', "you're": 'youre', 'nice to meet you.': 'nice_to_meet_you', 'nice to meet you too.': 'nice_to_meet_you',
+  "i'm": 'im', 'you': 'you', "you're": 'youre',
 };
 
 
@@ -1747,7 +1747,9 @@ function listTags(w) {
 // Ikona słówka: obrazek z assets/words albo emoji tematu na pastelowym tle.
 const SPEAKER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>';
 
+// Ikony tylko przy słówkach — zwroty (wyrażenia) są bez ikony.
 function wordIcon(w) {
+  if (isPhrase(w)) return '';
   const img = WORD_IMG[w.id];
   if (img) return `<img class="wr-img" src="assets/words/${img}.png" alt="" loading="lazy" draggable="false">`;
   const topics = topicsList();
@@ -1760,7 +1762,7 @@ function wordRow(w) {
   const lvl = c ? Math.max(1, c.level) : 0;
   return `
     <div class="word-row">
-      <span class="wr-icon">${wordIcon(w)}</span>
+      ${isPhrase(w) ? '' : `<span class="wr-icon">${wordIcon(w)}</span>`}
       <span class="wr-main">
         <span class="wr-en"><button class="wr-open" data-wopen="${esc(w.id)}" title="Szczegóły słówka"><b>${esc(w.en)}</b></button><button class="wr-say" data-say="${esc(w.en)}" aria-label="Posłuchaj" title="Posłuchaj">${SPEAKER}</button></span>
         <span class="wr-pl">${esc(w.pl)}</span>
@@ -1863,6 +1865,7 @@ function wordTint(w) {
 
 // Duża grafika słówka (ekran słówka i wybór do nauki).
 function wordArt(w) {
+  if (isPhrase(w)) return '';
   const img = WORD_IMG[w.id];
   return img ? `<img class="wa-img" src="assets/words/${img}.png" alt="" draggable="false">` : `<span class="wa-emoji">${esc(w.icon || '💬')}</span>`;
 }
@@ -1920,7 +1923,7 @@ function viewWord() {
       <button class="pk-back" data-act="word-back" aria-label="Wróć">${ICON.back}</button>
       <button class="pk-back wd-fav ${fav ? 'on' : ''}" data-act="word-fav" aria-pressed="${fav}" aria-label="Ulubione" title="${fav ? 'Usuń z ulubionych' : 'Dodaj do ulubionych'}">${HEART}</button>
     </div>
-    <div class="wd-art">${wordArt(w)}</div>
+    ${isPhrase(w) ? '' : `<div class="wd-art">${wordArt(w)}</div>`}
     <h1 class="wd-en">${esc(w.en)}<button class="wd-say" data-say="${esc(w.en)}" aria-label="Posłuchaj">${SPEAKER}</button></h1>
     ${w.pron ? `<p class="wd-pron">${esc(w.pron)}</p>` : ''}
   </section>
@@ -2008,7 +2011,7 @@ function viewPick() {
   <span class="pick-progress"><i style="width:${pct(PK.i / PK.ids.length)}"></i></span>
   <section class="pick-card">
     <p class="pick-label">${isPhrase(w) ? 'Nowy zwrot' : 'Nowe słówko'} <span>${PK.i + 1} z ${PK.ids.length}</span></p>
-    <div class="pick-tile" style="--tint:${wordTint(w)}">${wordArt(w)}</div>
+    ${isPhrase(w) ? '' : `<div class="pick-tile" style="--tint:${wordTint(w)}">${wordArt(w)}</div>`}
     <h1 class="pick-en">${esc(w.en)}<button class="wd-say" data-say="${esc(w.en)}" aria-label="Posłuchaj">${SPEAKER}</button></h1>
     <p class="pick-pl">${esc(w.pl)}</p>
   </section>
