@@ -317,3 +317,6 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .dv-snd.new { background: #efeaff; }
 .pp-stats.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .pp-stats.four b { font-size: 22px; }
+/* ikona słowa wypełnia cały kafelek w oknie nauki */
+.pick-tile:has(.wa-img) { overflow: hidden; }
+.pick-tile .wa-img { width: 100%; height: 100%; border-radius: inherit; box-shadow: none; }
