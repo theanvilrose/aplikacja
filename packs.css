@@ -329,3 +329,6 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .opt-pic { flex-shrink: 0; width: 46px; height: 46px; display: grid; place-items: center; }
 .opt-pic .wr-img, .opt-pic .wr-emoji { width: 46px; height: 46px; border-radius: 13px; }
 .opt-pic .wr-emoji { display: grid; place-items: center; font-size: 24px; }
+/* obrazek słowa na ekranie „Nowe słowo” w sesji */
+.intro-tile { width: min(170px, 46vw); border-radius: 34px; margin: 14px auto 18px; }
+.intro-tile .wa-emoji { font-size: 84px; }

@@ -1558,6 +1558,7 @@ function viewSession() {
     return `${top}
     <section class="card study">
       <div class="badge">Nowe słowo · ${esc(w.topic)}</div>
+      ${isPhrase(w) ? '' : `<div class="pick-tile intro-tile" style="--tint:${wordTint(w)}">${wordArt(w)}</div>`}
       ${wordInfo(w)}
       ${w.pos ? `<div class="muted small">${esc(w.pos)}</div>` : ''}
     </section>
