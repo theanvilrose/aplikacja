@@ -20,7 +20,7 @@
 
   // ---------- gramatyka polskich form (używane tylko, gdy słowo JEST w Twoich słówkach) ----------
   // przedmioty, które mogą się pojawić w L4 (T2 biuro, T4 rzeczy osobiste) — tłumaczenie bierzemy z Twoich słówek
-  const THING_IDS = ['laptop', 'desk', 'office', 'chair', 'computer', 'phone', 'bag', 'wallet', 'umbrella', 'keys', 'glasses', 'purse', 'book', 'pen', 'table'];
+  const THING_IDS = ['laptop', 'desk', 'office', 'chair', 'computer', 'phone', 'bag', 'wallet', 'umbrella', 'keys', 'glasses', 'purse', 'book', 'pen', 'table', 'school', 'hospital', 'factory', 'meeting room'];
   // zawody: narzędnik do zdań „On jest kierownikiem”; g = kto może być podmiotem
   const JOB_FORMS = {
     manager: [['m', 'kierownikiem'], ['f', 'kierowniczką']], engineer: [['m', 'inżynierem']], mechanic: [['m', 'mechanikiem']],
