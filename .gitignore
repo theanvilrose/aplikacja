@@ -1,0 +1,5 @@
+# pliki tymczasowe
+*.tmp
+Thumbs.db
+.DS_Store
+node_modules/

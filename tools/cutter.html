@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Wycinanie grafik</title>
+<style>
+  body { margin: 0; padding: 12px; background: #888; font: 13px sans-serif; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
+  figure { margin: 0; padding: 6px; background: repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0 0 / 16px 16px; }
+  figcaption { color: #222; }
+  #log { width: 100%; color: #fff; white-space: pre; }
+</style>
+</head>
+<body>
+<div id="log">Wycinam…</div>
+<script>
+// Wycina ikony i ilustrację z projektu Planu dnia (design/plan-mockup.jpg, 2000×1116).
+(async () => {
+  const log = (t) => { document.getElementById('log').textContent += '\n' + t; };
+  const img = new Image();
+  img.src = '/mockup.jpg';
+  await img.decode();
+  const W = img.naturalWidth;
+  const src = document.createElement('canvas');
+  src.width = W; src.height = img.naturalHeight;
+  src.getContext('2d').drawImage(img, 0, 0);
+  const data = src.getContext('2d').getImageData(0, 0, W, src.height).data;
+  const px = (x, y) => { const i = (y * W + x) * 4; return [data[i], data[i + 1], data[i + 2]]; };
+  const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+
+  // Ikona: usuwa tło zalewaniem od krawędzi i wygładza brzegi (przezroczystość + odkażenie koloru).
+  function extract(x0, y0, w, h, step = 9, maxFromEdge = 70, edge = 60) {
+    const N = w * h, col = new Array(N), bg = new Uint8Array(N), ref = new Array(N), st = [];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) col[y * w + x] = px(x0 + x, y0 + y);
+    for (let x = 0; x < w; x++) st.push(x, (h - 1) * w + x);
+    for (let y = 0; y < h; y++) st.push(y * w, y * w + w - 1);
+    for (const p of st) { bg[p] = 1; ref[p] = col[p]; }
+    while (st.length) {
+      const p = st.pop(), x = p % w, y = (p / w) | 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const q = ny * w + nx;
+        if (!bg[q] && dist(col[q], col[p]) < step && dist(col[q], ref[p]) < maxFromEdge) { bg[q] = 1; ref[q] = ref[p]; st.push(q); }
+      }
+    }
+    const out = new ImageData(w, h);
+    for (let p = 0; p < N; p++) {
+      if (bg[p]) continue;
+      const o = p * 4, c = col[p], x = p % w, y = (p / w) | 0;
+      let nb = null;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
+        const nx = x + dx, ny = y + dy;
+        if (nx >= 0 && ny >= 0 && nx < w && ny < h && bg[ny * w + nx]) { nb = col[ny * w + nx]; break; }
+      }
+      const a = nb ? Math.max(0.15, Math.min(1, dist(c, nb) / edge)) : 1;
+      const rgb = nb && a < 1 ? c.map((v, k) => Math.max(0, Math.min(255, Math.round((v - (1 - a) * nb[k]) / a)))) : c;
+      out.data.set([...rgb, Math.round(a * 255)], o);
+    }
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    cv.getContext('2d').putImageData(out, 0, 0);
+    return cv;
+  }
+
+  // Ilustracja: wycinek razem z tłem, brzegi szeroko i miękko wygaszone.
+  // Kolorowe części (okładka, strony, rakieta) są chronione przed wygaszeniem — blade tło znika płynnie.
+  function feathered(x0, y0, w, h, F) {
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    const ctx = cv.getContext('2d');
+    ctx.drawImage(src, x0, y0, w, h, 0, 0, w, h);
+    const im = ctx.getImageData(0, 0, w, h), d = im.data;
+    const sm = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      const mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]);
+      const sat = mx ? (mx - mn) / mx : 0;
+      const edge = sm(Math.min(x, w - 1 - x) / F) * sm(Math.min(y, h - 1 - y) / F);
+      const solid = sm((sat - 0.3) / 0.12); // tło ma nasycenie ok. 0,16–0,22
+      d[i + 3] = Math.round(255 * Math.max(edge, solid));
+    }
+    ctx.putImageData(im, 0, 0);
+    return cv;
+  }
+
+  const P = 6;
+  const ICONS = {
+    'stat-check': [124, 67, 82, 82], 'stat-gem': [358, 68, 64, 78], 'stat-flame': [555, 67, 65, 82],
+    'task-refresh': [995, 325, 93, 93], 'task-star': [994, 477, 95, 94], 'task-clock': [994, 630, 94, 93], 'task-chest': [994, 770, 95, 94],
+    'done-check': [1770, 346, 51, 50], 'gem-small': [1788, 798, 35, 38],
+  };
+  const files = [];
+  for (const [name, [x, y, w, h]] of Object.entries(ICONS)) files.push([name + '.png', extract(x - P, y - P, w + 2 * P, h + 2 * P), 'image/png']);
+  files.push(['plan-rocket.webp', feathered(92, 322, 708, 614, 120), 'image/webp']);
+
+  for (const [name, cv, type] of files) {
+    const fig = document.createElement('figure');
+    const cap = document.createElement('figcaption');
+    cap.textContent = name;
+    if (cv.width > 200) cv.style.width = '320px';
+    fig.append(cv, cap);
+    document.body.append(fig);
+    const blob = await new Promise((r) => cv.toBlob(r, type, 0.92));
+    const res = await fetch('/save?name=' + name, { method: 'POST', body: blob });
+    log('zapisano ' + (await res.text()));
+  }
+  log('GOTOWE');
+})();
+</script>
+</body>
+</html>

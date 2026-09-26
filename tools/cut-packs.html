@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Wycinanie ikon pakietów</title>
+<style>
+  body { margin: 0; padding: 12px; background: #1a1f3a; font: 13px sans-serif; color: #fff; }
+  #grid { display: flex; flex-wrap: wrap; gap: 12px; }
+  figure { margin: 0; padding: 8px; border-radius: 12px; background: linear-gradient(115deg, #cbe0fd, #b7f3ec); text-align: center; }
+  figure canvas { width: 120px; height: 120px; display: block; }
+  figcaption { color: #131d4c; margin-top: 4px; }
+  #sheet { width: 100%; max-width: 1000px; margin-top: 16px; }
+  #log { white-space: pre; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div id="log">Wycinam…</div>
+<div id="grid"></div>
+<canvas id="sheet"></canvas>
+<script>
+// Wycina ikony pakietów i tematów z arkusza design/pack-icons.jpg (2000×1493, szachownica w tle).
+// Podgląd: http://127.0.0.1:8766/packs   Zapis do assets/: http://127.0.0.1:8766/packs?save=1
+(async () => {
+  const log = (t) => { document.getElementById('log').textContent += '\n' + t; };
+  const img = new Image();
+  img.src = '/sheet.jpg';
+  await img.decode();
+  const W = img.naturalWidth, H = img.naturalHeight;
+  const src = document.createElement('canvas');
+  src.width = W; src.height = H;
+  const sx = src.getContext('2d', { willReadFrequently: true });
+  sx.drawImage(img, 0, 0);
+  const data = sx.getImageData(0, 0, W, H).data;
+
+  // Piksel ikony: wyraźnie kolorowy (szachownica i cienie są szare, nasycenie 0).
+  const isIcon = (x, y) => {
+    const i = (y * W + x) * 4, r = data[i], g = data[i + 1], b = data[i + 2];
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    return (mx ? (mx - mn) / mx : 0) > 0.2;
+  };
+
+  // Siatka arkusza (zmierzona na kolorowych ikonach) — dla ikon z białym tłem.
+  const COLS = [[99, 340], [412, 652], [725, 963], [1036, 1275], [1347, 1586], [1658, 1900]];
+  const ROWS = [[96, 335], [411, 652], [782, 1023], [1175, 1417]];
+
+  // Granice ikony: kolorowe wiersze i kolumny; jeśli ikona ma jasne brzegi — pozycja z siatki.
+  function bounds(r, c) {
+    const [l, rr] = COLS[c], [t, bb] = ROWS[r];
+    const x0 = l - 30, y0 = t - 30, x1 = Math.min(W, rr + 30), y1 = Math.min(H, bb + 30);
+    const cols = new Array(x1 - x0).fill(0), rows = new Array(y1 - y0).fill(0);
+    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) if (isIcon(x, y)) { cols[x - x0]++; rows[y - y0]++; }
+    const MIN = 30;
+    const first = (a) => a.findIndex((v) => v > MIN), last = (a) => a.length - 1 - [...a].reverse().findIndex((v) => v > MIN);
+    const b = { x: x0 + first(cols), y: y0 + first(rows), w: last(cols) - first(cols) + 1, h: last(rows) - first(rows) + 1 };
+    return b.w >= 232 && b.h >= 232 ? b : { x: l, y: t, w: rr - l + 1, h: bb - t + 1 };
+  }
+
+  // Wycinek kwadratowy z maską zaokrąglonego kwadratu (gładki brzeg).
+  function cut(b, OUT = 240) {
+    const inset = 4, size = Math.min(b.w, b.h) - 2 * inset;
+    const cx = b.x + b.w / 2, cy = b.y + Math.min(b.w, b.h) / 2;
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = OUT;
+    const x = cv.getContext('2d');
+    x.imageSmoothingQuality = 'high';
+    x.drawImage(src, cx - size / 2, cy - size / 2, size, size, 0, 0, OUT, OUT);
+    const im = x.getImageData(0, 0, OUT, OUT), d = im.data;
+    const R = OUT * 0.22, half = OUT / 2;
+    for (let py = 0; py < OUT; py++) for (let px = 0; px < OUT; px++) {
+      const qx = Math.abs(px + 0.5 - half) - (half - R), qy = Math.abs(py + 0.5 - half) - (half - R);
+      const dist = Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - R;
+      const a = Math.max(0, Math.min(1, 0.5 - dist));
+      d[(py * OUT + px) * 4 + 3] = Math.round(a * 255);
+    }
+    x.putImageData(im, 0, 0);
+    return cv;
+  }
+
+  const NAMES = {
+    '0,0': 'pk-powitania', '0,1': 'pk-samopoczucie', '0,2': 'pk-grzecznosci', '0,3': 'pk-pozegnania', '0,4': 'pk-przedstawianie', '0,5': 'pk-kraje',
+    '1,0': 'pk-swiat', '1,1': 'pk-pochodzenie', '1,2': 'pk-reagowanie', '1,4': 'pk-podroze', '1,5': 'pk-biznes',
+    '2,0': 'pk-czasowniki', '2,2': 'pk-rozmowki', '2,3': 'pk-rzeczowniki', '2,5': 'pk-przymiotniki',
+    '3,0': 'pk-ostatnia-lekcja', '3,1': 'pk-trudne', '3,2': 'pk-bledy', '3,3': 'pk-wszystkie',
+  };
+  const save = new URLSearchParams(location.search).has('save');
+  const sheet = document.getElementById('sheet');
+  sheet.width = W; sheet.height = H;
+  const shx = sheet.getContext('2d');
+  shx.drawImage(img, 0, 0);
+  shx.lineWidth = 4;
+
+  for (const [key, name] of Object.entries(NAMES)) {
+    const [r, c] = key.split(',').map(Number);
+    const b = bounds(r, c);
+    shx.strokeStyle = '#ff2d7a';
+    shx.strokeRect(b.x, b.y, b.w, b.h);
+    const cv = cut(b);
+    const fig = document.createElement('figure');
+    const cap = document.createElement('figcaption');
+    cap.textContent = `${name} ${b.w}×${b.h}`;
+    fig.append(cv, cap);
+    document.getElementById('grid').append(fig);
+    if (save) {
+      const blob = await new Promise((res) => cv.toBlob(res, 'image/webp', 0.9));
+      const res = await fetch('/save?name=' + name + '.webp', { method: 'POST', body: blob });
+      log('zapisano ' + (await res.text()));
+    }
+  }
+  log(save ? 'GOTOWE' : 'Podgląd (bez zapisu). Dodaj ?save=1, żeby zapisać.');
+})();
+</script>
+</body>
+</html>

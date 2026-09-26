@@ -1,0 +1,87 @@
+﻿<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Porównanie Ikon — Słowik</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="plan-hero.css">
+  <style>
+    body { padding: 40px 20px; background: #0b1120; color: #f8fafc; font-family: 'Nunito', system-ui, sans-serif; }
+    .wrap { max-width: 1040px; margin: 0 auto; }
+    h1 { font-family: 'Baloo 2', sans-serif; font-size: 32px; color: #38bdf8; text-align: center; margin-bottom: 8px; }
+    p.lead { text-align: center; color: #94a3b8; font-size: 16px; margin-bottom: 36px; }
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 40px; }
+    @media (max-width: 768px) { .compare-grid { grid-template-columns: 1fr; } }
+    .col { background: #1e293b; border-radius: 24px; padding: 24px; border: 1px solid #334155; }
+    .col.new { border-color: #38bdf8; box-shadow: 0 0 25px rgba(56, 189, 248, 0.15); }
+    .col-title { font-size: 20px; font-weight: 800; font-family: 'Baloo 2', sans-serif; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+    .badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; text-transform: uppercase; }
+    .badge-old { background: #475569; color: #cbd5e1; }
+    .badge-new { background: #0284c7; color: #ffffff; }
+    .preview-box { background: linear-gradient(115deg, #cbe0fd 0%, #c6e3fa 45%, #b7f3ec 100%); border-radius: 20px; padding: 24px; color: #131d4c; margin-bottom: 20px; }
+    .stat-row { display: flex; gap: 16px; align-items: center; margin-bottom: 24px; }
+    .stat-pill { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 22px; }
+    .stat-pill img { width: 42px; height: 42px; object-fit: contain; }
+    .rocket-view { text-align: center; margin-bottom: 20px; min-height: 220px; display: flex; align-items: center; justify-content: center; }
+    .rocket-view img { max-width: 250px; max-height: 220px; width: 100%; object-fit: contain; }
+    .notes { font-size: 14px; color: #94a3b8; line-height: 1.6; }
+    .notes li { margin-bottom: 6px; }
+    .btn-rollback { display: block; width: 100%; padding: 14px; border-radius: 14px; border: 0; background: #334155; color: #f8fafc; font-weight: 700; cursor: pointer; text-align: center; text-decoration: none; margin-top: 20px; }
+    .btn-rollback:hover { background: #475569; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Porównanie: Nowe Ikony 3D vs Stare Wycinki</h1>
+    <p class="lead">Nowe ikony 3D zostały już wgrane do folderu <code>assets/</code>. Oryginalne są w <code>assets_backup_original/</code>.</p>
+
+    <div class="compare-grid">
+      <!-- Stare ikony -->
+      <div class="col">
+        <div class="col-title">
+          <span>Stare ikony (oryginał)</span>
+          <span class="badge badge-old">assets_backup_original</span>
+        </div>
+        <div class="preview-box">
+          <div class="stat-row">
+            <div class="stat-pill"><img src="assets_backup_original/stat-gem.png"><span style="color:#9061e3">0</span></div>
+            <div class="stat-pill"><img src="assets_backup_original/stat-flame.png"><span style="color:#ed7a18">0</span></div>
+            <div class="stat-pill"><img src="assets_backup_original/stat-check.png"><span style="color:#27adb3">0</span></div>
+          </div>
+          <div class="rocket-view">
+            <img src="assets_backup_original/plan-rocket.webp">
+          </div>
+        </div>
+        <ul class="notes">
+          <li>Płaski raster wycięty ze skompresowanego pliku JPG (plan-mockup.jpg).</li>
+          <li>Rozmyta, półprzezroczysta ramka wokół książki (efekt <i>feathered</i>).</li>
+          <li>Niska rozdzielczość ikon diamentu (76x90 px) i płomienia (77x94 px).</li>
+        </ul>
+      </div>
+
+      <!-- Nowe ikony 3D -->
+      <div class="col new">
+        <div class="col-title">
+          <span>Nowe ikony 3D Clay</span>
+          <span class="badge badge-new">Aktywne w assets/</span>
+        </div>
+        <div class="preview-box">
+          <div class="stat-row">
+            <div class="stat-pill"><img src="assets/stat-gem.png"><span style="color:#9061e3">0</span></div>
+            <div class="stat-pill"><img src="assets/stat-flame.png"><span style="color:#ed7a18">0</span></div>
+            <div class="stat-pill"><img src="assets/stat-check.png"><span style="color:#27adb3">0</span></div>
+          </div>
+          <div class="rocket-view">
+            <img src="assets/plan-rocket.webp">
+          </div>
+        </div>
+        <ul class="notes">
+          <li><b>Pełne 3D (styl Duolingo / Clay)</b> z przestrzennym oświetleniem i refleksami.</li>
+          <li><b>Czysta przezroczystość</b> bez żadnych rozmytych kwadratów w tle.</li>
+          <li><b>Wysoka rozdzielczość (160x160 px i 600x600 px)</b> – ostre na każdym ekranie Retina i 4K.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
