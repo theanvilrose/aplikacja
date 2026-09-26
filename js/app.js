@@ -62,14 +62,19 @@ const ART_TINT = {
   wszystkie: ['#EEF0F7', '#8C95B6'],
 };
 
-// Ikony słówek (assets/words/, na razie kraje z Desktop/ikony_do_aplikacji/kraje) — kraj i narodowość mają tę samą.
+// Ikony słówek (assets/words/, z Desktop/ikony_do_aplikacji/kraje) — kraj i narodowość zwykle mają tę samą;
+// Wielka Brytania (autobus) ≠ Anglia (Big Ben), Szwecja ≠ szwedzki (drakkar), żeby się nie myliły.
 const WORD_IMG = {
   australia: 'australia', canada: 'kanada', china: 'chiny', india: 'indie', mexico: 'meksyk', turkey: 'turcja',
-  germany: 'niemcy', france: 'francja', 'the uk': 'wielka_brytania', england: 'wielka_brytania', italy: 'wlochy',
+  germany: 'niemcy', france: 'francja', 'the uk': 'wielka_brytania_autobus', england: 'wielka_brytania', italy: 'wlochy',
   spain: 'hiszpania', poland: 'polska', sweden: 'szwecja', 'the netherlands': 'holandia', norway: 'norwegia',
+  'the czech republic': 'czechy', greece: 'grecja', ireland: 'irlandia', japan: 'japonia', portugal: 'portugalia',
+  scotland: 'szkocja', ukraine: 'ukraina', 'the usa': 'usa',
   australian: 'australia', canadian: 'kanada', chinese: 'chiny', indian: 'indie', mexican: 'meksyk', turkish: 'turcja',
-  german: 'niemcy', french: 'francja', british: 'wielka_brytania', english: 'wielka_brytania', italian: 'wlochy',
-  spanish: 'hiszpania', polish: 'polska', swedish: 'szwecja', dutch: 'holandia', norwegian: 'norwegia',
+  german: 'niemcy', french: 'francja', british: 'wielka_brytania_autobus', english: 'wielka_brytania', italian: 'wlochy',
+  spanish: 'hiszpania', polish: 'polska', swedish: 'szwecja_drakkar', dutch: 'holandia', norwegian: 'norwegia',
+  czech: 'czechy', greek: 'grecja', irish: 'irlandia', japanese: 'japonia', portuguese: 'portugalia',
+  scottish: 'szkocja', ukrainian: 'ukraina', american: 'usa',
 };
 
 // Testy jak w planie nauki: tygodniowy, miesięczny i egzamin próbny.
