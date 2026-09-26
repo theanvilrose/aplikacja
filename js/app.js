@@ -118,7 +118,7 @@ function normalize(d) {
   return {
     cards: d.cards || {}, days: d.days || {}, extra: d.extra || [],
     gems: d.gems || 0, freezes: d.freezes || 0, best: d.best || 0,
-    lists: d.lists || [], exams: d.exams || [], path: d.path || [], mistakes: d.mistakes || [], badges: d.badges || {}, lastColl: d.lastColl || null, lastBackup: d.lastBackup || 0, backupSnooze: d.backupSnooze || 0,
+    lists: d.lists || [], exams: d.exams || [], path: d.path || [], mistakes: d.mistakes || [], badges: d.badges || {}, lastColl: d.lastColl || null, tasks: d.tasks || {}, lastBackup: d.lastBackup || 0, backupSnooze: d.backupSnooze || 0,
     settings: { ...DEFAULT_SETTINGS, ...(d.settings || {}) },
   };
 }
@@ -797,9 +797,9 @@ function stopPlayer() {
 // ---------- widoki ----------
 
 function render() {
-  const views = { home: viewHome, listen: viewListen, words: viewWords, profile: viewProfile, session: viewSession, summary: viewSummary, player: viewPlayer, 'plan-settings': viewPlanSettings, packs: viewPacks, word: viewWord, pick: viewPick };
+  const views = { home: viewHome, listen: viewListen, words: viewWords, profile: viewProfile, session: viewSession, summary: viewSummary, player: viewPlayer, 'plan-settings': viewPlanSettings, packs: viewPacks, word: viewWord, pick: viewPick, tasks: viewTasks };
   $('#app').innerHTML = views[view]();
-  const navHidden = view === 'session' || view === 'player' || view === 'pick' || view === 'word' || (view === 'summary' && !!S?.chestOpened);
+  const navHidden = view === 'session' || view === 'player' || view === 'pick' || view === 'word' || view === 'tasks' || (view === 'summary' && !!S?.chestOpened);
   $('#nav').hidden = navHidden;
   document.body.classList.toggle('no-nav', navHidden);
   const tab = view === 'words' && wordsFilter.coll && collFrom !== 'words' ? 'home' : view === 'summary' || view === 'plan-settings' || view === 'packs' ? 'home' : view;
@@ -842,7 +842,6 @@ function planCard() {
   const c = counts();
   const plan = dayPlan();
   const ready = c.dueLeft + c.newLeft;
-  const focusWord = words.find((w) => /kosmos/i.test(w.pl || w.en)) || words.find((w) => !db.cards[w.id]) || words[0] || { pl: 'kosmos', pos: 'rzeczownik', en: 'space' };
 
   return `
   <div class="daily-carousel">
@@ -889,22 +888,12 @@ function planCard() {
         </div>
       </section>
 
-      <!-- Karta 2: Plan dzienny (słówko dnia, pastelowy gradient) -->
-      <section class="card plan-focus daily-slide">
-        <div class="focus-top">
-          <h2 class="card-title">Plan dzienny</h2>
-        </div>
-        <div class="plan-art rainbow-art">${ART.rocketBook}</div>
-        <div class="focus-word">
-          <h3 class="focus-title">${esc(focusWord.pl || focusWord.en)}</h3>
-          <span class="focus-pos">${esc(focusWord.pos || 'rzeczownik')}</span>
-        </div>
-        ${c.seen || ready ? `<button class="btn pill wide" data-act="${ready ? 'start' : 'extra'}">Ucz się</button>` : ''}
-      </section>
+      <!-- Karta 2: zadania z bieżącej lekcji (generator js/exercises.js) -->
+      ${lessonTasksCard()}
     </div>
     <div class="carousel-dots" id="carouselDots">
       <button class="dot active" data-slide="0" aria-label="Plan dnia"></button>
-      <button class="dot" data-slide="1" aria-label="Plan dzienny"></button>
+      <button class="dot" data-slide="1" aria-label="Zadania z lekcji"></button>
     </div>
   </div>`;
 }
@@ -1898,6 +1887,167 @@ function resumeCard() {
   </div>`;
 }
 
+// ---------- zadania z lekcji (generator js/exercises.js, plan lekcji z program_A1.md) ----------
+
+const PROGRAM = window.SEED_PROGRAM || { lessons: [], themes: {} };
+const LESSON_STATUS = { done: 'zrobiona', progress: 'w trakcie', todo: 'przed Tobą' };
+let taskLesson = null; // wybrana na karcie lekcja (domyślnie bieżąca)
+let EX = null;         // otwarty arkusz: { lesson, sections, values, results, checked, start }
+
+// Lekcje z zadaniami: zrobione i bieżąca, które mają generator (bez program_A1.md — wszystkie z generatorem).
+function taskLessons() {
+  const all = PROGRAM.lessons.length ? PROGRAM.lessons : Exercises.SUPPORTED.map((id) => ({ id, n: +id.slice(1), title: id, grammar: '', status: 'done' }));
+  return all.filter((l) => Exercises.supported(l.id) && l.status !== 'todo');
+}
+
+// Bieżąca lekcja z planu: ta „w trakcie”, a gdy jej nie ma — ostatnia zrobiona.
+function currentLesson() {
+  const ls = PROGRAM.lessons;
+  return ls.find((l) => l.status === 'progress') || [...ls].reverse().find((l) => l.status === 'done') || null;
+}
+
+function lessonById(id) {
+  return PROGRAM.lessons.find((l) => l.id === id) || { id, n: +id.slice(1), title: '', grammar: '', status: 'done' };
+}
+
+function selectedTaskLesson() {
+  const list = taskLessons();
+  if (taskLesson && list.some((l) => l.id === taskLesson)) return lessonById(taskLesson);
+  const cur = currentLesson();
+  return cur && list.some((l) => l.id === cur.id) ? cur : list[list.length - 1] || null;
+}
+
+// Karta 2 na stronie głównej: zadania z lekcji.
+function lessonTasksCard() {
+  const list = taskLessons();
+  const L = selectedTaskLesson();
+  const cur = currentLesson();
+  if (!L) {
+    return `
+      <section class="card plan-focus daily-slide lesson-card">
+        <div class="focus-top"><h2 class="card-title">Zadania z lekcji</h2></div>
+        <p class="lk-empty">Zadania pojawią się po pierwszej lekcji z planu (program_A1.md).</p>
+      </section>`;
+  }
+  const parts = Exercises.generate(L.id, words).sections;
+  const stats = db.tasks[L.id];
+  return `
+    <section class="card plan-focus daily-slide lesson-card">
+      <div class="focus-top"><h2 class="card-title">Zadania z lekcji</h2></div>
+      <div class="lk-lesson">
+        <span class="lk-num">${L.id}</span>
+        <div class="lk-info"><b>${esc(L.title || 'Lekcja ' + L.n)}</b>${L.grammar ? `<span>${esc(L.grammar)}</span>` : ''}</div>
+        <span class="lk-status ${L.status}">${LESSON_STATUS[L.status] || ''}</span>
+      </div>
+      <div class="lk-parts">${parts.map((s) => `<span><b>${s.key}</b>${esc(s.title)} · ${s.items.length}</span>`).join('')}</div>
+      ${cur && !Exercises.supported(cur.id) ? `<p class="lk-note">Zadania do ${cur.id} „${esc(cur.title)}” jeszcze nie gotowe — na razie powtórz wcześniejsze lekcje.</p>` : ''}
+      ${list.length > 1 ? `
+      <div class="lk-pick" role="radiogroup" aria-label="Lekcja">
+        ${list.map((l) => `<button class="lk-chip ${l.id === L.id ? 'on' : ''}" role="radio" aria-checked="${l.id === L.id}" data-act="task-lesson" data-lesson="${l.id}" title="${esc(l.title)}">${l.id}${l.status === 'done' ? ' ✓' : ''}</button>`).join('')}
+      </div>` : ''}
+      ${stats ? `<p class="lk-best">Ostatnio <b>${stats.last}/${stats.total}</b> · najlepiej <b>${stats.best}/${stats.total}</b> · rozwiązano ${stats.n}×</p>` : ''}
+      <button class="btn pill wide" data-act="tasks-start">Rozwiąż zadania</button>
+    </section>`;
+}
+
+function startTasks(id) {
+  const ex = Exercises.generate(id, words);
+  if (!ex) return toast('Do tej lekcji nie ma jeszcze zadań');
+  EX = { lesson: id, sections: ex.sections, values: {}, results: {}, checked: false, start: Date.now() };
+  go('tasks');
+}
+
+const taskKey = (si, ii) => `${si}-${ii}`;
+
+function checkTasks() {
+  let ok = 0, typo = 0, total = 0;
+  EX.sections.forEach((s, si) => s.items.forEach((it, ii) => {
+    const k = taskKey(si, ii);
+    const r = Exercises.check(it, EX.values[k]);
+    EX.results[k] = r;
+    total++;
+    if (r === 'ok') ok++;
+    if (r === 'typo') typo++;
+  }));
+  const good = ok + typo;
+  EX.checked = true;
+  EX.score = { ok, typo, good, total };
+  // wynik, diamenty (1 za każdą dobrą), czas nauki i odpowiedzi do serii
+  const d = today();
+  const wasCounted = counted(dayKey());
+  d.ms += Math.min(Date.now() - EX.start, 30 * 60000);
+  d.n += total;
+  d.ok += good;
+  const st = db.tasks[EX.lesson] || { best: 0, n: 0 };
+  db.tasks[EX.lesson] = { best: Math.max(st.best, good), last: good, total, n: st.n + 1, at: Date.now() };
+  EX.gems = good + dailyRewards(wasCounted);
+  addGems(EX.gems);
+  save();
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function taskItem(it, k, n) {
+  const val = EX.values[k] || '';
+  const res = EX.results[k];
+  const mark = EX.checked ? (res === 'ok' ? 'ok' : res === 'typo' ? 'typo' : 'bad') : '';
+  if (it.kind === 'choice') {
+    const shown = val ? `<span class="tk-blank filled">${esc(val)}</span>` : '<span class="tk-blank">___</span>';
+    const prompt = esc(it.prompt).replace('___', shown);
+    return `
+      <li class="tk-item ${mark}" value="${n}">
+        <p class="tk-prompt">${prompt.includes('tk-blank') ? prompt : `${prompt} ${shown}`}</p>
+        <div class="tk-opts">
+          ${it.options.map((o) => {
+            const cls = EX.checked ? (o === it.answer ? 'right' : o === val ? 'wrong' : 'dim') : o === val ? 'on' : '';
+            return `<button class="tk-opt ${cls}" data-act="task-pick" data-k="${k}" data-v="${esc(o)}" ${EX.checked ? 'disabled' : ''}>${esc(o)}</button>`;
+          }).join('')}
+        </div>
+      </li>`;
+  }
+  return `
+    <li class="tk-item ${mark}" value="${n}">
+      <p class="tk-prompt">${esc(it.prompt)}${it.tag ? ` <span class="tk-tag">→ ${esc(it.tag)}</span>` : ''}</p>
+      <input class="tk-input" data-task="${k}" value="${esc(val)}" ${EX.checked ? 'readonly' : ''} autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false" lang="en" placeholder="Twoja odpowiedź" aria-label="Odpowiedź ${n}">
+      ${EX.checked && res !== 'ok' ? `<p class="tk-correct">${res === 'typo' ? 'Prawie — poprawnie' : 'Poprawnie'}: <b>${esc(it.answers[0])}</b> <button class="wr-say" data-say="${esc(it.answers[0])}" aria-label="Posłuchaj">${SPEAKER}</button></p>` : ''}
+    </li>`;
+}
+
+function viewTasks() {
+  if (!EX) { view = 'home'; return viewHome(); }
+  const L = lessonById(EX.lesson);
+  const total = EX.sections.reduce((n, s) => n + s.items.length, 0);
+  const answered = Object.values(EX.values).filter((v) => String(v).trim()).length;
+  const sc = EX.score;
+  return `
+    <header class="tk-top">
+      <button class="pk-back" data-act="tasks-back" aria-label="Wróć">${ICON.back}</button>
+      <div class="tk-title"><h2>Zadania · ${L.id}</h2><span>${esc(L.title)}</span></div>
+      <button class="pk-back" data-act="tasks-new" aria-label="Nowy zestaw" title="Nowy zestaw zadań">${ICON.refresh}</button>
+    </header>
+    <span class="pick-progress"><i style="width:${pct(EX.checked ? 1 : answered / total)}"></i></span>
+    ${EX.checked ? `
+    <section class="tk-score ${sc.good / sc.total >= 0.8 ? 'great' : ''}">
+      <b>${sc.good}/${sc.total}</b>
+      <span>${sc.good === sc.total ? 'Bezbłędnie! 🎉' : sc.good / sc.total >= 0.8 ? 'Świetnie!' : sc.good / sc.total >= 0.5 ? 'Nieźle — popraw błędy poniżej' : 'Przejrzyj poprawki i spróbuj nowego zestawu'}${sc.typo ? ` · ${sc.typo} prawie` : ''}</span>
+      <span class="tk-gems">+${EX.gems} ${gemIcon()}</span>
+      <div class="tk-secscore">${EX.sections.map((s, si) => {
+        const g = s.items.filter((_, ii) => EX.results[taskKey(si, ii)] !== 'wrong').length;
+        return `<span><b>${s.key}</b> ${g}/${s.items.length}</span>`;
+      }).join('')}</div>
+    </section>` : L.grammar ? `<p class="tk-grammar">✍️ ${esc(L.grammar)}</p>` : ''}
+    ${EX.sections.map((s, si) => `
+    <section class="tk-sec">
+      <h3><span class="tk-key">${s.key}</span>${esc(s.title)}</h3>
+      <ol class="tk-list">${s.items.map((it, ii) => taskItem(it, taskKey(si, ii), ii + 1)).join('')}</ol>
+    </section>`).join('')}
+    <div class="cv-cta tk-cta">
+      ${EX.checked
+        ? '<button class="cv-learn" data-act="tasks-new"><span>Nowy zestaw</span></button>'
+        : `<button class="cv-learn" data-act="tasks-check"><span>Sprawdź${answered < total ? ` (${answered}/${total})` : ''}</span></button>`}
+    </div>`;
+}
+
 function viewProfile() {
   const c = counts();
   const s = db.settings;
@@ -2151,6 +2301,16 @@ document.addEventListener('click', (e) => {
     case 'dunno': S.cur.typed = $('#typed')?.value || ''; S.cur.result = 'wrong'; answer(false, false, S.cur.typed); break;
     case 'quit': quitSession(); break;
     case 'home': go('home'); break;
+    case 'task-lesson': taskLesson = ds.lesson; render(); break;
+    case 'tasks-start': { const L = selectedTaskLesson(); if (L) startTasks(L.id); break; }
+    case 'task-pick': if (EX && !EX.checked) { EX.values[ds.k] = ds.v; render(); } break;
+    case 'tasks-check': checkTasks(); break;
+    case 'tasks-new': if (EX) { startTasks(EX.lesson); window.scrollTo(0, 0); } break;
+    case 'tasks-back':
+      if (EX && !EX.checked && Object.keys(EX.values).length) {
+        ask({ title: 'Wyjść z zadań?', text: 'Odpowiedzi nie zostaną sprawdzone.', ok: 'Wyjdź', cancel: 'Zostaję' }).then((yes) => { if (yes) { EX = null; go('home'); } });
+      } else { EX = null; go('home'); }
+      break;
     case 'coll-next': { const ref = S.coll; reopenColl(ref); startPick(ref); break; }
     case 'coll-return': reopenColl(S.coll); go('words'); break;
     case 'buy-freeze': buyFreeze(); break;
@@ -2178,7 +2338,7 @@ new ResizeObserver(updateScrollbar).observe(document.body);
 
 // Efekt fali po kliknięciu w przyciski Planu dnia.
 document.addEventListener('pointerdown', (e) => {
-  const el = e.target.closest('.ph-cta, .ph-task, .pk-card, .cv-learn, .pick-go, .rs-go');
+  const el = e.target.closest('.ph-cta, .ph-task, .pk-card, .cv-learn, .pick-go, .rs-go, .tk-opt');
   if (!el) return;
   const r = el.getBoundingClientRect();
   const size = Math.max(r.width, r.height) * 2.2;
@@ -2200,6 +2360,14 @@ document.addEventListener('submit', (e) => {
 
 document.addEventListener('input', (e) => {
   const t = e.target;
+  if (t.dataset.task && EX && !EX.checked) {
+    EX.values[t.dataset.task] = t.value;
+    const btn = $('[data-act="tasks-check"] span');
+    const total = EX.sections.reduce((n, s) => n + s.items.length, 0);
+    const answered = Object.values(EX.values).filter((v) => String(v).trim()).length;
+    if (btn) btn.textContent = `Sprawdź${answered < total ? ` (${answered}/${total})` : ''}`;
+    return;
+  }
   if (t.id === 'q') { wordsFilter.q = t.value; const pos = t.selectionStart; render(); const q = $('#q'); q.focus(); q.setSelectionRange(pos, pos); }
   if (t.dataset.set === 'rate') { db.settings.rate = +t.value; $('#rate-val').textContent = (+t.value).toFixed(2); save(); }
 });
@@ -2224,6 +2392,13 @@ document.addEventListener('change', (e) => {
 
 document.addEventListener('keydown', (e) => {
   if (document.querySelector('dialog.ask')) return; // otwarte okienko obsługuje klawisze samo
+  if (view === 'tasks' && e.key === 'Enter' && e.target.classList?.contains('tk-input')) {
+    e.preventDefault();
+    const inputs = [...document.querySelectorAll('.tk-input:not([readonly])')];
+    const next = inputs[inputs.indexOf(e.target) + 1];
+    if (next) next.focus(); else $('[data-act="tasks-check"]')?.focus();
+    return;
+  }
   if (view === 'player' && e.key === ' ') { e.preventDefault(); playerControl('toggle'); return; }
   if (view === 'word' && e.key === 'Escape') { closeWord(); return; }
   if (view === 'pick' && PK && e.target.tagName !== 'BUTTON') {

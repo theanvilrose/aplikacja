@@ -83,7 +83,51 @@
     return out;
   }
 
-  const api = { parseMarkdown, wordId };
+  // Plan kursu z program_A1.md: tabela „Kolejność lekcji” (lekcja | rozdział | gramatyka | temat | status)
+  // i tabela tematów (temat | rozdziały | kluczowe słowa).
+  function parseProgram(md) {
+    const lessons = [];
+    const themes = {};
+    let kind = null; // 'lessons' | 'themes' | null
+    let cols = null;
+    const status = (s) => (/✅/.test(s) ? 'done' : /📝/.test(s) ? 'progress' : 'todo');
+
+    for (const line of md.split(/\r?\n/)) {
+      if (!line.trim().startsWith('|')) { kind = null; cols = null; continue; }
+      const cells = splitRow(line);
+      if (cells.every((c) => /^:?-{2,}:?$/.test(c))) continue;
+      if (!cols) {
+        const find = (re) => cells.findIndex((c) => re.test(c));
+        cols = { lesson: find(/^lekcja$/i), chapter: find(/rozdział/i), grammar: find(/gramatyka/i), theme: find(/^temat/i), status: find(/status/i), words: find(/kluczowe/i) };
+        kind = cols.lesson >= 0 && cols.grammar >= 0 && cols.status >= 0 ? 'lessons' : cols.theme >= 0 && cols.words >= 0 ? 'themes' : 'other';
+        continue;
+      }
+      if (kind === 'lessons') {
+        const id = cells[cols.lesson];
+        const m = id.match(/^L(\d+)$/i);
+        if (!m) continue;
+        const chapter = cells[cols.chapter] || '';
+        lessons.push({
+          id: 'L' + m[1],
+          n: +m[1],
+          title: chapter.replace(/^R\d+\s*/i, '').trim(),
+          grammar: cells[cols.grammar] || '',
+          theme: (cells[cols.theme] || '').trim(),
+          status: status(cells[cols.status] || ''),
+        });
+      } else if (kind === 'themes') {
+        const m = (cells[cols.theme] || '').match(/^(T\d+)\s+(.*)$/);
+        if (!m) continue;
+        themes[m[1]] = {
+          name: m[2].trim(),
+          words: (cells[cols.words] || '').split(',').map((w) => w.replace(/✅/g, '').trim()).filter(Boolean),
+        };
+      }
+    }
+    return { lessons, themes };
+  }
+
+  const api = { parseMarkdown, parseProgram, wordId };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Parser = api;
 })(typeof window !== 'undefined' ? window : globalThis);
