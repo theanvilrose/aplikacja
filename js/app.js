@@ -2037,17 +2037,27 @@ function importMarkdown(text) {
   render();
 }
 
-function exportBackup() {
+// Na claude.ai (Artifact) plik zapisuje okienko Claude — zwykłe pobieranie jest tam zablokowane.
+const claudeDownloads = window.claude?.use ? window.claude.use('downloads').catch(() => null) : Promise.resolve(null);
+
+async function exportBackup() {
+  const name = `slowik-kopia-${dayKey()}.json`;
   const blob = new Blob([JSON.stringify(db, null, 1)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `slowik-kopia-${dayKey()}.json`;
-  a.click();
+  const downloads = await claudeDownloads;
+  if (downloads) {
+    try { await downloads.save({ filename: name, data: blob }); }
+    catch (e) { return toast(e?.code === 'declined' ? 'Nie zapisano kopii' : 'Nie udało się zapisać kopii'); }
+  } else {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
   db.lastBackup = Date.now();
   save();
   toast('💾 Kopia zapisana w folderze Pobrane');
   render();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 async function importBackup(text) {
