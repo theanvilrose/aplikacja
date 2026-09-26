@@ -109,3 +109,4 @@ Lista słówek bez ikony (zwroty nigdy nie mają ikon) — **Generuj** przy sło
 - Serwer: `tools/server.js` (zastąpił `python -m http.server`; ten sam adres `http://localhost:8765`, postępy zostają).
 - **Klucz nigdy nie trafia do przeglądarki ani do repozytorium.** Serwer czyta go z `OPENROUTER_API_KEY`, z `.env.local` albo z pliku wskazanego w `.dev-config.json` (`keyFile`). Oba pliki są w `.gitignore`.
 - Nowe ikony: `assets/words/gen_*.png` + mapa `js/word-icons-extra.js`.
+- **Opis przez Muse** (przełącznik w panelu): Meta Muse Spark 1.3 ogląda ikony-wzory i słowo, pisze opis sceny, a model obrazkowy (domyślnie Gemini 2.5 Flash Image) go rysuje. Muse nie generuje obrazków sam — zwraca tylko tekst. Opis widać pod podglądem ikony; dodatkowy koszt ok. $0,003.

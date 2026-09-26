@@ -85,10 +85,40 @@ function prompt(w) {
   ].join(' ');
 }
 
-async function generate(w, model) {
+// Meta Muse (tylko tekst) — ogląda wzory i słowo, pisze krótki opis sceny, który potem rysuje model obrazkowy.
+const MUSE_MODEL = 'meta/muse-spark-1.3';
+async function museBrief(w, refs) {
+  const res = await openrouter('POST', '/chat/completions', {
+    model: MUSE_MODEL,
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'text', text: [
+          `You design app icons for an English-learning app for Polish A1 learners. Word: "${w.en}" (Polish: "${w.pl}"${w.pos ? `, ${w.pos}` : ''}${w.topic ? `, topic: ${w.topic}` : ''}).`,
+          'Look at the attached reference icons (the app style). Write ONE short illustration brief (max 50 words) for a new icon in exactly that style:',
+          'what single subject or scene to draw so a learner instantly understands the meaning, the pose/gesture or objects, and one bright tile background color that differs from the references.',
+          'No text or letters in the picture. Reply with the brief only.',
+        ].join(' ') },
+        ...refs,
+      ],
+    }],
+    // Muse najpierw „myśli” — bez zapasu tokenów zwraca pustą odpowiedź
+    max_tokens: 1200,
+    reasoning: { effort: 'low', exclude: true },
+    usage: { include: true },
+  });
+  const text = res.choices && res.choices[0] && res.choices[0].message && res.choices[0].message.content;
+  if (!text) throw new Error('Muse nie zwrócił opisu');
+  return { brief: String(text).trim().replace(/^["']|["']$/g, '').slice(0, 600), cost: (res.usage && res.usage.cost) || 0 };
+}
+
+async function generate(w, model, useMuse) {
+  const refs = STYLE_REFS.filter((f) => fs.existsSync(path.join(WORDS_DIR, f))).map((f) => ({ type: 'image_url', image_url: { url: dataUrl(f) } }));
+  let brief = '', museCost = 0;
+  if (useMuse) ({ brief, cost: museCost } = await museBrief(w, refs));
   const content = [
-    { type: 'text', text: prompt(w) },
-    ...STYLE_REFS.filter((f) => fs.existsSync(path.join(WORDS_DIR, f))).map((f) => ({ type: 'image_url', image_url: { url: dataUrl(f) } })),
+    { type: 'text', text: prompt(w) + (brief ? ` Scene to draw: ${brief}` : '') },
+    ...refs,
   ];
   const res = await openrouter('POST', '/chat/completions', {
     model: MODELS.includes(model) ? model : DEFAULT_MODEL,
@@ -99,7 +129,7 @@ async function generate(w, model) {
   const msg = res.choices && res.choices[0] && res.choices[0].message;
   const img = msg && msg.images && msg.images[0] && msg.images[0].image_url && msg.images[0].image_url.url;
   if (!img) throw new Error('Model nie zwrócił obrazka' + (msg && msg.content ? `: ${String(msg.content).slice(0, 120)}` : ''));
-  return { image: img, cost: res.usage && res.usage.cost };
+  return { image: img, cost: ((res.usage && res.usage.cost) || 0) + museCost, brief };
 }
 
 // Ikony dodane z panelu: js/word-icons-extra.js (window.EXTRA_WORD_IMG) — aplikacja dokłada je do WORD_IMG.
@@ -140,12 +170,12 @@ async function api(req, res, url) {
       if (hasKey) {
         try { const c = await openrouter('GET', '/credits'); credits = c.data ? +(c.data.total_credits - c.data.total_usage).toFixed(2) : null; } catch (e) { /* bez salda */ }
       }
-      return json(res, 200, { ok: true, hasKey, credits, models: MODELS, model: DEFAULT_MODEL, extra: readExtra() });
+      return json(res, 200, { ok: true, hasKey, credits, models: MODELS, model: DEFAULT_MODEL, muse: MUSE_MODEL, extra: readExtra() });
     }
     if (url.pathname === '/api/dev/generate' && req.method === 'POST') {
-      const { word, model } = JSON.parse((await body(req)).toString('utf8'));
+      const { word, model, muse } = JSON.parse((await body(req)).toString('utf8'));
       if (!word || !word.id || !word.en) return json(res, 400, { error: 'Brak słowa' });
-      return json(res, 200, await generate(word, model));
+      return json(res, 200, await generate(word, model, !!muse));
     }
     if (url.pathname === '/api/dev/save' && req.method === 'POST') {
       const { id, png } = JSON.parse((await body(req, 3e6)).toString('utf8'));

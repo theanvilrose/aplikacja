@@ -2305,7 +2305,7 @@ function viewTasks() {
 // ---------- panel dewelopera: ikony słówek z OpenRouter (tylko przy lokalnym serwerze tools/server.js) ----------
 
 let DEV = null; // status z /api/dev/status; null = panel niedostępny (np. inna przeglądarka, telefon, GitHub)
-const DEVS = { model: '', busy: {}, preview: {}, errors: {}, spent: 0, bulk: null, topic: '' }; // topic: temat w sekcji „Twoje ikony”
+const DEVS = { model: '', busy: {}, preview: {}, errors: {}, briefs: {}, spent: 0, bulk: null, topic: '' }; // topic: temat w sekcji „Twoje ikony”
 const ICON_PRICE = 0.04; // ≈ $ za ikonę (Gemini 2.5 Flash Image) — tylko do podglądu kosztu
 
 async function devInit() {
@@ -2374,11 +2374,12 @@ async function devGenerate(id, { autoSave = false } = {}) {
   try {
     const r = await fetch('/api/dev/generate', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: DEVS.model, word: { id: w.id, en: w.en, pl: w.pl, pos: POS_NAMES[w.pos] || w.pos, topic: w.topic } }),
+      body: JSON.stringify({ model: DEVS.model, muse: !!db.settings.devMuse, word: { id: w.id, en: w.en, pl: w.pl, pos: POS_NAMES[w.pos] || w.pos, topic: w.topic } }),
     });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || 'Błąd generowania');
     DEVS.spent += j.cost || ICON_PRICE;
+    if (j.brief) DEVS.briefs[id] = j.brief; else delete DEVS.briefs[id];
     DEVS.preview[id] = await devProcess(j.image);
     if (autoSave) await devSave(id, { quiet: true });
   } catch (e) {
@@ -2439,7 +2440,7 @@ function devRow(w) {
   return `
     <div class="dv-row">
       ${img}
-      <div class="dv-text"><b>${esc(w.en)}</b><span>${esc(w.pl)}</span>${err ? `<em>${esc(err)}</em>` : ''}</div>
+      <div class="dv-text"><b>${esc(w.en)}</b><span>${esc(w.pl)}</span>${prev && DEVS.briefs[w.id] ? `<small class="dv-brief">🧠 Muse: ${esc(DEVS.briefs[w.id])}</small>` : ''}${err ? `<em>${esc(err)}</em>` : ''}</div>
       <div class="dv-actions">
         ${busy ? '<span class="dv-busy">Generuję…</span>'
           : prev ? `<button class="dv-btn ok" data-act="dev-save" data-id="${esc(w.id)}">Zapisz</button><button class="dv-btn" data-act="dev-gen" data-id="${esc(w.id)}" title="Jeszcze raz">↻</button>`
@@ -2489,6 +2490,11 @@ function viewDev() {
         ${DEV.models.map((m) => `<button class="seg ${DEVS.model === m ? 'on' : ''}" data-act="dev-model" data-model="${esc(m)}">${esc(m.replace('google/', '').replace('-image', ''))}</button>`).join('')}
       </div>
       <p class="set-hint">gemini-2.5-flash — najtańszy i najlepiej trzyma styl wzorów; pozostałe do porównania.</p>
+      <div class="set-row dv-muse">
+        ${setIcon('sparkle', ['#FFE8D2', '#A5460A'])}
+        <div class="set-text"><b>Opis przez Muse</b><span>Meta Muse Spark 1.3 ogląda wzory i słowo, pisze opis sceny, a model wyżej go rysuje. Muse sam nie rysuje obrazków. Koszt prawie bez zmian.</span></div>
+        <button class="switch ${db.settings.devMuse ? 'on' : ''}" role="switch" aria-checked="${!!db.settings.devMuse}" aria-label="Opis przez Muse" data-act="dev-muse"><span></span></button>
+      </div>
     </section>
 
     ${missing.length ? `
@@ -2799,6 +2805,7 @@ document.addEventListener('click', (e) => {
     case 'dev-bulk': devBulk(); break;
     case 'dev-stop': if (DEVS.bulk) { DEVS.bulk.stop = true; toast('Zatrzymuję po bieżącej ikonie…'); } break;
     case 'dev-model': DEVS.model = ds.model; render(); break;
+    case 'dev-muse': db.settings.devMuse = !db.settings.devMuse; save(); render(); break;
     case 'dev-topic': DEVS.topic = DEVS.topic === ds.topic ? '' : ds.topic; render(); break;
     case 'backup-later': db.backupSnooze = Date.now() + 3 * DAY; save(); render(); break;
     case 'reset':
