@@ -42,7 +42,7 @@ const PACKS = [
 const MIN_PACK = 5; // pakiet z mniejszą liczbą słów się nie pokazuje (np. Czasowniki, dopóki są 2) — pojawi się sam po kolejnych lekcjach
 const TINTS = ['#FFF1C9', '#DDF6E8', '#FFE6DF', '#DDEFFF', '#EFEAFF', '#FFE8D2'];
 
-// Ikony pakietów i tematów (wycięte z design/pack-icons.jpg przez tools/cut-packs.html → assets/pk-*.webp)
+// Ikony pakietów i tematów (assets/pk-*.png z Desktop/ikony_do_aplikacji; własne listy = notatnik „listy”)
 const COLL_ART = {
   'pack:podroze': 'podroze', 'pack:biznes': 'biznes', 'pack:phrases': 'rozmowki', 'pack:nouns': 'rzeczowniki',
   'pack:verbs': 'czasowniki', 'pack:adj': 'przymiotniki', 'pack:all': 'wszystkie',
@@ -55,7 +55,7 @@ const COLL_ART = {
 const ART_TINT = {
   powitania: ['#FDE9EF', '#EE86AA'], samopoczucie: ['#E3F6E2', '#58BF71'], grzecznosci: ['#FDF0DC', '#E3A04C'],
   pozegnania: ['#F3E6FA', '#B07ADB'], przedstawianie: ['#FFE9DC', '#F2925A'], kraje: ['#E2F0FD', '#56A2EC'],
-  swiat: ['#E2F0FD', '#56A2EC'], pochodzenie: ['#E0F4FA', '#44B0D2'], reagowanie: ['#E6F7EE', '#46BD85'],
+  swiat: ['#E2F0FD', '#56A2EC'], listy: ['#E6F0FF', '#4C86E8'], pochodzenie: ['#E0F4FA', '#44B0D2'], reagowanie: ['#E6F7EE', '#46BD85'],
   podroze: ['#E1EEFF', '#4F8FF0'], biznes: ['#E3E9FB', '#5A77DE'], czasowniki: ['#DDF0FF', '#3E9BEA'],
   rozmowki: ['#FDE4E6', '#EC6875'], rzeczowniki: ['#FFEEDB', '#F29B3C'], przymiotniki: ['#EEF1F8', '#8997C2'],
   'ostatnia-lekcja': ['#F3EAE2', '#B08561'], trudne: ['#E1ECFD', '#4C86E8'], bledy: ['#DFF5FB', '#31AFD3'],
@@ -211,6 +211,9 @@ const WORD_IMG = {
   'village': 'wies',
   'country': 'kraj',
   'nationality': 'narodowosc',
+  // przedstawianie się (Desktop/ikony_do_aplikacji)
+  'first name': 'first_name', 'friend': 'friend', 'mr': 'mr', 'mrs': 'mrs', 'ms': 'ms', 'name': 'name', 'surname': 'surname',
+  "i'm": 'im', 'you': 'you', "you're": 'youre', 'nice to meet you.': 'nice_to_meet_you', 'nice to meet you too.': 'nice_to_meet_you',
 };
 
 
@@ -344,8 +347,8 @@ function collection(ref) {
   }
   if (!c) return null;
   c.ref = ref;
-  const art = COLL_ART[ref] || (kind === 'topic' ? 'swiat' : null); // nowy temat z slowka.md → globus
-  c.img = art ? `pk-${art}.webp` : null;
+  const art = COLL_ART[ref] || (kind === 'topic' ? 'swiat' : kind === 'list' ? 'listy' : null); // nowy temat → globus
+  c.img = art ? `pk-${art}.png` : null;
   [c.tint, c.pill] = ART_TINT[art] || [c.bg, '#8C95B6'];
   c.total = c.ws.length;
   c.known = c.ws.filter((w) => isKnown(db.cards[w.id])).length;

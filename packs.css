@@ -1,4 +1,4 @@
-/* Ekran „Pakiety słówek” w stylu WRD + ikony pakietów (assets/pk-*.webp z tools/cut-packs.html) */
+/* Ekran „Pakiety słówek” w stylu WRD + ikony pakietów (assets/pk-*.png z Desktop/ikony_do_aplikacji) */
 
 .pk-top { position: sticky; top: 0; z-index: 5; margin: -14px -16px 8px; padding: 10px 16px 0; background: #f5f4fd; }
 .pk-bar { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; }
