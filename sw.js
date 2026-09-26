@@ -1,5 +1,5 @@
 // Service worker: aplikacja działa offline po pierwszym uruchomieniu.
-const CACHE = 'slowik-v30';
+const CACHE = 'slowik-v32';
 const FILES = [
   './', 'index.html', 'styles.css', 'plan-hero.css', 'packs.css', 'tasks.css', 'manifest.webmanifest', 'icon.svg',
   'js/seed-words.js', 'js/seed-lessons.js', 'js/parser.js', 'js/answer.js', 'js/exercises.js', 'js/srs.js', 'js/icons.js', 'js/word-icons-extra.js', 'js/app.js',
@@ -27,6 +27,7 @@ self.addEventListener('activate', (e) => {
 // Pliki aplikacji zawsze sprawdzamy na serwerze (bez starej kopii przeglądarki), więc zmiany widać od razu, bez Ctrl+F5.
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
+  if (new URL(e.request.url).pathname.startsWith('/api/')) return; // panel dewelopera — zawsze prosto z serwera
   const own = new URL(e.request.url).origin === self.location.origin;
   e.respondWith(
     (own ? fetch(e.request.url, { cache: 'no-cache' }) : fetch(e.request))

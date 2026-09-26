@@ -290,3 +290,11 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .dv-busy { font-size: 13px; font-weight: 800; color: #6143ff; }
 .dv-spin { width: 22px; height: 22px; border: 3px solid #e4e1f2; border-top-color: #6143ff; border-radius: 50%; animation: dv-spin 0.8s linear infinite; }
 @keyframes dv-spin { to { transform: rotate(360deg); } }
+/* skrót do panelu dewelopera na stronie głównej (tylko przy lokalnym serwerze) */
+.dv-home { display: flex; align-items: center; gap: 14px; width: 100%; margin: 14px 0 0; padding: 14px 16px; border: 2px dashed #c9bfff; border-radius: 22px; background: #f7f5ff; cursor: pointer; text-align: left; font: inherit; transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease; }
+.dv-home:hover { transform: translateY(-2px); background: #fff; border-color: #6143ff; }
+.dv-home-icon { font-size: 28px; }
+.dv-home-text { flex: 1; display: flex; flex-direction: column; }
+.dv-home-text b { font-family: var(--display); font-size: 18px; font-weight: 700; color: #131d4c; }
+.dv-home-text span { font-size: 14px; font-weight: 600; color: #6f7590; }
+.dv-home-go { font-size: 26px; color: #6143ff; }

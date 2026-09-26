@@ -1198,6 +1198,13 @@ function viewHome() {
     </div>
   </section>
 
+  ${DEV && devMissing().length ? `
+  <button class="dv-home" data-view="dev">
+    <span class="dv-home-icon" aria-hidden="true">🛠️</span>
+    <span class="dv-home-text"><b>Panel dewelopera</b><span>Brakuje ikon: ${devMissing().length} — wygeneruj jednym kliknięciem</span></span>
+    <span class="dv-home-go" aria-hidden="true">›</span>
+  </button>` : ''}
+
   ${sectionHead('Audio', '<button class="link" data-view="listen">Więcej ›</button>')}
   <div class="audio-row">
     <section class="audio-card yellow">
