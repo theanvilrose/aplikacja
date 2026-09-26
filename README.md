@@ -100,3 +100,12 @@ Postęp jest zapisany tylko w przeglądarce. Raz w tygodniu na stronie głównej
 ## Historia zmian
 
 Folder jest repozytorium git — każdy zestaw poprawek to osobny zapis (`git log`), który da się cofnąć.
+
+## Panel dewelopera — ikony słówek (OpenRouter)
+
+**Profil / Ustawienia → 🛠️ Panel dewelopera** (widoczny tylko przy uruchomieniu przez `start.bat`).
+Lista słówek bez ikony (zwroty nigdy nie mają ikon) — **Generuj** przy słowie albo **Generuj wszystkie brakujące** (≈ $0,04 za ikonę, z Twojego konta OpenRouter). Ikony powstają w stylu obecnych (wzory: friend, Polska, Mrs), aplikacja sama usuwa tło, docina kafelek i zaokrągla rogi. Przy słowie: **Zapisz**, **↻** nowa wersja, **✕** usuń.
+
+- Serwer: `tools/server.js` (zastąpił `python -m http.server`; ten sam adres `http://localhost:8765`, postępy zostają).
+- **Klucz nigdy nie trafia do przeglądarki ani do repozytorium.** Serwer czyta go z `OPENROUTER_API_KEY`, z `.env.local` albo z pliku wskazanego w `.dev-config.json` (`keyFile`). Oba pliki są w `.gitignore`.
+- Nowe ikony: `assets/words/gen_*.png` + mapa `js/word-icons-extra.js`.

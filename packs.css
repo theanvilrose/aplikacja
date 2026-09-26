@@ -265,3 +265,28 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .bn-close { flex-shrink: 0; width: 34px; height: 34px; border: 0; border-radius: 50%; background: none; display: grid; place-items: center; cursor: pointer; color: #b08a40; }
 .bn-close svg { width: 18px; height: 18px; }
 .bn-close:hover { background: #ffecc4; }
+
+/* ---- panel dewelopera: ikony słówek ---- */
+.dv-entry { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dv-entry h3 { margin: 0 0 2px; }
+.dv-bulk { margin: 4px 0 8px; height: 58px; font-size: 18px; }
+.dv-count { margin-left: 6px; padding: 1px 9px; border-radius: 999px; background: #efeaff; color: #5a3fe0; font-size: 14px; vertical-align: middle; }
+.dv-list { padding: 4px 12px; }
+.dv-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f0f1f6; }
+.dv-row:last-child { border-bottom: 0; }
+.dv-img { width: 56px; height: 56px; flex-shrink: 0; border-radius: 14px; box-shadow: 0 4px 10px rgba(30, 40, 90, 0.12); }
+.dv-img.empty { display: grid; place-items: center; box-shadow: none; border: 2px dashed #d9d5ee; color: #b3b0c8; font-family: var(--display); font-size: 22px; font-weight: 800; }
+.dv-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.dv-text b { font-family: var(--display); font-size: 18px; font-weight: 700; color: #1b1f3e; }
+.dv-text span { font-size: 14px; color: #7a7f95; }
+.dv-text em { font-style: normal; font-size: 13px; color: #c92a2a; }
+.dv-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.dv-btn { height: 38px; min-width: 38px; padding: 0 12px; border: 1.5px solid #e4e1f2; border-radius: 12px; background: #fff; cursor: pointer; font: 800 14px Nunito, sans-serif; color: #3f4566; transition: transform 0.15s ease, background 0.15s ease; }
+.dv-btn:hover:not(:disabled) { transform: translateY(-1px); background: #f5f3ff; }
+.dv-btn:disabled { opacity: 0.45; cursor: default; }
+.dv-btn.go { border-color: #6143ff; background: #6143ff; color: #fff; }
+.dv-btn.ok { border-color: #22b85a; background: #22b85a; color: #fff; }
+.dv-btn.danger { color: #c92a2a; }
+.dv-busy { font-size: 13px; font-weight: 800; color: #6143ff; }
+.dv-spin { width: 22px; height: 22px; border: 3px solid #e4e1f2; border-top-color: #6143ff; border-radius: 50%; animation: dv-spin 0.8s linear infinite; }
+@keyframes dv-spin { to { transform: rotate(360deg); } }

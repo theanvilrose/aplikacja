@@ -6,3 +6,7 @@ node_modules/
 
 # ustawienia lokalne (ścieżki z tego komputera)
 .claude/
+
+# panel dewelopera: klucz OpenRouter i ścieżka do niego (nigdy do repozytorium)
+.env.local
+.dev-config.json

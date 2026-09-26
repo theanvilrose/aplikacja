@@ -215,6 +215,8 @@ const WORD_IMG = {
   'first name': 'first_name', 'friend': 'friend', 'mr': 'mr', 'mrs': 'mrs', 'ms': 'ms', 'name': 'name', 'surname': 'surname',
   "i'm": 'im', 'you': 'you', "you're": 'youre',
 };
+// + ikony dodane w panelu dewelopera (js/word-icons-extra.js)
+Object.assign(WORD_IMG, window.EXTRA_WORD_IMG || {});
 
 
 
@@ -945,12 +947,12 @@ function stopPlayer() {
 // ---------- widoki ----------
 
 function render() {
-  const views = { home: viewHome, listen: viewListen, words: viewWords, profile: viewProfile, session: viewSession, summary: viewSummary, player: viewPlayer, 'plan-settings': viewPlanSettings, packs: viewPacks, word: viewWord, pick: viewPick, tasks: viewTasks, 'task-settings': viewTaskSettings };
+  const views = { home: viewHome, listen: viewListen, words: viewWords, profile: viewProfile, session: viewSession, summary: viewSummary, player: viewPlayer, 'plan-settings': viewPlanSettings, packs: viewPacks, word: viewWord, pick: viewPick, tasks: viewTasks, 'task-settings': viewTaskSettings, dev: viewDev };
   $('#app').innerHTML = views[view]();
   const navHidden = view === 'session' || view === 'player' || view === 'pick' || view === 'word' || view === 'tasks' || (view === 'summary' && !!S?.chestOpened);
   $('#nav').hidden = navHidden;
   document.body.classList.toggle('no-nav', navHidden);
-  const tab = view === 'words' && wordsFilter.coll && collFrom !== 'words' ? 'home' : view === 'summary' || view === 'plan-settings' || view === 'task-settings' || view === 'packs' ? 'home' : view;
+  const tab = view === 'words' && wordsFilter.coll && collFrom !== 'words' ? 'home' : view === 'summary' || view === 'plan-settings' || view === 'task-settings' || view === 'packs' ? 'home' : view === 'dev' ? 'profile' : view;
   document.querySelectorAll('#nav button').forEach((b) => b.classList.toggle('active', b.dataset.view === tab));
 
   const deck = $('#dailyDeck');
@@ -2291,6 +2293,199 @@ function viewTasks() {
     </div>`;
 }
 
+// ---------- panel dewelopera: ikony słówek z OpenRouter (tylko przy lokalnym serwerze tools/server.js) ----------
+
+let DEV = null; // status z /api/dev/status; null = panel niedostępny (np. inna przeglądarka, telefon, GitHub)
+const DEVS = { model: '', busy: {}, preview: {}, errors: {}, spent: 0, bulk: null };
+const ICON_PRICE = 0.04; // ≈ $ za ikonę (Gemini 2.5 Flash Image) — tylko do podglądu kosztu
+
+async function devInit() {
+  try {
+    const r = await fetch('/api/dev/status', { cache: 'no-store' });
+    if (!r.ok) return;
+    DEV = await r.json();
+    DEVS.model = DEVS.model || DEV.model;
+    Object.assign(WORD_IMG, DEV.extra || {});
+    if (view === 'profile' || view === 'dev') render();
+  } catch (e) { /* bez lokalnego serwera — panelu nie ma */ }
+}
+
+// słówka bez ikony (zwroty nigdy nie mają ikon)
+const devMissing = () => words.filter((w) => !isPhrase(w) && !WORD_IMG[w.id]);
+
+// Obróbka wygenerowanego obrazka: białe/szare tło od brzegów → przezroczyste, kafelek na cały kwadrat 128 px, zaokrąglone rogi.
+function devProcess(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const w = img.naturalWidth, h = img.naturalHeight;
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      const x = cv.getContext('2d', { willReadFrequently: true }); x.drawImage(img, 0, 0);
+      const d = x.getImageData(0, 0, w, h).data, N = w * h;
+      const neutral = (p) => { const o = p * 4, r = d[o], g = d[o + 1], b = d[o + 2]; return d[o + 3] < 20 || (Math.max(r, g, b) - Math.min(r, g, b) <= 12 && Math.min(r, g, b) >= 200); };
+      const bg = new Uint8Array(N), st = [];
+      for (let i = 0; i < w; i++) st.push(i, (h - 1) * w + i);
+      for (let j = 0; j < h; j++) st.push(j * w, j * w + w - 1);
+      for (const p of st.splice(0)) if (!bg[p] && neutral(p)) { bg[p] = 1; st.push(p); }
+      while (st.length) {
+        const p = st.pop(), px = p % w, py = (p / w) | 0;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nx = px + dx, ny = py + dy; if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+          const q = ny * w + nx; if (!bg[q] && neutral(q)) { bg[q] = 1; st.push(q); }
+        }
+      }
+      // obrys kafelka: wiersze i kolumny, w których kafelek zajmuje ponad połowę
+      let x0 = w, y0 = h, x1 = 0, y1 = 0;
+      const rows = new Array(h).fill(0), cols = new Array(w).fill(0);
+      for (let p = 0; p < N; p++) if (!bg[p]) { rows[(p / w) | 0]++; cols[p % w]++; }
+      rows.forEach((n, y) => { if (n > w * 0.5) { y0 = Math.min(y0, y); y1 = Math.max(y1, y); } });
+      cols.forEach((n, c) => { if (n > h * 0.5) { x0 = Math.min(x0, c); x1 = Math.max(x1, c); } });
+      if (x1 <= x0 || y1 <= y0) { x0 = 0; y0 = 0; x1 = w - 1; y1 = h - 1; }
+      const inset = Math.round(Math.min(w, h) * 0.012) + 1;
+      x0 += inset; y0 += inset; x1 -= inset; y1 -= inset;
+      const side = Math.min(x1 - x0 + 1, y1 - y0 + 1), sx = x0 + (x1 - x0 + 1 - side) / 2, sy = y0 + (y1 - y0 + 1 - side) / 2;
+      const OUT = 128, out = document.createElement('canvas'); out.width = out.height = OUT;
+      const o = out.getContext('2d');
+      o.imageSmoothingQuality = 'high';
+      const R = OUT * 0.22;
+      o.beginPath(); o.roundRect(0, 0, OUT, OUT, R); o.clip();
+      o.drawImage(img, sx, sy, side, side, 0, 0, OUT, OUT);
+      resolve(out.toDataURL('image/png'));
+    };
+    img.onerror = () => reject(new Error('Nie da się odczytać obrazka'));
+    img.src = src;
+  });
+}
+
+async function devGenerate(id, { autoSave = false } = {}) {
+  const w = byId.get(id);
+  if (!w) return;
+  DEVS.busy[id] = true; delete DEVS.errors[id];
+  if (view === 'dev') render();
+  try {
+    const r = await fetch('/api/dev/generate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: DEVS.model, word: { id: w.id, en: w.en, pl: w.pl, pos: POS_NAMES[w.pos] || w.pos, topic: w.topic } }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'Błąd generowania');
+    DEVS.spent += j.cost || ICON_PRICE;
+    DEVS.preview[id] = await devProcess(j.image);
+    if (autoSave) await devSave(id, { quiet: true });
+  } catch (e) {
+    DEVS.errors[id] = e.message;
+  }
+  delete DEVS.busy[id];
+  if (view === 'dev') render();
+}
+
+async function devSave(id, { quiet = false } = {}) {
+  const png = DEVS.preview[id];
+  if (!png) return;
+  const r = await fetch('/api/dev/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, png }) });
+  const j = await r.json();
+  if (!r.ok) { DEVS.errors[id] = j.error || 'Nie zapisano'; return; }
+  WORD_IMG[id] = j.file;
+  if (DEV) DEV.extra = { ...(DEV.extra || {}), [id]: j.file };
+  delete DEVS.preview[id];
+  if (!quiet) { toast(`✓ Ikona „${byId.get(id)?.en}” zapisana`); render(); }
+}
+
+async function devRemove(id) {
+  if (!(await ask({ title: `Usunąć ikonę „${byId.get(id)?.en || id}”?`, text: 'Słowo znowu będzie bez ikony — możesz wygenerować nową.', ok: 'Usuń', danger: true }))) return;
+  await fetch('/api/dev/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+  delete WORD_IMG[id];
+  if (DEV && DEV.extra) delete DEV.extra[id];
+  render();
+}
+
+async function devBulk() {
+  const ids = devMissing().map((w) => w.id).filter((id) => !DEVS.preview[id]);
+  if (!ids.length) return;
+  const ok = await ask({
+    title: `Wygenerować ${ids.length} ${plural(ids.length, 'ikonę', 'ikony', 'ikon')}?`,
+    text: `Koszt ok. $${(ids.length * ICON_PRICE).toFixed(2)} z Twojego konta OpenRouter${DEV.credits != null ? ` (zostało $${DEV.credits})` : ''}. Ikony zapiszą się same — każdą możesz potem usunąć albo wygenerować od nowa.`,
+    ok: 'Generuj',
+  });
+  if (!ok) return;
+  DEVS.bulk = { done: 0, total: ids.length, stop: false };
+  for (const id of ids) {
+    if (DEVS.bulk.stop) break;
+    await devGenerate(id, { autoSave: true });
+    DEVS.bulk.done++;
+    if (view === 'dev') render();
+  }
+  const done = DEVS.bulk.done;
+  DEVS.bulk = null;
+  toast(`Gotowe: ${done} ${plural(done, 'ikona', 'ikony', 'ikon')}`);
+  devInit();
+}
+
+function devRow(w) {
+  const busy = DEVS.busy[w.id], prev = DEVS.preview[w.id], err = DEVS.errors[w.id], own = DEV.extra && DEV.extra[w.id];
+  const img = prev ? `<img class="dv-img" src="${prev}" alt="">` : WORD_IMG[w.id] ? `<img class="dv-img" src="assets/words/${WORD_IMG[w.id]}.png" alt="">` : `<span class="dv-img empty">${busy ? '<i class="dv-spin"></i>' : '?'}</span>`;
+  return `
+    <div class="dv-row">
+      ${img}
+      <div class="dv-text"><b>${esc(w.en)}</b><span>${esc(w.pl)}</span>${err ? `<em>${esc(err)}</em>` : ''}</div>
+      <div class="dv-actions">
+        ${busy ? '<span class="dv-busy">Generuję…</span>'
+          : prev ? `<button class="dv-btn ok" data-act="dev-save" data-id="${esc(w.id)}">Zapisz</button><button class="dv-btn" data-act="dev-gen" data-id="${esc(w.id)}" title="Jeszcze raz">↻</button>`
+          : own ? `<button class="dv-btn" data-act="dev-gen" data-id="${esc(w.id)}" title="Nowa wersja">↻</button><button class="dv-btn danger" data-act="dev-remove" data-id="${esc(w.id)}" title="Usuń ikonę">✕</button>`
+          : `<button class="dv-btn go" data-act="dev-gen" data-id="${esc(w.id)}" ${DEVS.bulk ? 'disabled' : ''}>Generuj</button>`}
+      </div>
+    </div>`;
+}
+
+function viewDev() {
+  if (!DEV) {
+    return `
+    <header class="page-head"><button class="icon-round" data-view="profile" aria-label="Wróć">${ICON.back}</button><h1>Panel dewelopera</h1><span class="page-head-spacer"></span></header>
+    <p class="card muted">Panel działa tylko przy uruchomieniu przez <b>start.bat</b> (lokalny serwer z kluczem OpenRouter).</p>`;
+  }
+  const missing = devMissing();
+  const own = Object.keys(DEV.extra || {}).map((id) => byId.get(id)).filter(Boolean);
+  const groups = {};
+  for (const w of missing) (groups[w.topic] = groups[w.topic] || []).push(w);
+  const b = DEVS.bulk;
+  return `
+    <header class="page-head">
+      <button class="icon-round" data-view="profile" aria-label="Wróć">${ICON.back}</button>
+      <h1>Panel dewelopera</h1>
+      <span class="page-head-spacer"></span>
+    </header>
+
+    <section class="plan-preview">
+      <span class="overline light">Ikony słówek · OpenRouter</span>
+      <div class="pp-stats">
+        <div><b>${missing.length}</b><span>bez ikony</span></div>
+        <div><b>${own.length}</b><span>z panelu</span></div>
+        <div><b>${DEV.credits != null ? '$' + DEV.credits : '—'}</b><span>na koncie</span></div>
+      </div>
+      <p class="pp-forecast">${ICON.target}<span>${DEV.hasKey ? `Ikony w stylu Twoich obecnych (wzory: friend, Polska, Mrs). Tylko słówka — zwroty są bez ikon. Ok. $${ICON_PRICE.toFixed(2)} za ikonę${DEVS.spent ? ` · w tej sesji: $${DEVS.spent.toFixed(2)}` : ''}.` : 'Brak klucza OpenRouter — zobacz .dev-config.json / .env.local (tools/server.js).'}</span></p>
+    </section>
+
+    ${DEV.hasKey ? `
+    <section class="card set-card">
+      <div class="set-head">${setIcon('sparkle', ['#E7E0FF', '#5A3FE0'])}<b>Model</b></div>
+      <div class="segmented" role="radiogroup" aria-label="Model">
+        ${DEV.models.map((m) => `<button class="seg ${DEVS.model === m ? 'on' : ''}" data-act="dev-model" data-model="${esc(m)}">${esc(m.replace('google/', '').replace('-image', ''))}</button>`).join('')}
+      </div>
+      <p class="set-hint">gemini-2.5-flash — najtańszy i najlepiej trzyma styl wzorów; pozostałe do porównania.</p>
+    </section>
+
+    ${missing.length ? `
+    <button class="cv-learn dv-bulk" data-act="${b ? 'dev-stop' : 'dev-bulk'}"><span>${b ? `Generuję ${b.done}/${b.total}… (zatrzymaj)` : `Generuj wszystkie brakujące (${missing.length}) · ≈ $${(missing.length * ICON_PRICE).toFixed(2)}`}</span></button>` : '<p class="card muted center">Wszystkie słówka mają ikony 🎉</p>'}
+
+    ${Object.entries(groups).map(([t, ws]) => `
+      <h2 class="section-title">${esc(t)} <span class="dv-count">${ws.length}</span></h2>
+      <section class="card dv-list">${ws.map(devRow).join('')}</section>`).join('')}
+
+    ${own.length ? `
+      <h2 class="section-title">Dodane w panelu <span class="dv-count">${own.length}</span></h2>
+      <section class="card dv-list">${own.map(devRow).join('')}</section>` : ''}` : ''}`;
+}
+
 function viewProfile() {
   const c = counts();
   const s = db.settings;
@@ -2393,6 +2588,12 @@ function viewProfile() {
       <label class="check"><input type="checkbox" data-set="autoplay" ${s.autoplay ? 'checked' : ''}> Czytaj słowa automatycznie</label>
       <button class="btn" data-say="Hello! Nice to meet you.">🔊 Test głosu</button>
     </section>
+
+    ${DEV ? `
+    <section class="card dv-entry">
+      <div><h3>🛠️ Panel dewelopera</h3><p class="muted small">Ikony do słówek jednym kliknięciem (OpenRouter). Bez ikony: ${devMissing().length}.</p></div>
+      <button class="btn pill" data-view="dev">Otwórz</button>
+    </section>` : ''}
 
     <section class="card form">
       <h3>Słówka i kopia zapasowa</h3>
@@ -2569,6 +2770,12 @@ document.addEventListener('click', (e) => {
       save(); toast('Przywrócono ustawienia domyślne'); render();
       break;
     case 'export': exportBackup(); break;
+    case 'dev-gen': devGenerate(ds.id); break;
+    case 'dev-save': devSave(ds.id); break;
+    case 'dev-remove': devRemove(ds.id); break;
+    case 'dev-bulk': devBulk(); break;
+    case 'dev-stop': if (DEVS.bulk) { DEVS.bulk.stop = true; toast('Zatrzymuję po bieżącej ikonie…'); } break;
+    case 'dev-model': DEVS.model = ds.model; render(); break;
     case 'backup-later': db.backupSnooze = Date.now() + 3 * DAY; save(); render(); break;
     case 'reset':
       ask({ title: 'Wyzerować wszystko?', text: 'Cały postęp nauki, diamenty, seria, odznaki i listy znikną. Tego nie da się cofnąć.', ok: 'Wyzeruj', danger: true }).then((yes) => {
@@ -2687,6 +2894,7 @@ $('#nav').innerHTML = [
 buildWords();
 applyFreezes();
 render();
+devInit();
 
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
