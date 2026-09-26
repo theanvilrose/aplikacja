@@ -27,14 +27,17 @@ const BADGES = [
 
 // Pakiety słówek: tematyczne i gramatyczne w stylu kart
 const PACKS = [
-  { key: 'podroze', name: 'Podróże', color: '#FFD84D', textColor: '#1E1B33', test: (w) => /podróż|kraj|narodow|pochodz|zamieszk|miast|hotel|lotnis|bilet|zwiedz/i.test(w.topic || '') || /kraj|narodow/i.test(w.pos || '') },
-  { key: 'biznes', name: 'Biznes', color: '#4EB4FF', textColor: '#FFFFFF', test: (w) => /biznes|praca|biuro|reagow|grzeczn|rozmow/i.test(w.topic || '') },
-  { key: 'phrases', name: 'Rozmówki', color: '#FF7568', textColor: '#FFFFFF', test: (w, pos) => /zwrot/i.test(pos) || /powita|pożegn|przedstaw|samopocz/i.test(w.topic || '') },
+  // Podróże: kraje, pochodzenie, miasto, hotel… — bez przymiotników narodowości (są w temacie Kraje i w Przymiotnikach)
+  { key: 'podroze', name: 'Podróże', color: '#FFD84D', textColor: '#1E1B33', test: (w, pos) => !/^przym/i.test(pos) && /podróż|kraj|narodow|pochodz|zamieszk|miast|hotel|lotnis|bilet|zwiedz/i.test(w.topic || '') },
+  // klucz 'biznes' zostaje (ikona, zapisany „Wznów”) — w praktyce to zwroty grzecznościowe i reakcje w rozmowie
+  { key: 'biznes', name: 'Grzeczności i rozmowa', color: '#4EB4FF', textColor: '#FFFFFF', test: (w) => /reagow|grzeczn|rozmow/i.test(w.topic || '') },
+  { key: 'phrases', name: 'Rozmówki', color: '#FF7568', textColor: '#FFFFFF', test: (w, pos) => /zwrot/i.test(pos) },
   { key: 'nouns', name: 'Rzeczowniki', color: '#FFA834', textColor: '#FFFFFF', test: (w, pos) => /^rz/i.test(pos) },
   { key: 'verbs', name: 'Czasowniki', color: '#4CD080', textColor: '#FFFFFF', test: (w, pos) => /^cz/i.test(pos) },
   { key: 'adj', name: 'Przymiotniki', color: '#9E7BFF', textColor: '#FFFFFF', test: (w, pos) => /^przym/i.test(pos) },
   { key: 'all', name: 'Wszystkie', color: '#8DCBFF', textColor: '#1E1B33', test: () => true },
 ];
+const MIN_PACK = 5; // pakiet z mniejszą liczbą słów się nie pokazuje (np. Czasowniki, dopóki są 2) — pojawi się sam po kolejnych lekcjach
 const TINTS = ['#FFF1C9', '#DDF6E8', '#FFE6DF', '#DDEFFF', '#EFEAFF', '#FFE8D2'];
 
 // Ikony pakietów i tematów (wycięte z design/pack-icons.jpg przez tools/cut-packs.html → assets/pk-*.webp)
@@ -1024,7 +1027,7 @@ function backupNag() {
 }
 
 function viewHome() {
-  const packs = PACKS.map((p) => collection('pack:' + p.key)).filter((x) => x && x.total);
+  const packs = PACKS.map((p) => collection('pack:' + p.key)).filter((x) => x && x.total >= MIN_PACK);
   const lists = [...['auto:last', 'auto:hard'].map(collection).filter((x) => x && x.total), ...db.lists.map((l) => collection('list:' + l.id))];
   const topics = topicsList().map((tp) => collection('topic:' + tp.name));
   const seen = counts().seen;
@@ -1112,7 +1115,7 @@ function pkCard(c) {
 function viewPacks() {
   const show = (c) => c && c.total && (packsTab === 'all' || collStage(c) === packsTab);
   const groups = [
-    ['Pakiety', PACKS.filter((p) => p.key !== 'all').map((p) => collection('pack:' + p.key)).filter(show)],
+    ['Pakiety', PACKS.filter((p) => p.key !== 'all').map((p) => collection('pack:' + p.key)).filter((c) => show(c) && c.total >= MIN_PACK)],
     ['Tematy', topicsList().map((t) => collection('topic:' + t.name)).filter(show)],
   ].filter(([, cs]) => cs.length);
   const empty = { learning: 'Jeszcze nic nie zacząłeś — wybierz pakiet w zakładce Wszystkie.', known: 'Jeszcze nic nie wyuczone — ucz się dalej! 💪' };

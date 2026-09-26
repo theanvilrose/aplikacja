@@ -1,5 +1,5 @@
 // Service worker: aplikacja działa offline po pierwszym uruchomieniu.
-const CACHE = 'slowik-v17';
+const CACHE = 'slowik-v18';
 const FILES = [
   './', 'index.html', 'styles.css', 'plan-hero.css', 'packs.css', 'manifest.webmanifest', 'icon.svg',
   'js/seed-words.js', 'js/parser.js', 'js/answer.js', 'js/srs.js', 'js/icons.js', 'js/app.js',
