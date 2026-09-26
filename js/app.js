@@ -109,14 +109,13 @@ let S = null; // bieżąca sesja nauki / test
 let P = null; // odtwarzacz w trybie słuchania
 let wordsFilter = { q: '', coll: '', status: '', kind: '' };
 let listenSource = '__seen';
-let openWord = null;
 let collFrom = 'home'; // skąd wszedłeś do pakietu (strzałka wstecz)
 
 function normalize(d) {
   return {
     cards: d.cards || {}, days: d.days || {}, extra: d.extra || [],
     gems: d.gems || 0, freezes: d.freezes || 0, best: d.best || 0,
-    lists: d.lists || [], exams: d.exams || [], path: d.path || [], mistakes: d.mistakes || [], badges: d.badges || {}, lastColl: d.lastColl || null,
+    lists: d.lists || [], exams: d.exams || [], path: d.path || [], mistakes: d.mistakes || [], badges: d.badges || {}, lastColl: d.lastColl || null, lastBackup: d.lastBackup || 0, backupSnooze: d.backupSnooze || 0,
     settings: { ...DEFAULT_SETTINGS, ...(d.settings || {}) },
   };
 }
@@ -353,10 +352,46 @@ function pathName(i) {
 
 const examDef = (key) => EXAMS.find((x) => x.key === key);
 
+// ---------- okienko w stylu aplikacji (zamiast prompt / confirm przeglądarki) ----------
+
+// ask({ title, text, input, value, ok, danger }) → tekst z pola (gdy input), true / false (pytanie) albo null (Anuluj)
+function ask({ title, text = '', input = false, value = '', ok = 'OK', cancel = 'Anuluj', danger = false }) {
+  if (document.querySelector('dialog.ask')) return Promise.resolve(input ? null : false); // jedno okienko naraz
+  return new Promise((resolve) => {
+    const dlg = document.createElement('dialog');
+    dlg.className = 'ask';
+    dlg.innerHTML = `
+      <form method="dialog" class="ask-box">
+        <h2>${esc(title)}</h2>
+        ${text ? `<p>${esc(text)}</p>` : ''}
+        ${input ? `<input class="ask-input" value="${esc(value)}" maxlength="40" autocomplete="off" required>` : ''}
+        <div class="ask-actions">
+          <button type="button" class="ask-btn ghost" value="cancel">${esc(cancel)}</button>
+          <button type="submit" class="ask-btn ${danger ? 'danger' : ''}" value="ok">${esc(ok)}</button>
+        </div>
+      </form>`;
+    document.body.append(dlg);
+    const field = dlg.querySelector('.ask-input');
+    let answer = null;
+    dlg.querySelector('.ghost').addEventListener('click', () => dlg.close());
+    dlg.querySelector('form').addEventListener('submit', (e) => {
+      if (input && !field.value.trim()) { e.preventDefault(); field.focus(); return; }
+      answer = input ? field.value.trim() : true;
+    });
+    let done = false;
+    const finish = () => { if (done) return; done = true; dlg.remove(); resolve(input ? answer : !!answer); };
+    dlg.addEventListener('close', finish);
+    dlg.addEventListener('cancel', () => { answer = null; setTimeout(finish, 0); }); // Esc = Anuluj (sprząta nawet bez zdarzenia close)
+    dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); }); // klik w tło = Anuluj
+    dlg.showModal();
+    if (field) { field.focus(); field.select(); } else dlg.querySelector('[value="ok"]').focus();
+  });
+}
+
 // ---------- moje listy ----------
 
-function createList(firstWordId) {
-  const name = (prompt('Nazwa nowej listy:', '') || '').trim();
+async function createList(firstWordId) {
+  const name = await ask({ title: 'Nowa lista', text: 'Jak ją nazwiesz?', input: true, ok: 'Utwórz' });
   if (!name) return null;
   const l = { id: 'l' + Date.now().toString(36), name, ids: firstWordId ? [firstWordId] : [] };
   db.lists.push(l);
@@ -373,16 +408,16 @@ function toggleInList(listId, wordId) {
   save();
 }
 
-function renameList(l) {
-  const name = (prompt('Nowa nazwa listy:', l.name) || '').trim();
+async function renameList(l) {
+  const name = await ask({ title: 'Zmień nazwę listy', input: true, value: l.name, ok: 'Zapisz' });
   if (!name) return;
   l.name = name;
   save();
   render();
 }
 
-function deleteList(l) {
-  if (!confirm(`Usunąć listę „${l.name}”? Słówka i postęp zostają.`)) return;
+async function deleteList(l) {
+  if (!(await ask({ title: `Usunąć listę „${l.name}”?`, text: 'Słówka i postęp nauki zostają.', ok: 'Usuń', danger: true }))) return;
   db.lists = db.lists.filter((x) => x.id !== l.id);
   save();
   go('home');
@@ -691,14 +726,14 @@ function finish() {
   window.scrollTo(0, 0);
 }
 
-function quitSession() {
+async function quitSession() {
   if (!S) return;
   if (S.mode === 'exam') {
-    if (S.pos === 0 || confirm('Przerwać test? Wynik nie zostanie zapisany.')) { S = null; go('home'); }
+    if (S.pos === 0 || (await ask({ title: 'Przerwać test?', text: 'Wynik nie zostanie zapisany.', ok: 'Przerwij', cancel: 'Wracam do testu', danger: true }))) { S = null; go('home'); }
     return;
   }
-  if (S.answers.length && !confirm('Zakończyć sesję? Postęp jest już zapisany.')) return;
-  finish();
+  if (S.answers.length && !(await ask({ title: 'Zakończyć sesję?', text: 'Postęp jest już zapisany.', ok: 'Zakończ', cancel: 'Uczę się dalej' }))) return;
+  if (S) finish();
 }
 
 // ---------- tryb słuchania (odtwarzacz) ----------
@@ -974,6 +1009,20 @@ function mistakesCard() {
   </section>`;
 }
 
+// Przypomnienie o kopii: postęp żyje tylko w tej przeglądarce — raz w tygodniu prosimy o eksport.
+function backupNag() {
+  const now = Date.now();
+  if (counts().seen < 10 || now - db.lastBackup < 7 * DAY || now < db.backupSnooze) return '';
+  const days = db.lastBackup ? Math.floor((now - db.lastBackup) / DAY) : 0;
+  return `
+  <section class="backup-nag">
+    <span class="bn-icon" aria-hidden="true">💾</span>
+    <div class="bn-text"><b>Zrób kopię postępów</b><span>${days ? `Ostatnia ${days} dni temu — ` : ''}postęp jest tylko w tej przeglądarce.</span></div>
+    <button class="bn-go" data-act="export">Zapisz</button>
+    <button class="bn-close" data-act="backup-later" aria-label="Przypomnij za 3 dni" title="Przypomnij za 3 dni">${ICON.close}</button>
+  </section>`;
+}
+
 function viewHome() {
   const packs = PACKS.map((p) => collection('pack:' + p.key)).filter((x) => x && x.total);
   const lists = [...['auto:last', 'auto:hard'].map(collection).filter((x) => x && x.total), ...db.lists.map((l) => collection('list:' + l.id))];
@@ -987,6 +1036,7 @@ function viewHome() {
       ${planCard()}
     </div>
   </section>
+  ${backupNag()}
 
   ${sectionHead('Pakiety słówek', '<button class="link" data-act="all-words">Wszystkie ›</button>')}
   <div class="packs">${packs.map(packCard).join('')}</div>
@@ -1569,10 +1619,10 @@ function wordRow(w) {
   const c = db.cards[w.id];
   const lvl = c ? Math.max(1, c.level) : 0;
   return `
-    <div class="word-row" role="button" tabindex="0" data-wopen="${esc(w.id)}" aria-label="${esc(w.en)} — szczegóły">
+    <div class="word-row">
       <span class="wr-icon">${wordIcon(w)}</span>
       <span class="wr-main">
-        <span class="wr-en"><b>${esc(w.en)}</b><button class="wr-say" data-say="${esc(w.en)}" aria-label="Posłuchaj" title="Posłuchaj">${SPEAKER}</button></span>
+        <span class="wr-en"><button class="wr-open" data-wopen="${esc(w.id)}" title="Szczegóły słówka"><b>${esc(w.en)}</b></button><button class="wr-say" data-say="${esc(w.en)}" aria-label="Posłuchaj" title="Posłuchaj">${SPEAKER}</button></span>
         <span class="wr-pl">${esc(w.pl)}</span>
       </span>
       ${isKnown(c) ? `<span class="wr-known" title="Wyuczone">${ICON.check}</span>` : `<span class="wr-lvl dots" title="Poziom: ${LEVEL_NAMES[lvl]}">${[1, 2, 3, 4, 5].map((i) => `<i class="${i <= lvl ? 'on' : ''}"></i>`).join('')}</span>`}
@@ -1834,10 +1884,10 @@ function resumeCard() {
   const c = db.lastColl && collection(db.lastColl);
   if (!c || !c.total || c.known === c.total) return '';
   return `
-  <div class="rs-card" data-coll="${esc(c.ref)}" role="button" tabindex="0" style="--tint:${c.tint}">
+  <div class="rs-card" style="--tint:${c.tint}">
     <span class="rs-art">${c.img ? IMG(c.img, 'rs-img') : c.art}</span>
     <span class="rs-text">
-      <b>${esc(c.name)}</b>
+      <button class="rs-open" data-coll="${esc(c.ref)}" title="Otwórz listę słówek"><b>${esc(c.name)}</b></button>
       <span>Umiesz ${c.known} z ${c.total}</span>
       <button class="rs-go" data-act="resume" data-ref="${esc(c.ref)}">Wznów</button>
     </span>
@@ -1953,6 +2003,7 @@ function viewProfile() {
       <p class="muted small">Słówka aktualizują się same przy każdym uruchomieniu <b>start.bat</b> (z pliku slowka.md). Import ręczny przydaje się np. na telefonie.</p>
       <label class="btn file">📥 Importuj slowka.md<input type="file" accept=".md,.txt,text/markdown" data-file="md" hidden></label>
       <button class="btn" data-act="export">💾 Eksportuj postępy</button>
+      <p class="muted small">${db.lastBackup ? `Ostatnia kopia: ${formatDate(dayKey(new Date(db.lastBackup)))}` : 'Nie masz jeszcze kopii — zrób ją raz w tygodniu.'}</p>
       <label class="btn file">📂 Wczytaj kopię<input type="file" accept=".json,application/json" data-file="backup" hidden></label>
       <button class="btn danger" data-act="reset">Wyzeruj postępy</button>
     </section>
@@ -1989,14 +2040,18 @@ function exportBackup() {
   a.href = URL.createObjectURL(blob);
   a.download = `slowik-kopia-${dayKey()}.json`;
   a.click();
+  db.lastBackup = Date.now();
+  save();
+  toast('💾 Kopia zapisana w folderze Pobrane');
+  render();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-function importBackup(text) {
+async function importBackup(text) {
   let d;
   try { d = JSON.parse(text); } catch (e) { return toast('To nie jest poprawny plik kopii'); }
   if (!d || typeof d.cards !== 'object') return toast('To nie jest poprawny plik kopii');
-  if (!confirm('Zastąpić obecne postępy tą kopią?')) return;
+  if (!(await ask({ title: 'Wczytać kopię?', text: 'Obecne postępy zostaną zastąpione tą kopią.', ok: 'Wczytaj', danger: true }))) return;
   db = normalize(d);
   save();
   buildWords();
@@ -2014,7 +2069,6 @@ function go(v) {
 function openCollection(ref) {
   if (ref && view !== 'words') collFrom = view === 'packs' ? 'packs' : 'home';
   wordsFilter = { q: '', coll: ref, status: '', kind: '' };
-  openWord = null;
   go('words');
 }
 
@@ -2051,7 +2105,7 @@ document.addEventListener('click', (e) => {
   if (ds.coll !== undefined) { e.preventDefault(); openCollection(ds.coll); return; }
   if (ds.listtoggle) { toggleInList(ds.listtoggle, ds.word); render(); return; }
   if (ds.view) {
-    if (ds.view === 'words') { wordsFilter = { q: '', coll: '', status: '' }; openWord = null; }
+    if (ds.view === 'words') wordsFilter = { q: '', coll: '', status: '', kind: '' };
     go(ds.view);
     return;
   }
@@ -2083,11 +2137,9 @@ document.addEventListener('click', (e) => {
     case 'coll-player': if (coll) startPlayer(byKind(coll.ws).map((w) => w.id)); break;
     case 'coll-review': if (coll) startSession({ ids: byKind(coll.ws).filter((w) => db.cards[w.id]).map((w) => w.id), mode: 'extra' }); break;
     case 'all-words': go('packs'); break;
-    case 'new-list': {
-      const l = createList(ds.word);
-      if (l && !ds.word) openCollection('list:' + l.id); else render();
+    case 'new-list':
+      createList(ds.word).then((l) => { if (l && !ds.word) openCollection('list:' + l.id); else render(); });
       break;
-    }
     case 'rename-list': if (coll?.list) renameList(coll.list); break;
     case 'delete-list': if (coll?.list) deleteList(coll.list); break;
     case 'intro-next': introDone(); break;
@@ -2105,11 +2157,13 @@ document.addEventListener('click', (e) => {
       save(); toast('Przywrócono ustawienia domyślne'); render();
       break;
     case 'export': exportBackup(); break;
+    case 'backup-later': db.backupSnooze = Date.now() + 3 * DAY; save(); render(); break;
     case 'reset':
-      if (confirm('Na pewno wyzerować cały postęp nauki, diamenty, serię, odznaki i listy? Tego nie da się cofnąć.')) {
+      ask({ title: 'Wyzerować wszystko?', text: 'Cały postęp nauki, diamenty, seria, odznaki i listy znikną. Tego nie da się cofnąć.', ok: 'Wyzeruj', danger: true }).then((yes) => {
+        if (!yes) return;
         db = normalize({ extra: db.extra, settings: db.settings });
         save(); toast('Postępy wyzerowane'); render();
-      }
+      });
       break;
   }
 });
@@ -2135,13 +2189,6 @@ document.addEventListener('pointerdown', (e) => {
 // Pamiętamy rozwinięte słówko, żeby nie zwijało się po zmianie listy.
 document.addEventListener('click', (e) => {
   document.querySelectorAll('.cv-menu[open]').forEach((m) => { if (!m.contains(e.target) || e.target.closest('.cv-pop button')) m.open = false; });
-}, true);
-
-document.addEventListener('toggle', (e) => {
-  const d = e.target;
-  if (!d.classList || !d.classList.contains('word-row')) return;
-  if (d.open) openWord = d.dataset.id;
-  else if (openWord === d.dataset.id) openWord = null;
 }, true);
 
 document.addEventListener('submit', (e) => {
@@ -2173,10 +2220,8 @@ document.addEventListener('change', (e) => {
 });
 
 document.addEventListener('keydown', (e) => {
+  if (document.querySelector('dialog.ask')) return; // otwarte okienko obsługuje klawisze samo
   if (view === 'player' && e.key === ' ') { e.preventDefault(); playerControl('toggle'); return; }
-  // wiersz słówka / karta „Wznów” z klawiatury
-  const row = e.target.closest && e.target.closest('[data-wopen], .rs-card');
-  if (row && e.target === row && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); row.click(); return; }
   if (view === 'word' && e.key === 'Escape') { closeWord(); return; }
   if (view === 'pick' && PK && e.target.tagName !== 'BUTTON') {
     const act = { Enter: 'learn', ArrowLeft: 'later', ArrowRight: 'known', Escape: 'back' }[e.key];
@@ -2198,7 +2243,9 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     speak(S.cur.w.en);
   } else if (e.key === 'Escape') {
-    quitSession();
+    // okienko otwieramy po zakończeniu tego Esc — inaczej przeglądarka od razu by je zamknęła
+    e.preventDefault();
+    setTimeout(quitSession, 0);
   }
 });
 

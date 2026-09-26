@@ -419,18 +419,12 @@ kbd { font: 11px ui-monospace, monospace; padding: 1px 5px; border-radius: 5px; 
 .word-list { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
 .word-row { border-bottom: 1px solid var(--line); }
 .word-row:last-child { border-bottom: 0; }
-.word-row summary { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; list-style: none; }
-.word-row summary::-webkit-details-marker { display: none; }
 .wr-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .wr-main b, .wr-main span { overflow: hidden; text-overflow: ellipsis; }
 .wr-main span { font-size: 14px; }
-.known-badge svg { width: 18px; height: 18px; }
 .dots { display: flex; gap: 3px; }
 .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--l0); }
 .dots i.on { background: var(--accent); }
-.wr-detail { padding: 0 14px 12px 50px; }
-.wr-detail .mnemo { margin-top: 6px; }
-.wr-detail .example { margin: 6px 0; }
 .list-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .list-tags .chip { font-size: 13px; padding: 4px 10px; }
 .empty { padding: 24px; margin: 0; }

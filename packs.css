@@ -85,10 +85,15 @@
 .cv-search input { flex: 1; min-width: 0; height: 100%; border: 0; background: none; outline: none; font: 600 18px Nunito, sans-serif; color: #131d4c; }
 
 /* wiersz słówka (też w zakładce Słówka) */
-.word-row { display: flex; align-items: center; gap: 14px; padding: 10px 6px; border-radius: 16px; cursor: pointer; transition: background 0.15s ease, transform 0.15s ease; }
+.word-row { position: relative; display: flex; align-items: center; gap: 14px; padding: 10px 6px; border-radius: 16px; cursor: pointer; transition: background 0.15s ease, transform 0.15s ease; }
 .word-row:hover { background: rgba(97, 67, 255, 0.05); }
 .word-row:active { transform: scale(0.99); }
-.word-row:focus-visible { outline: 3px solid #5a4dff; outline-offset: 2px; }
+/* cały wiersz klika się przez rozciągnięty przycisk nazwy; głośnik leży nad nim */
+.wr-open { display: block; min-width: 0; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.wr-open::after { content: ""; position: absolute; inset: 0; border-radius: 16px; }
+.wr-open:focus-visible { outline: none; }
+.wr-open:focus-visible::after { outline: 3px solid #5a4dff; outline-offset: 2px; }
+.wr-open b { display: block; }
 .wr-lvl { flex-shrink: 0; }
 .wr-icon { width: 56px; height: 56px; flex-shrink: 0; display: grid; place-items: center; }
 .wr-img { width: 56px; height: 56px; border-radius: 14px; object-fit: cover; box-shadow: 0 4px 10px rgba(30, 40, 90, 0.12); }
@@ -96,7 +101,7 @@
 .wr-main { gap: 2px; }
 .wr-en { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .wr-en b { font-family: var(--display); font-size: 20px; font-weight: 600; color: #1b1f3e; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.wr-say { flex-shrink: 0; width: 30px; height: 30px; border: 0; border-radius: 50%; background: none; display: grid; place-items: center; cursor: pointer; color: #a3a8bd; transition: color 0.2s ease, background 0.2s ease, transform 0.2s ease; }
+.wr-say { position: relative; z-index: 1; flex-shrink: 0; width: 30px; height: 30px; border: 0; border-radius: 50%; background: none; display: grid; place-items: center; cursor: pointer; color: #a3a8bd; transition: color 0.2s ease, background 0.2s ease, transform 0.2s ease; }
 .wr-say svg { width: 18px; height: 18px; }
 .wr-say:hover { color: #6143ff; background: #f0edff; transform: scale(1.1); }
 .wr-pl { font-size: 16px !important; font-weight: 600; color: #7a7f95; }
@@ -134,14 +139,17 @@
 /* ---- karta „Wznów” (ostatni pakiet) ---- */
 .rs-card { position: relative; display: flex; align-items: center; gap: 16px; margin: 14px 0 6px; padding: 12px 14px 12px 12px; border-radius: 28px; background: #fff; box-shadow: 0 8px 24px rgba(40, 50, 100, 0.08); cursor: pointer; transition: transform 0.22s ease, box-shadow 0.22s ease; }
 .rs-card:hover { transform: translateY(-3px); box-shadow: 0 16px 32px rgba(40, 50, 100, 0.14); }
-.rs-card:focus-visible { outline: 3px solid #5a4dff; outline-offset: 3px; }
+.rs-open { padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.rs-open::after { content: ""; position: absolute; inset: 0; border-radius: 28px; }
+.rs-open:focus-visible { outline: none; }
+.rs-open:focus-visible::after { outline: 3px solid #5a4dff; outline-offset: 3px; }
 .rs-art { width: 118px; height: 118px; flex-shrink: 0; display: grid; place-items: center; border-radius: 24px; background: var(--tint); }
 .rs-img { width: 92px; height: 92px; border-radius: 20px; box-shadow: 0 6px 14px rgba(30, 40, 90, 0.18); transform: rotate(-4deg); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .rs-card:hover .rs-img { transform: rotate(3deg) scale(1.06); }
 .rs-text { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
 .rs-text b { font-family: var(--display); font-size: 24px; font-weight: 700; color: #131d4c; line-height: 1.15; }
 .rs-text > span { font-size: 17px; font-weight: 700; color: #7a7f95; }
-.rs-go { position: relative; overflow: hidden; margin-top: 10px; padding: 0 26px; height: 46px; border: 0; border-radius: 999px; cursor: pointer; font-family: var(--display); font-size: 20px; font-weight: 700; color: #fff; background: linear-gradient(90deg, #7a4bff, #6143ff); box-shadow: 0 10px 22px -8px rgba(97, 67, 255, 0.8); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.rs-go { position: relative; z-index: 1; overflow: hidden; margin-top: 10px; padding: 0 26px; height: 46px; border: 0; border-radius: 999px; cursor: pointer; font-family: var(--display); font-size: 20px; font-weight: 700; color: #fff; background: linear-gradient(90deg, #7a4bff, #6143ff); box-shadow: 0 10px 22px -8px rgba(97, 67, 255, 0.8); transition: transform 0.2s ease, box-shadow 0.2s ease; }
 .rs-go:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -8px rgba(97, 67, 255, 0.9); }
 .rs-go:active { transform: scale(0.96); }
 .rs-go .ripple { background: rgba(255, 255, 255, 0.5); }
@@ -213,7 +221,9 @@
 .wd-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 15px; color: #6f7590; }
 .wd-progress b { color: #1b1f3e; font-size: 17px; }
 .wd-progress > span:last-child { flex-basis: 100%; }
-.wd-cta { position: sticky; bottom: 0; z-index: 4; margin: 0 -16px; padding: 16px 16px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(180deg, rgba(255, 255, 255, 0), #fff 30%); }
+/* krótki gradient: przycisk zasłania jak najmniej tekstu nad sobą */
+.wd-cta { position: sticky; bottom: 0; z-index: 4; margin: 0 -16px; padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(180deg, rgba(255, 255, 255, 0), #fff 12px); }
+.wd-body { padding-bottom: 18px; }
 .wd-state { display: flex; align-items: center; justify-content: center; gap: 12px; height: 64px; border-radius: 999px; font-family: var(--display); font-size: 24px; font-weight: 700; }
 .wd-state svg { width: 26px; height: 26px; stroke-width: 3.2; }
 .wd-state.known { color: #fff; background: linear-gradient(90deg, #2fcf6b, #20b85a); box-shadow: 0 14px 30px -12px rgba(34, 184, 90, 0.8); animation: pick-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -224,3 +234,34 @@
   .rs-art { width: 92px; height: 92px; }
   .rs-img { width: 72px; height: 72px; }
 }
+
+/* ---- okienko w stylu aplikacji (ask) ---- */
+dialog.ask { width: min(380px, calc(100vw - 32px)); padding: 0; border: 0; border-radius: 28px; background: #fff; color: #131d4c; box-shadow: 0 30px 70px rgba(20, 20, 60, 0.3); animation: ask-in 0.22s cubic-bezier(0.34, 1.4, 0.64, 1); }
+dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur(3px); animation: ask-fade 0.2s ease; }
+@keyframes ask-in { from { opacity: 0; transform: translateY(14px) scale(0.96); } }
+@keyframes ask-fade { from { opacity: 0; } }
+.ask-box { padding: 24px 22px 20px; }
+.ask-box h2 { margin: 0 0 6px; font-family: var(--display); font-size: 24px; font-weight: 800; line-height: 1.2; }
+.ask-box p { margin: 0 0 14px; font-size: 16px; color: #6f7590; }
+.ask-input { width: 100%; height: 52px; margin: 6px 0 4px; padding: 0 16px; border: 2px solid #e4e1f2; border-radius: 16px; background: #f7f6fd; font: 700 18px Nunito, sans-serif; color: #131d4c; outline: none; transition: border-color 0.2s ease, background 0.2s ease; }
+.ask-input:focus { border-color: #6143ff; background: #fff; }
+.ask-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+.ask-btn { height: 52px; border: 0; border-radius: 999px; cursor: pointer; font-family: var(--display); font-size: 19px; font-weight: 700; color: #fff; background: linear-gradient(90deg, #7a4bff, #6143ff); box-shadow: 0 10px 22px -10px rgba(97, 67, 255, 0.8); transition: transform 0.15s ease, filter 0.15s ease; }
+.ask-btn:hover { transform: translateY(-1px); filter: brightness(1.05); }
+.ask-btn:active { transform: scale(0.97); }
+.ask-btn.ghost { color: #5a5f7a; background: #eef0f7; box-shadow: none; }
+.ask-btn.danger { background: linear-gradient(90deg, #f0566b, #d93a52); box-shadow: 0 10px 22px -10px rgba(217, 58, 82, 0.8); }
+.ask-btn:focus-visible { outline: 3px solid #5a4dff; outline-offset: 3px; }
+
+/* ---- przypomnienie o kopii zapasowej (strona główna) ---- */
+.backup-nag { display: flex; align-items: center; gap: 12px; margin: 14px 0 4px; padding: 14px 10px 14px 16px; border-radius: 22px; background: #fff7e6; border: 1.5px solid #ffe1a6; animation: ask-in 0.3s ease-out; }
+.bn-icon { font-size: 28px; }
+.bn-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.bn-text b { font-family: var(--display); font-size: 18px; font-weight: 700; color: #6b4300; }
+.bn-text span { font-size: 14px; color: #8a6a2c; line-height: 1.35; }
+.bn-go { flex-shrink: 0; height: 42px; padding: 0 18px; border: 0; border-radius: 999px; cursor: pointer; font-family: var(--display); font-size: 17px; font-weight: 700; color: #fff; background: linear-gradient(90deg, #ffb020, #f08c00); box-shadow: 0 8px 18px -8px rgba(240, 140, 0, 0.8); transition: transform 0.15s ease; }
+.bn-go:hover { transform: translateY(-1px); }
+.bn-go:active { transform: scale(0.96); }
+.bn-close { flex-shrink: 0; width: 34px; height: 34px; border: 0; border-radius: 50%; background: none; display: grid; place-items: center; cursor: pointer; color: #b08a40; }
+.bn-close svg { width: 18px; height: 18px; }
+.bn-close:hover { background: #ffecc4; }

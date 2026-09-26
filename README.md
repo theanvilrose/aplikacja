@@ -85,4 +85,14 @@ js/answer.js        sprawdzanie wpisanych odpowiedzi
 js/parser.js        wczytywanie tabel z slowka.md
 js/seed-words.js    słówka (generowane)
 sw.js, manifest     działanie offline i instalacja jak aplikacja
+tests/              testy algorytmu powtórek i sprawdzania odpowiedzi — uruchom: node --test
+design/archiwum/    stare porównanie ikon i oryginalne wycinki (nieużywane przez aplikację)
 ```
+
+## Kopia zapasowa
+
+Postęp jest zapisany tylko w przeglądarce. Raz w tygodniu na stronie głównej pojawia się przypomnienie „Zrób kopię postępów” (✕ = przypomnij za 3 dni). Kopia trafia do folderu Pobrane; wczytujesz ją w Profilu → Wczytaj kopię.
+
+## Historia zmian
+
+Folder jest repozytorium git — każdy zestaw poprawek to osobny zapis (`git log`), który da się cofnąć.

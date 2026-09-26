@@ -1,5 +1,5 @@
 // Service worker: aplikacja działa offline po pierwszym uruchomieniu.
-const CACHE = 'slowik-v14';
+const CACHE = 'slowik-v17';
 const FILES = [
   './', 'index.html', 'styles.css', 'plan-hero.css', 'packs.css', 'manifest.webmanifest', 'icon.svg',
   'js/seed-words.js', 'js/parser.js', 'js/answer.js', 'js/srs.js', 'js/icons.js', 'js/app.js',
@@ -7,7 +7,8 @@ const FILES = [
   'assets/task-refresh.png', 'assets/task-star.png', 'assets/task-clock.png', 'assets/task-chest.png',
   'assets/done-check.png', 'assets/gem-small.png',
   'assets/pk-biznes.webp', 'assets/pk-bledy.webp', 'assets/pk-czasowniki.webp', 'assets/pk-grzecznosci.webp', 'assets/pk-kraje.webp', 'assets/pk-ostatnia-lekcja.webp', 'assets/pk-pochodzenie.webp', 'assets/pk-podroze.webp', 'assets/pk-powitania.webp', 'assets/pk-pozegnania.webp', 'assets/pk-przedstawianie.webp', 'assets/pk-przymiotniki.webp', 'assets/pk-reagowanie.webp', 'assets/pk-rozmowki.webp', 'assets/pk-rzeczowniki.webp', 'assets/pk-samopoczucie.webp', 'assets/pk-swiat.webp', 'assets/pk-trudne.webp', 'assets/pk-wszystkie.webp',
-  'assets/words/arabia_saudyjska.png', 'assets/words/argentyna.png', 'assets/words/australia.png', 'assets/words/belgia.png', 'assets/words/brazylia.png', 'assets/words/chiny.png', 'assets/words/dania.png', 'assets/words/egipt.png', 'assets/words/finlandia.png', 'assets/words/francja.png', 'assets/words/hiszpania.png', 'assets/words/holandia.png', 'assets/words/indie.png', 'assets/words/kanada.png', 'assets/words/meksyk.png', 'assets/words/niemcy.png', 'assets/words/norwegia.png', 'assets/words/polska.png', 'assets/words/rosja.png', 'assets/words/rpa.png', 'assets/words/szwecja.png', 'assets/words/turcja.png', 'assets/words/wielka_brytania.png', 'assets/words/wlochy.png',
+  // ikony słówek używane w WORD_IMG (js/app.js); pozostałe z assets/words/ czekają na nowe słowa
+  'assets/words/australia.png', 'assets/words/chiny.png', 'assets/words/francja.png', 'assets/words/hiszpania.png', 'assets/words/holandia.png', 'assets/words/indie.png', 'assets/words/kanada.png', 'assets/words/meksyk.png', 'assets/words/niemcy.png', 'assets/words/norwegia.png', 'assets/words/polska.png', 'assets/words/szwecja.png', 'assets/words/turcja.png', 'assets/words/wielka_brytania.png', 'assets/words/wlochy.png',
 ];
 
 self.addEventListener('install', (e) => {
