@@ -1575,11 +1575,14 @@ function viewSession() {
 
   let body = '';
   if (options) {
+    // obrazki słówek przy odpowiedziach po polsku (słuchanie, „co to znaczy?”) — przy pl→en zdradzałyby odpowiedź
+    const pics = type === 'listen2pl' || type === 'en2pl';
     body = `<div class="options">${options.map((o, i) => {
       let cls = '';
       if (answered && exam) cls = i === chosen ? 'picked' : 'dim';
       else if (answered) { if (o.id === w.id) cls = 'ok'; else if (i === chosen) cls = 'bad'; else cls = 'dim'; }
-      return `<button class="opt ${cls}" data-opt="${i}" ${answered ? 'disabled' : ''}><kbd>${i + 1}</kbd>${esc(o.text)}</button>`;
+      const ow = pics && byId.get(o.id), pic = ow && !isPhrase(ow) ? `<span class="opt-pic">${wordIcon(ow)}</span>` : '';
+      return `<button class="opt ${cls}${pic ? ' has-pic' : ''}" data-opt="${i}" ${answered ? 'disabled' : ''}><kbd>${i + 1}</kbd>${pic}<span>${esc(o.text)}</span></button>`;
     }).join('')}</div>`;
   } else {
     const cls = !answered ? '' : exam ? 'picked' : result === 'ok' ? 'ok' : result === 'typo' ? 'typo' : 'bad';

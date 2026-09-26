@@ -324,3 +324,8 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .wr-pos { flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 9px 0 6px; border-radius: 999px; background: var(--pb); color: var(--pf); font-size: 12px; font-weight: 800; white-space: nowrap; }
 .wr-pos i { font-style: normal; font-size: 13px; line-height: 1; }
 @media (max-width: 420px) { .wr-pos { padding: 0 6px; } .wr-pos span { display: none; } }
+/* obrazek słówka w odpowiedzi (ćwiczenia ze słuchu i „co to znaczy?”) */
+.opt.has-pic { padding-top: 10px; padding-bottom: 10px; }
+.opt-pic { flex-shrink: 0; width: 46px; height: 46px; display: grid; place-items: center; }
+.opt-pic .wr-img, .opt-pic .wr-emoji { width: 46px; height: 46px; border-radius: 13px; }
+.opt-pic .wr-emoji { display: grid; place-items: center; font-size: 24px; }
