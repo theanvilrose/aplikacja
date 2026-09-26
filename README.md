@@ -111,3 +111,15 @@ Lista słówek bez ikony (zwroty nigdy nie mają ikon) — **Generuj** przy sło
 - Nowe ikony: `assets/words/gen_*.png` + mapa `js/word-icons-extra.js`.
 - **Modele:** Meta Muse Image (domyślny, endpoint `/images`, wzory stylu w `input_references`) albo Gemini (`/chat/completions`).
 - **Opis przez Muse** (przełącznik): najpierw Meta Muse Spark 1.3 pisze opis sceny, potem wybrany model rysuje. Opis widać pod podglądem; dodatkowo ok. $0,003.
+
+## Panel dewelopera — wymowa (ElevenLabs / OpenRouter)
+
+Zakładka **🔊 Wymowa** w panelu dewelopera: prawdziwy lektor zamiast syntezatora przeglądarki.
+
+- **Źródło:** ElevenLabs (domyślnie, kredyty z Twojego konta) albo modele mowy z OpenRouter (Gemini TTS, MAI-Voice, Kokoro…; lista i ceny pobierane na żywo).
+- **Język nagrania:** 🇺🇸 amerykański, 🇬🇧 brytyjski, 🇵🇱 polski. Do każdego osobno wybierasz model i głos (z podpowiedzią akcentu); **▶ Próbka** — odsłuch przed nagrywaniem.
+- **Nagraj** przy słowie (odsłuch → Zapisz / ↻) albo **Nagraj brakujące** (koszt liczony z góry). Słówka i zwroty osobno.
+- Aplikacja gra nagranie w akcencie z ustawień (brak → drugi akcent → syntezator). Działa w nauce, w liście, w trybie słuchania (także polskie tłumaczenie).
+- Pliki: `assets/audio/<język>/*.mp3|wav` + mapa `js/word-audio.js` (klucz = tekst słowa).
+- Klucz ElevenLabs: `ELEVENLABS_API_KEY` (środowisko albo `.env.local`) lub plik z `.dev-config.json` → `elevenKeyFile`.
+- Plan darmowy ElevenLabs nie pozwala używać przez API głosów z biblioteki (np. polskich lektorów) — panel pokazuje wtedy tylko głosy wbudowane; po polsku mówią przez model Eleven Multilingual v2.

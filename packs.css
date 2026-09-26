@@ -303,3 +303,17 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .dv-topics .lk-chip { height: auto; padding: 8px 14px; text-align: left; }
 .dv-brief { display: block; margin-top: 4px; font-size: 12px; line-height: 1.35; color: #8a6a2c; }
 .dv-muse { padding: 12px 0 0; margin-top: 10px; border-top: 1px solid #f0f1f6; }
+
+/* ---- panel dewelopera: wymowa ---- */
+.dv-tabs { margin: 0 0 14px; }
+.dv-sub { margin-top: 14px; }
+.dv-select { width: 100%; padding: 11px 12px; border-radius: 14px; border: 1.5px solid #e4e1f2; background: #fff; font: 700 15px Nunito, sans-serif; color: #1b1f3e; }
+.dv-voice { display: flex; gap: 8px; align-items: center; }
+.dv-voice .dv-select { flex: 1; min-width: 0; }
+.dv-voice .dv-btn { height: 44px; flex-shrink: 0; }
+.dv-err { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; background: #fff0f0; color: #c92a2a; font-size: 14px; }
+.dv-snd { width: 40px; height: 40px; flex-shrink: 0; display: grid; place-items: center; border-radius: 12px; background: #f3f2f8; color: #b3b0c8; font-size: 18px; font-weight: 800; }
+.dv-snd.on { background: #e3f8ea; }
+.dv-snd.new { background: #efeaff; }
+.pp-stats.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.pp-stats.four b { font-size: 22px; }
