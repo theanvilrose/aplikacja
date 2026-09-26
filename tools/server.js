@@ -15,8 +15,9 @@ const ROOT = path.join(__dirname, '..');
 const PORT = +process.env.PORT || 8765; // inny port tylko do testów
 const WORDS_DIR = path.join(ROOT, 'assets', 'words');
 const EXTRA_FILE = path.join(ROOT, 'js', 'word-icons-extra.js');
-const DEFAULT_MODEL = 'google/gemini-2.5-flash-image';
-const MODELS = ['google/gemini-2.5-flash-image', 'google/gemini-3.1-flash-lite-image', 'google/gemini-3.1-flash-image'];
+const DEFAULT_MODEL = 'meta/muse-image';
+// Meta Muse Image (domyślny) — generuje obrazki z tekstu i obrazków-wzorów; Gemini do porównania
+const MODELS = ['meta/muse-image', 'google/gemini-2.5-flash-image', 'google/gemini-3.1-flash-lite-image', 'google/gemini-3.1-flash-image'];
 // ikony-wzory stylu wysyłane do modelu razem z opisem słowa
 const STYLE_REFS = ['friend.png', 'polska.png', 'mrs.png'];
 
@@ -112,6 +113,17 @@ async function museBrief(w, refs) {
   return { brief: String(text).trim().replace(/^["']|["']$/g, '').slice(0, 600), cost: (res.usage && res.usage.cost) || 0 };
 }
 
+// gdyby model zwrócił link zamiast danych — pobieramy obrazek i oddajemy jako data URL
+function fetchAsDataUrl(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => resolve(`data:${res.headers['content-type'] || 'image/png'};base64,` + Buffer.concat(chunks).toString('base64')));
+    }).on('error', reject);
+  });
+}
+
 async function generate(w, model, useMuse) {
   const refs = STYLE_REFS.filter((f) => fs.existsSync(path.join(WORDS_DIR, f))).map((f) => ({ type: 'image_url', image_url: { url: dataUrl(f) } }));
   let brief = '', museCost = 0;
@@ -120,9 +132,28 @@ async function generate(w, model, useMuse) {
     { type: 'text', text: prompt(w) + (brief ? ` Scene to draw: ${brief}` : '') },
     ...refs,
   ];
+  const m = MODELS.includes(model) ? model : DEFAULT_MODEL;
+  if (m === 'meta/muse-image') {
+    // Meta Muse Image: osobny endpoint /images; wzory stylu w input_references
+    const r = await openrouter('POST', '/images', {
+      model: m,
+      prompt: prompt(w) + (brief ? ` Scene to draw: ${brief}` : ''),
+      input_references: refs,
+      aspect_ratio: '1:1',
+      output_format: 'png',
+      n: 1,
+    });
+    const d = (r.data && r.data[0]) || (r.images && r.images[0]) || {};
+    const b64 = d.b64_json || d.base64 || (d.image && d.image.b64_json);
+    const url = d.url || (d.image_url && d.image_url.url) || (typeof d === 'string' ? d : '');
+    const image = b64 ? `data:image/png;base64,${b64}` : url.startsWith('data:') ? url : url ? await fetchAsDataUrl(url) : '';
+    if (!image) throw new Error('Muse Image nie zwrócił obrazka: ' + JSON.stringify(r).slice(0, 200));
+    return { image, cost: ((r.usage && r.usage.cost) || 0) + museCost, brief };
+  }
   const res = await openrouter('POST', '/chat/completions', {
-    model: MODELS.includes(model) ? model : DEFAULT_MODEL,
-    modalities: ['image', 'text'],
+    model: m,
+    // Muse Image zwraca wyłącznie obrazek
+    modalities: m === 'meta/muse-image' ? ['image'] : ['image', 'text'],
     messages: [{ role: 'user', content }],
     usage: { include: true },
   });

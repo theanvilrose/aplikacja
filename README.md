@@ -104,9 +104,10 @@ Folder jest repozytorium git — każdy zestaw poprawek to osobny zapis (`git lo
 ## Panel dewelopera — ikony słówek (OpenRouter)
 
 **Profil / Ustawienia → 🛠️ Panel dewelopera** (widoczny tylko przy uruchomieniu przez `start.bat`).
-Lista słówek bez ikony (zwroty nigdy nie mają ikon) — **Generuj** przy słowie albo **Generuj wszystkie brakujące** (≈ $0,04 za ikonę, z Twojego konta OpenRouter). Ikony powstają w stylu obecnych (wzory: friend, Polska, Mrs), aplikacja sama usuwa tło, docina kafelek i zaokrągla rogi. Przy słowie: **Zapisz**, **↻** nowa wersja, **✕** usuń.
+Lista słówek bez ikony (zwroty nigdy nie mają ikon) — **Generuj** przy słowie albo **Generuj wszystkie brakujące** (domyślnie **Meta Muse Image** ≈ $0,01 za ikonę; do wyboru też Gemini ≈ $0,04–0,08; z Twojego konta OpenRouter). Ikony powstają w stylu obecnych (wzory: friend, Polska, Mrs), aplikacja sama usuwa tło, docina kafelek i zaokrągla rogi. Przy słowie: **Zapisz**, **↻** nowa wersja, **✕** usuń.
 
 - Serwer: `tools/server.js` (zastąpił `python -m http.server`; ten sam adres `http://localhost:8765`, postępy zostają).
 - **Klucz nigdy nie trafia do przeglądarki ani do repozytorium.** Serwer czyta go z `OPENROUTER_API_KEY`, z `.env.local` albo z pliku wskazanego w `.dev-config.json` (`keyFile`). Oba pliki są w `.gitignore`.
 - Nowe ikony: `assets/words/gen_*.png` + mapa `js/word-icons-extra.js`.
-- **Opis przez Muse** (przełącznik w panelu): Meta Muse Spark 1.3 ogląda ikony-wzory i słowo, pisze opis sceny, a model obrazkowy (domyślnie Gemini 2.5 Flash Image) go rysuje. Muse nie generuje obrazków sam — zwraca tylko tekst. Opis widać pod podglądem ikony; dodatkowy koszt ok. $0,003.
+- **Modele:** Meta Muse Image (domyślny, endpoint `/images`, wzory stylu w `input_references`) albo Gemini (`/chat/completions`).
+- **Opis przez Muse** (przełącznik): najpierw Meta Muse Spark 1.3 pisze opis sceny, potem wybrany model rysuje. Opis widać pod podglądem; dodatkowo ok. $0,003.
