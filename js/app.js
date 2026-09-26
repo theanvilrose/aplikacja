@@ -1812,6 +1812,7 @@ function wordRow(w) {
         <span class="wr-en"><button class="wr-open" data-wopen="${esc(w.id)}" title="Szczegóły słówka"><b>${esc(w.en)}</b></button><button class="wr-say" data-say="${esc(w.en)}" aria-label="Posłuchaj" title="Posłuchaj">${SPEAKER}</button></span>
         <span class="wr-pl">${esc(w.pl)}</span>
       </span>
+      ${posBadge(w)}
       ${isKnown(c) ? `<span class="wr-known" title="Wyuczone">${ICON.check}</span>` : `<span class="wr-lvl dots" title="Poziom: ${LEVEL_NAMES[lvl]}">${[1, 2, 3, 4, 5].map((i) => `<i class="${i <= lvl ? 'on' : ''}"></i>`).join('')}</span>`}
       <span class="wr-more" aria-hidden="true"><i></i><i></i><i></i></span>
     </div>`;
@@ -1897,6 +1898,17 @@ function viewWords() {
 
 const HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.4C19.5 15.4 12 20 12 20z"/></svg>';
 const POS_NAMES = { 'rz.': 'rzeczownik', 'przym.': 'przymiotnik', 'cz.': 'czasownik', zwrot: 'zwrot', 'zaim.': 'zaimek', 'zaim. + być': 'zaimek + być', 'przyim.': 'przyimek', 'przysł.': 'przysłówek' };
+// plakietka części mowy na liście słówek: [ikona, skrót, kolor tła, kolor tekstu]
+const POS_BADGE = {
+  'rz.': ['📦', 'rzecz.', '#E4EEFF', '#2B5BD7'], 'przym.': ['🎨', 'przym.', '#FFEBD9', '#B45309'], 'cz.': ['⚡', 'czas.', '#DDF7E6', '#15803D'],
+  'zaim.': ['👤', 'zaim.', '#EFE7FF', '#6D28D9'], 'zaim. + być': ['👤', 'zaim.+być', '#EFE7FF', '#6D28D9'], 'przyim.': ['📍', 'przyim.', '#DDF6F6', '#0F766E'],
+  'przysł.': ['⏱️', 'przysł.', '#FFE4EF', '#BE185D'], zwrot: ['💬', 'zwrot', '#F1F1F6', '#4B5170'],
+};
+function posBadge(w) {
+  const b = POS_BADGE[w.pos];
+  if (!b) return '';
+  return `<span class="wr-pos" style="--pb:${b[2]};--pf:${b[3]}" title="${esc(POS_NAMES[w.pos] || w.pos)}"><i aria-hidden="true">${b[0]}</i><span>${b[1]}</span></span>`;
+}
 const FAV_ID = 'fav';      // lista „Ulubione” (serduszko na ekranie słówka)
 const PICK_BATCH = 5;      // tyle nowych słów wybierasz, zanim ruszy nauka
 let wordView = null;       // { id, back, scroll } — otwarte słówko
