@@ -1939,7 +1939,7 @@ function lessonTasksCard() {
         <div class="lk-info"><b>${esc(L.title || 'Lekcja ' + L.n)}</b>${L.grammar ? `<span>${esc(L.grammar)}</span>` : ''}</div>
         <span class="lk-status ${L.status}">${LESSON_STATUS[L.status] || ''}</span>
       </div>
-      <div class="lk-parts">${parts.map((s) => `<span><b>${s.key}</b>${esc(s.title)} · ${s.items.length}</span>`).join('')}</div>
+      <div class="lk-parts">${parts.map((s) => `<button class="lk-part" data-act="tasks-start" data-part="${s.key}" title="Rozwiąż tylko część ${s.key}"><b>${s.key}</b><span>${esc(s.title)} · ${s.items.length}</span><i aria-hidden="true">›</i></button>`).join('')}</div>
       ${cur && !Exercises.supported(cur.id) ? `<p class="lk-note">Zadania do ${cur.id} „${esc(cur.title)}” jeszcze nie gotowe — na razie powtórz wcześniejsze lekcje.</p>` : ''}
       ${list.length > 1 ? `
       <div class="lk-pick" role="radiogroup" aria-label="Lekcja">
@@ -1950,10 +1950,12 @@ function lessonTasksCard() {
     </section>`;
 }
 
-function startTasks(id) {
+// part: 'A'…'D' = tylko ta część arkusza; bez niej — cały zestaw
+function startTasks(id, part = '') {
   const ex = Exercises.generate(id, words);
   if (!ex) return toast('Do tej lekcji nie ma jeszcze zadań');
-  EX = { lesson: id, sections: ex.sections, values: {}, results: {}, checked: false, start: Date.now() };
+  const sections = part ? ex.sections.filter((s) => s.key === part) : ex.sections;
+  EX = { lesson: id, part, sections: sections.length ? sections : ex.sections, values: {}, results: {}, checked: false, start: Date.now() };
   go('tasks');
 }
 
@@ -1978,8 +1980,11 @@ function checkTasks() {
   d.ms += Math.min(Date.now() - EX.start, 30 * 60000);
   d.n += total;
   d.ok += good;
-  const st = db.tasks[EX.lesson] || { best: 0, n: 0 };
-  db.tasks[EX.lesson] = { best: Math.max(st.best, good), last: good, total, n: st.n + 1, at: Date.now() };
+  // wynik na karcie liczy tylko całe zestawy (pojedyncza część ma mniej zadań)
+  if (!EX.part) {
+    const st = db.tasks[EX.lesson] || { best: 0, n: 0 };
+    db.tasks[EX.lesson] = { best: Math.max(st.best, good), last: good, total, n: st.n + 1, at: Date.now() };
+  }
   EX.gems = good + dailyRewards(wasCounted);
   addGems(EX.gems);
   save();
@@ -2022,7 +2027,7 @@ function viewTasks() {
   return `
     <header class="tk-top">
       <button class="pk-back" data-act="tasks-back" aria-label="Wróć">${ICON.back}</button>
-      <div class="tk-title"><h2>Zadania · ${L.id}</h2><span>${esc(L.title)}</span></div>
+      <div class="tk-title"><h2>Zadania · ${L.id}${EX.part ? ` · ${EX.part}` : ''}</h2><span>${esc(L.title)}</span></div>
       <button class="pk-back" data-act="tasks-new" aria-label="Nowy zestaw" title="Nowy zestaw zadań">${ICON.refresh}</button>
     </header>
     <span class="pick-progress"><i style="width:${pct(EX.checked ? 1 : answered / total)}"></i></span>
@@ -2302,10 +2307,10 @@ document.addEventListener('click', (e) => {
     case 'quit': quitSession(); break;
     case 'home': go('home'); break;
     case 'task-lesson': taskLesson = ds.lesson; render(); break;
-    case 'tasks-start': { const L = selectedTaskLesson(); if (L) startTasks(L.id); break; }
+    case 'tasks-start': { const L = selectedTaskLesson(); if (L) startTasks(L.id, ds.part || ''); break; }
     case 'task-pick': if (EX && !EX.checked) { EX.values[ds.k] = ds.v; render(); } break;
     case 'tasks-check': checkTasks(); break;
-    case 'tasks-new': if (EX) { startTasks(EX.lesson); window.scrollTo(0, 0); } break;
+    case 'tasks-new': if (EX) { startTasks(EX.lesson, EX.part); window.scrollTo(0, 0); } break;
     case 'tasks-back':
       if (EX && !EX.checked && Object.keys(EX.values).length) {
         ask({ title: 'Wyjść z zadań?', text: 'Odpowiedzi nie zostaną sprawdzone.', ok: 'Wyjdź', cancel: 'Zostaję' }).then((yes) => { if (yes) { EX = null; go('home'); } });
@@ -2338,7 +2343,7 @@ new ResizeObserver(updateScrollbar).observe(document.body);
 
 // Efekt fali po kliknięciu w przyciski Planu dnia.
 document.addEventListener('pointerdown', (e) => {
-  const el = e.target.closest('.ph-cta, .ph-task, .pk-card, .cv-learn, .pick-go, .rs-go, .tk-opt');
+  const el = e.target.closest('.ph-cta, .ph-task, .pk-card, .cv-learn, .pick-go, .rs-go, .tk-opt, .lk-part');
   if (!el) return;
   const r = el.getBoundingClientRect();
   const size = Math.max(r.width, r.height) * 2.2;

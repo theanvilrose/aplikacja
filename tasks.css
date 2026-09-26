@@ -12,7 +12,14 @@
 .lk-status.progress { background: #fff1d6; color: #9a5b00; }
 .lk-status.done { background: #dcf7e6; color: #16803f; }
 .lk-parts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.lk-parts span { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 8px 10px; border-radius: 14px; background: rgba(255, 255, 255, 0.6); font-size: 13px; font-weight: 700; color: #3f4566; line-height: 1.25; }
+/* części A–D: kliknięcie = tylko ta część */
+.lk-part { position: relative; overflow: hidden; display: flex; align-items: center; gap: 8px; min-width: 0; padding: 9px 10px; border: 1.5px solid transparent; border-radius: 14px; background: rgba(255, 255, 255, 0.7); cursor: pointer; text-align: left; font: 700 13px/1.25 Nunito, sans-serif; color: #3f4566; transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
+.lk-part > span { flex: 1; min-width: 0; }
+.lk-part > i { font-style: normal; font-size: 18px; color: #9096ad; transition: transform 0.2s ease, color 0.2s ease; }
+.lk-part:hover { transform: translateY(-2px); background: #fff; border-color: #c9bfff; box-shadow: 0 8px 18px -10px rgba(97, 67, 255, 0.6); }
+.lk-part:hover > i { transform: translateX(3px); color: #6143ff; }
+.lk-part:active { transform: scale(0.97); }
+.lk-part:focus-visible { outline: 3px solid #5a4dff; outline-offset: 2px; }
 .lk-parts b { flex-shrink: 0; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 8px; background: #efeaff; color: #5a3fe0; font-family: var(--display); font-size: 15px; }
 .lk-pick { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .lk-chip { height: 36px; padding: 0 14px; border: 1.5px solid rgba(19, 29, 76, 0.12); border-radius: 999px; background: rgba(255, 255, 255, 0.7); cursor: pointer; font: 800 14px Nunito, sans-serif; color: #3f4566; transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease; }
