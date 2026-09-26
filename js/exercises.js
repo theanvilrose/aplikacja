@@ -1,14 +1,14 @@
 // Generator zadań z lekcji (jak w arkuszu z czatu): A. wybór, B. luki, C. przekształcenia, D. tłumaczenie.
-// Każda lekcja ma własne szablony pod swoją gramatykę (program_A1.md); słowa biorą się z Twoich słówek
-// (slowka.md), a imiona, przedmioty i zawody do ćwiczeń gramatyki — z list poniżej (tematy T2/T4 z programu).
-// Działa w przeglądarce i w Node (testy).
+// Każda lekcja ma szablony pod swoją gramatykę (program_A1.md). Słowa biorą się WYŁĄCZNIE z przekazanej listy
+// (Twoje słówka — wszystkie z lekcji albo tylko poznane): przedmiot, zawód, kraj czy nastrój, którego na niej nie ma,
+// po prostu się nie pojawi, a zadanie, którego nie da się z nich ułożyć, jest pomijane. Jedyny dodatek to imiona
+// (Tom, Anna, Mr Smith…) — to nie słówka, tylko postacie do zdań. Działa w przeglądarce i w Node (testy).
 (function (root) {
   'use strict';
 
   const Answer = root.Answer || (typeof require !== 'undefined' ? require('./answer.js') : null);
 
-  // ---------- słowniczek do ćwiczeń gramatyki ----------
-
+  // ---------- imiona (nie słówka) ----------
   const MEN = [
     { en: 'Tom', pl: 'Tom' }, { en: 'Adam', pl: 'Adam' }, { en: 'Jack', pl: 'Jack' },
     { en: 'David', pl: 'David' }, { en: 'Mr Smith', pl: 'pan Smith' }, { en: 'Mr Brown', pl: 'pan Brown' },
@@ -17,20 +17,17 @@
     { en: 'Anna', pl: 'Anna' }, { en: 'Kate', pl: 'Kate' }, { en: 'Emma', pl: 'Emma' },
     { en: 'Sarah', pl: 'Sarah' }, { en: 'Mrs Brown', pl: 'pani Brown' }, { en: 'Ms Taylor', pl: 'pani Taylor' },
   ];
-  // przedmioty (T2 biuro, T4 rzeczy osobiste, T13) — pl w mianowniku
-  const THINGS = [
-    { en: 'laptop', pl: 'laptop' }, { en: 'desk', pl: 'biurko' }, { en: 'office', pl: 'biuro' },
-    { en: 'chair', pl: 'krzesło' }, { en: 'computer', pl: 'komputer' }, { en: 'phone', pl: 'telefon' },
-    { en: 'bag', pl: 'torba' }, { en: 'wallet', pl: 'portfel' }, { en: 'umbrella', pl: 'parasol' },
-  ];
-  // zawody (T2) — ins = narzędnik („On jest kierownikiem”); g = kto może być podmiotem w zdaniu PL
-  const JOBS = [
-    { en: 'manager', ins: 'kierownikiem', g: 'm' }, { en: 'engineer', ins: 'inżynierem', g: 'm' },
-    { en: 'mechanic', ins: 'mechanikiem', g: 'm' }, { en: 'boss', ins: 'szefem', g: 'm' },
-    { en: 'teacher', ins: 'nauczycielem', g: 'm' }, { en: 'teacher', ins: 'nauczycielką', g: 'f' },
-    { en: 'nurse', ins: 'pielęgniarką', g: 'f' },
-  ];
-  // kraj → dopełniacz („z Hiszpanii”) i narodowość (id słówek z tematu Kraje i narodowości)
+
+  // ---------- gramatyka polskich form (używane tylko, gdy słowo JEST w Twoich słówkach) ----------
+  // przedmioty, które mogą się pojawić w L4 (T2 biuro, T4 rzeczy osobiste) — tłumaczenie bierzemy z Twoich słówek
+  const THING_IDS = ['laptop', 'desk', 'office', 'chair', 'computer', 'phone', 'bag', 'wallet', 'umbrella', 'keys', 'glasses', 'purse', 'book', 'pen', 'table'];
+  // zawody: narzędnik do zdań „On jest kierownikiem”; g = kto może być podmiotem
+  const JOB_FORMS = {
+    manager: [['m', 'kierownikiem'], ['f', 'kierowniczką']], engineer: [['m', 'inżynierem']], mechanic: [['m', 'mechanikiem']],
+    boss: [['m', 'szefem']], teacher: [['m', 'nauczycielem'], ['f', 'nauczycielką']], nurse: [['f', 'pielęgniarką']],
+    doctor: [['m', 'lekarzem'], ['f', 'lekarką']], student: [['m', 'studentem'], ['f', 'studentką']],
+  };
+  // kraj → dopełniacz („z Hiszpanii”) i id narodowości
   const COUNTRY = {
     poland: ['Polski', 'polish'], spain: ['Hiszpanii', 'spanish'], germany: ['Niemiec', 'german'],
     france: ['Francji', 'french'], italy: ['Włoch', 'italian'], england: ['Anglii', 'english'],
@@ -41,245 +38,237 @@
     scotland: ['Szkocji', 'scottish'], ukraine: ['Ukrainy', 'ukrainian'], 'the usa': ['USA', 'american'],
     'the uk': ['Wielkiej Brytanii', 'british'], 'the czech republic': ['Czech', 'czech'], australia: ['Australii', 'australian'],
   };
-  // gdy w słówkach nie ma jeszcze krajów / przymiotników samopoczucia
-  const FALLBACK_COUNTRIES = [
-    { en: 'Poland', gen: 'Polski', nat: 'Polish' }, { en: 'Spain', gen: 'Hiszpanii', nat: 'Spanish' },
-    { en: 'Germany', gen: 'Niemiec', nat: 'German' }, { en: 'Italy', gen: 'Włoch', nat: 'Italian' },
-    { en: 'France', gen: 'Francji', nat: 'French' }, { en: 'England', gen: 'Anglii', nat: 'English' },
-  ];
-  const FALLBACK_MOODS = [
-    { en: 'tired', pl: 'zmęczony' }, { en: 'happy', pl: 'szczęśliwy' }, { en: 'sad', pl: 'smutny' },
-    { en: 'hungry', pl: 'głodny' }, { en: 'cold', pl: 'zmarznięty' },
-  ];
+  // przymiotniki pasujące do „I'm …” / „Jestem …”
+  const MOOD_WORDS = ['tired', 'happy', 'sad', 'busy', 'hungry', 'thirsty', 'cold', 'hot', 'bored', 'angry', 'sick', 'ill'];
 
   const art = (en) => (/^[aeiou]/i.test(en) ? 'an ' : 'a ') + en;
   const zPL = (gen) => (/^S[zk]/.test(gen) ? 'ze ' : 'z ') + gen;
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   const first = (s) => String(s).split(/\s*[\/(;,]\s*/)[0].trim();
 
-  function tools(rand) {
+  // ---------- zasoby z Twoich słówek ----------
+  function pool(words, rand) {
     const shuffle = (a) => {
       a = a.slice();
       for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
       return a;
     };
-    return { shuffle, pick: (a) => a[Math.floor(rand() * a.length)], sample: (a, n) => shuffle(a).slice(0, n) };
-  }
-
-  // kraje z Twoich słówek (z narodowością, jeśli też ją masz)
-  function countries(words) {
+    const pick = (a) => (a.length ? a[Math.floor(rand() * a.length)] : null);
     const byId = new Map(words.map((w) => [w.id, w]));
-    const out = [];
+    const byEn = new Map(words.map((w) => [first(w.en).toLowerCase(), w]));
+    const has = (en) => byId.get(en) || byEn.get(en);
+
+    const countries = [];
     for (const [id, [gen, natId]] of Object.entries(COUNTRY)) {
       const c = byId.get(id);
       if (!c) continue;
       const n = byId.get(natId);
-      out.push({ en: first(c.en), gen, nat: n ? cap(first(n.en)) : null });
+      countries.push({ en: first(c.en), gen, nat: n ? cap(first(n.en)) : null });
     }
-    return out.length >= 4 ? out : FALLBACK_COUNTRIES;
-  }
+    const things = THING_IDS.map((id) => ({ id, w: has(id) })).filter((t) => t.w)
+      .map((t) => ({ en: t.id, pl: first(t.w.pl).toLowerCase() }));
+    const jobs = [];
+    for (const [id, forms] of Object.entries(JOB_FORMS)) if (has(id)) for (const [g, ins] of forms) jobs.push({ en: id, g, ins });
+    const moods = words.filter((w) => /^przym/i.test(w.pos || '') && MOOD_WORDS.includes(first(w.en).toLowerCase()))
+      .map((w) => ({ en: first(w.en).toLowerCase(), pl: first(w.pl).toLowerCase() }));
 
-  // przymiotniki, które pasują do „I'm …” / „Jestem …” (bez fine, great, OK — to nie nastroje w tej formie)
-  const MOOD_WORDS = ['tired', 'happy', 'sad', 'busy', 'hungry', 'thirsty', 'cold', 'hot', 'bored', 'angry', 'sick', 'ill'];
-  function moods(words) {
-    const list = words.filter((w) => w.topic === 'Samopoczucie' && /^przym/i.test(w.pos || ''))
-      .map((w) => ({ en: first(w.en).toLowerCase(), pl: first(w.pl).toLowerCase() }))
-      .filter((m) => MOOD_WORDS.includes(m.en));
-    // zawsze co najmniej 5 — brakujące z listy zapasowej
-    for (const f of FALLBACK_MOODS) if (list.length < 5 && !list.some((m) => m.en === f.en)) list.push(f);
-    return list;
-  }
-
-  // zwroty z tematów lekcji do tłumaczenia PL → EN; „(= And you?)” w tłumaczeniu to druga dobra odpowiedź, nie podpowiedź
-  function phrases(words, topics, skip = []) {
-    return words.filter((w) => topics.includes(w.topic) && /zwrot/i.test(w.pos || '') && w.en.length <= 40)
+    // zwroty z tematów lekcji do tłumaczenia; „(= And you?)” w tłumaczeniu to druga dobra odpowiedź
+    const phrases = (topics, skip = []) => words
+      .filter((w) => topics.includes(w.topic) && /zwrot/i.test(w.pos || '') && w.en.length <= 40)
       .map((w) => {
         const alt = [...w.pl.matchAll(/\(\s*=\s*([^)]+)\)/g)].map((m) => m[1].trim());
         return { pl: w.pl.replace(/\s*\(\s*=[^)]*\)/g, '').trim(), answers: [w.en, ...alt] };
       })
       .filter((p) => p.pl && !skip.includes(p.pl))
-      // to samo polskie zdanie w kilku słówkach („A ty?” = And you? / What about you?) → jedno zadanie, każda odpowiedź dobra
       .reduce((out, p) => {
         const same = out.find((x) => x.pl === p.pl);
         if (same) same.answers.push(...p.answers); else out.push(p);
         return out;
       }, []);
+
+    return {
+      rand, shuffle, pick, has,
+      men: MEN, women: WOMEN, names: [...MEN, ...WOMEN].filter((p) => !/ /.test(p.en)),
+      countries, nats: countries.filter((c) => c.nat), things, jobs, moods, phrases,
+    };
   }
 
-  // ---------- rodzaje pozycji ----------
-  const choice = (prompt, options, answer, rand) => ({ kind: 'choice', prompt, options: tools(rand).shuffle(options), answer });
+  // ---------- rodzaje zadań ----------
+  const choice = (x, prompt, options, answer) => ({ kind: 'choice', prompt, options: x.shuffle(options), answer });
   const text = (prompt, answers, mode = 'loose', tag = '') => ({ kind: 'text', prompt, answers: [].concat(answers), mode, tag });
+  const need = (...xs) => xs.every((v) => v && (!Array.isArray(v) || v.length));
 
-  // ---------- lekcje ----------
-
-  const GEN = {
+  // Szablony: funkcja (x) → zadanie albo null, gdy brakuje słów. Każda sekcja: [klucz, tytuł, domyślnie ile, szablony].
+  const LESSONS = {
     // L1 Przedstawianie się: Hello / Hi, I'm…, What's your name?, Nice to meet you, Goodbye
-    L1(words, rand) {
-      const { pick, shuffle, sample } = tools(rand);
-      const [n1, n2, n3] = sample([...MEN, ...WOMEN].filter((p) => !/ /.test(p.en)), 3);
-      const replies = [
-        ["What's your name?", `I'm ${n1.en}.`], ['Hello!', 'Hi!'], ['Nice to meet you.', 'Nice to meet you too.'],
-        ['Goodbye!', 'Bye! See you!'], [`Hi, I'm ${n2.en}.`, `Hello, ${n2.en}! I'm ${n3.en}.`],
-      ];
-      const A = shuffle(replies).map(([q, a]) => choice(`${q} → ___`, [a, ...sample(replies.filter((r) => r[1] !== a).map((r) => r[1]), 2)], a, rand));
-      const B = shuffle([
-        choice(`I ___ ${n1.en}.`, ['am', 'is', 'are'], 'am', rand),
-        choice('What ___ your name?', ['is', 'am', 'are'], 'is', rand),
-        choice(`My ___ is ${n2.en}.`, ['name', 'meet', 'hello'], 'name', rand),
-        choice('Nice to ___ you.', ['meet', 'name', 'is'], 'meet', rand),
-        choice(`___, I'm ${n3.en}.`, ['Hi', 'Goodbye', 'Name'], 'Hi', rand),
-        choice('___! See you tomorrow.', ['Goodbye', 'Hello', 'Nice'], 'Goodbye', rand),
-      ]);
-      const C = [
-        text(`I am ${n1.en}.`, `I'm ${n1.en}.`, 'contraction', 'skrót'),
-        text('What is your name?', "What's your name?", 'contraction', 'skrót'),
-        text(`I am ${n2.en}. Nice to meet you.`, `I'm ${n2.en}. Nice to meet you.`, 'contraction', 'skrót'),
-      ];
-      const D = [
-        text('Jak masz na imię?', "What's your name?"),
-        text(`Mam na imię ${n3.pl}.`, [`My name is ${n3.en}.`, `I'm ${n3.en}.`]),
-        text('Miło cię poznać.', 'Nice to meet you.'),
-        ...sample(phrases(words, ['Powitania', 'Przedstawianie się', 'Pożegnania'], ['Jak masz na imię?', 'Miło cię poznać.']), 3).map((p) => text(p.pl, p.answers)),
-      ];
-      return sections(A, 'Wybierz dobrą odpowiedź', B, 'Uzupełnij luki', C, 'Napisz w formie skróconej', D);
-    },
+    L1: [
+      ['A', 'Wybierz dobrą odpowiedź', 5, [
+        (x) => { const n = x.pick(x.names); return choice(x, "What's your name? → ___", [`I'm ${n.en}.`, 'Nice to meet you too.', 'Bye! See you!'], `I'm ${n.en}.`); },
+        (x) => choice(x, 'Hello! → ___', ['Hi!', 'Bye! See you!', 'Nice to meet you too.'], 'Hi!'),
+        (x) => choice(x, 'Nice to meet you. → ___', ['Nice to meet you too.', 'Hi!', 'Bye! See you!'], 'Nice to meet you too.'),
+        (x) => choice(x, 'Goodbye! → ___', ['Bye! See you!', 'Nice to meet you too.', 'Hello!'], 'Bye! See you!'),
+        (x) => { const [a, b] = x.shuffle(x.names); return choice(x, `Hi, I'm ${a.en}. → ___`, [`Hello, ${a.en}! I'm ${b.en}.`, 'Bye! See you!', `What's your name?`], `Hello, ${a.en}! I'm ${b.en}.`); },
+      ]],
+      ['B', 'Uzupełnij luki', 6, [
+        (x) => choice(x, `I ___ ${x.pick(x.names).en}.`, ['am', 'is', 'are'], 'am'),
+        (x) => choice(x, 'What ___ your name?', ['is', 'am', 'are'], 'is'),
+        (x) => choice(x, `My ___ is ${x.pick(x.names).en}.`, ['name', 'meet', 'hello'], 'name'),
+        (x) => choice(x, 'Nice to ___ you.', ['meet', 'name', 'is'], 'meet'),
+        (x) => choice(x, `___, I'm ${x.pick(x.names).en}.`, ['Hi', 'Goodbye', 'Name'], 'Hi'),
+        (x) => choice(x, '___! See you!', ['Goodbye', 'Hello', 'Nice'], 'Goodbye'),
+      ]],
+      ['C', 'Napisz w formie skróconej', 3, [
+        (x) => { const n = x.pick(x.names); return text(`I am ${n.en}.`, `I'm ${n.en}.`, 'contraction', 'skrót'); },
+        () => text('What is your name?', "What's your name?", 'contraction', 'skrót'),
+        (x) => { const n = x.pick(x.names); return text(`I am ${n.en}. Nice to meet you.`, `I'm ${n.en}. Nice to meet you.`, 'contraction', 'skrót'); },
+      ]],
+      ['D', 'Przetłumacz na angielski', 6, [
+        () => text('Jak masz na imię?', "What's your name?"),
+        (x) => { const n = x.pick(x.names); return text(`Mam na imię ${n.pl}.`, [`My name is ${n.en}.`, `I'm ${n.en}.`]); },
+        () => text('Miło cię poznać.', 'Nice to meet you.'),
+        (x) => { const p = x.pick(x.phrases(['Powitania', 'Przedstawianie się', 'Pożegnania'], ['Jak masz na imię?', 'Miło cię poznać.'])); return p && text(p.pl, p.answers); },
+      ]],
+    ],
 
     // L2 Powitania: How are you? — I'm fine, thanks; I / you
-    L2(words, rand) {
-      const { shuffle, sample } = tools(rand);
-      const m = sample(moods(words), 5);
-      const A = shuffle([
-        choice('___ am fine, thanks.', ['I', 'you'], 'I', rand),
-        choice('How are ___?', ['I', 'you'], 'you', rand),
-        choice(`___'m ${m[0].en}.`, ['I', 'you'], 'I', rand),
-        choice(`Are ___ ${m[1].en}?`, ['I', 'you'], 'you', rand),
-        choice("I'm fine. And ___?", ['I', 'you'], 'you', rand),
-        choice(`___ am ${m[2].en} today.`, ['I', 'you'], 'I', rand),
-      ]);
-      const B = shuffle([
-        choice(`I ___ ${m[0].en}.`, ['am', 'are'], 'am', rand),
-        choice('How ___ you?', ['am', 'are'], 'are', rand),
-        choice(`You ___ ${m[1].en}.`, ['am', 'are'], 'are', rand),
-        choice("I ___ fine, thanks.", ['am', 'are'], 'am', rand),
-        choice(`You ___ very ${m[3].en}.`, ['am', 'are'], 'are', rand),
-        choice(`I ___ not ${m[4].en}.`, ['am', 'are'], 'am', rand),
-      ]);
-      const C = [
-        text(`I am ${m[0].en}.`, `I'm ${m[0].en}.`, 'contraction', 'skrót'),
-        text(`You are ${m[1].en}.`, `You're ${m[1].en}.`, 'contraction', 'skrót'),
-        text(`You are ${m[2].en}.`, `Are you ${m[2].en}?`, 'loose', 'pytanie'),
-        text(`You are ${m[3].en}.`, `Are you ${m[3].en}?`, 'loose', 'pytanie'),
-      ];
-      const D = [
-        text('Jak się masz?', 'How are you?'),
-        text(`Jestem ${m[0].pl}.`, [`I'm ${m[0].en}.`]),
-        text(`Czy jesteś ${m[1].pl}?`, [`Are you ${m[1].en}?`]),
-        ...sample(phrases(words, ['Powitania', 'Samopoczucie'], ['Jak się masz?']), 3).map((p) => text(p.pl, p.answers)),
-      ];
-      return sections(A, 'Wpisz I albo you', B, 'Uzupełnij am albo are', C, 'Przekształć zdania', D);
-    },
+    L2: [
+      ['A', 'Wpisz I albo you', 6, [
+        (x) => choice(x, '___ am fine, thanks.', ['I', 'you'], 'I'),
+        (x) => choice(x, 'How are ___?', ['I', 'you'], 'you'),
+        (x) => choice(x, "I'm fine. And ___?", ['I', 'you'], 'you'),
+        (x) => { const m = x.pick(x.moods); return m && choice(x, `___'m ${m.en}.`, ['I', 'you'], 'I'); },
+        (x) => { const m = x.pick(x.moods); return m && choice(x, `Are ___ ${m.en}?`, ['I', 'you'], 'you'); },
+        (x) => { const m = x.pick(x.moods); return m && choice(x, `___ am ${m.en}.`, ['I', 'you'], 'I'); },
+      ]],
+      ['B', 'Uzupełnij am albo are', 6, [
+        (x) => choice(x, 'How ___ you?', ['am', 'are'], 'are'),
+        (x) => choice(x, 'I ___ fine, thanks.', ['am', 'are'], 'am'),
+        (x) => { const m = x.pick(x.moods); return m && choice(x, `I ___ ${m.en}.`, ['am', 'are'], 'am'); },
+        (x) => { const m = x.pick(x.moods); return m && choice(x, `You ___ ${m.en}.`, ['am', 'are'], 'are'); },
+        (x) => { const m = x.pick(x.moods); return m && choice(x, `___ you ${m.en}?`, ['Am', 'Are'], 'Are'); },
+      ]],
+      ['C', 'Przekształć zdania', 4, [
+        (x) => { const m = x.pick(x.moods); return m && text(`I am ${m.en}.`, `I'm ${m.en}.`, 'contraction', 'skrót'); },
+        (x) => { const m = x.pick(x.moods); return m && text(`You are ${m.en}.`, `You're ${m.en}.`, 'contraction', 'skrót'); },
+        (x) => { const m = x.pick(x.moods); return m && text(`You are ${m.en}.`, `Are you ${m.en}?`, 'loose', 'pytanie'); },
+        () => text('I am fine, thanks.', "I'm fine, thanks.", 'contraction', 'skrót'),
+      ]],
+      ['D', 'Przetłumacz na angielski', 6, [
+        () => text('Jak się masz?', 'How are you?'),
+        (x) => { const m = x.pick(x.moods); return m && text(`Jestem ${m.pl}.`, `I'm ${m.en}.`); },
+        (x) => { const m = x.pick(x.moods); return m && text(`Czy jesteś ${m.pl}?`, `Are you ${m.en}?`); },
+        (x) => { const p = x.pick(x.phrases(['Powitania', 'Samopoczucie'], ['Jak się masz?'])); return p && text(p.pl, p.answers); },
+      ]],
+    ],
 
     // L3 Mówienie o sobie: Where are you from? — I'm from…; am / are; narodowości
-    L3(words, rand) {
-      const { shuffle, sample } = tools(rand);
-      const cs = countries(words);
-      const withNat = cs.filter((c) => c.nat);
-      const [c1, c2, c3, c4, c5] = sample(cs, 5);
-      const natPool = withNat.length >= 3 ? withNat : FALLBACK_COUNTRIES;
-      const A = sample(natPool, 6).map((c) => choice(`${c.en} → ___`, [c.nat, ...sample(natPool.filter((x) => x.nat !== c.nat).map((x) => x.nat), 2)], c.nat, rand));
-      const nat = (c) => c.nat || 'Polish';
-      const B = shuffle([
-        choice(`I ___ from ${c1.en}.`, ['am', 'are', 'from'], 'am', rand),
-        choice('Where ___ you from?', ['am', 'are', 'from'], 'are', rand),
-        choice(`I'm ___ ${c2.en}.`, ['am', 'are', 'from'], 'from', rand),
-        choice(`You ___ ${nat(c3)}.`, ['am', 'are', 'from'], 'are', rand),
-        choice(`I ___ ${nat(c4)}.`, ['am', 'are', 'from'], 'am', rand),
-        choice(`Are you ___ ${c5.en}?`, ['am', 'are', 'from'], 'from', rand),
-      ]);
-      const C = [
-        text(`You are from ${c1.en}.`, `Are you from ${c1.en}?`, 'loose', 'pytanie'),
-        text(`You are ${nat(c2)}.`, `Are you ${nat(c2)}?`, 'loose', 'pytanie'),
-        text(`I am from ${c3.en}.`, `I'm from ${c3.en}.`, 'contraction', 'skrót'),
-        text(`You are ${nat(c4)}.`, `You're ${nat(c4)}.`, 'contraction', 'skrót'),
-      ];
-      const D = [
-        text('Skąd jesteś?', 'Where are you from?'),
-        text(`Jestem ${zPL(c1.gen)}.`, [`I'm from ${c1.en}.`]),
-        text(`Czy jesteś ${zPL(c2.gen)}?`, [`Are you from ${c2.en}?`]),
-        ...sample(phrases(words, ['Pochodzenie i miejsce zamieszkania', 'Kraje i narodowości'], ['Skąd jesteś?']), 3).map((p) => text(p.pl, p.answers)),
-      ];
-      return sections(A, 'Wybierz narodowość', B, 'Uzupełnij am, are albo from', C, 'Przekształć zdania', D);
-    },
+    L3: [
+      ['A', 'Wybierz narodowość', 6, [
+        (x) => {
+          if (x.nats.length < 3) return null;
+          const [c, ...rest] = x.shuffle(x.nats);
+          return choice(x, `${c.en} → ___`, [c.nat, ...rest.slice(0, 2).map((r) => r.nat)], c.nat);
+        },
+      ]],
+      ['B', 'Uzupełnij am, are albo from', 6, [
+        (x) => choice(x, 'Where ___ you from?', ['am', 'are', 'from'], 'are'),
+        (x) => { const c = x.pick(x.countries); return c && choice(x, `I ___ from ${c.en}.`, ['am', 'are', 'from'], 'am'); },
+        (x) => { const c = x.pick(x.countries); return c && choice(x, `I'm ___ ${c.en}.`, ['am', 'are', 'from'], 'from'); },
+        (x) => { const c = x.pick(x.countries); return c && choice(x, `Are you ___ ${c.en}?`, ['am', 'are', 'from'], 'from'); },
+        (x) => { const c = x.pick(x.nats); return c && choice(x, `You ___ ${c.nat}.`, ['am', 'are', 'from'], 'are'); },
+        (x) => { const c = x.pick(x.nats); return c && choice(x, `I ___ ${c.nat}.`, ['am', 'are', 'from'], 'am'); },
+      ]],
+      ['C', 'Przekształć zdania', 4, [
+        (x) => { const c = x.pick(x.countries); return c && text(`You are from ${c.en}.`, `Are you from ${c.en}?`, 'loose', 'pytanie'); },
+        (x) => { const c = x.pick(x.nats); return c && text(`You are ${c.nat}.`, `Are you ${c.nat}?`, 'loose', 'pytanie'); },
+        (x) => { const c = x.pick(x.countries); return c && text(`I am from ${c.en}.`, `I'm from ${c.en}.`, 'contraction', 'skrót'); },
+        (x) => { const c = x.pick(x.nats); return c && text(`You are ${c.nat}.`, `You're ${c.nat}.`, 'contraction', 'skrót'); },
+      ]],
+      ['D', 'Przetłumacz na angielski', 6, [
+        () => text('Skąd jesteś?', 'Where are you from?'),
+        (x) => { const c = x.pick(x.countries); return c && text(`Jestem ${zPL(c.gen)}.`, `I'm from ${c.en}.`); },
+        (x) => { const c = x.pick(x.countries); return c && text(`Czy jesteś ${zPL(c.gen)}?`, `Are you from ${c.en}?`); },
+        (x) => { const p = x.pick(x.phrases(['Pochodzenie i miejsce zamieszkania', 'Kraje i narodowości'], ['Skąd jesteś?'])); return p && text(p.pl, p.answers); },
+      ]],
+    ],
 
     // L4 Ludzie i rzeczy: Who / What is this?; he / she / it is; a + przedmioty w biurze
-    L4(words, rand) {
-      const { pick, shuffle, sample } = tools(rand);
-      const cs = countries(words);
-      const [c1, c2, c3] = sample(cs, 3);
-      const [m1, m2, m3] = sample(MEN, 3);
-      const [w1, w2, w3] = sample(WOMEN, 3);
-      const things = sample(THINGS, THINGS.length);
-      const vowel = things.find((t) => /^[aeiou]/.test(t.en));
-      const cons = things.filter((t) => !/^[aeiou]/.test(t.en));
-      const man = pick(JOBS.filter((j) => j.g === 'm'));
-      const woman = pick(JOBS.filter((j) => j.g === 'f'));
-      const nat = (c) => c.nat || 'Polish';
-
-      const A = shuffle([
-        choice(`${m1.en} → ___`, ['he', 'she', 'it'], 'he', rand),
-        choice(`${w1.en} → ___`, ['he', 'she', 'it'], 'she', rand),
-        choice(`${art(cons[0].en)} → ___`, ['he', 'she', 'it'], 'it', rand),
-        choice(`${w2.en} → ___`, ['he', 'she', 'it'], 'she', rand),
-        choice(`${art(cons[1].en)} → ___`, ['he', 'she', 'it'], 'it', rand),
-        choice(`${m2.en} → ___`, ['he', 'she', 'it'], 'he', rand),
-      ]);
-      const OPTS = ['is', 'a', 'an', 'Who', 'What'];
-      const B = shuffle([
-        choice(`She ___ from ${c1.en}.`, OPTS, 'is', rand),
-        choice(`It's ___ ${cons[2].en}.`, OPTS, 'a', rand),
-        choice(`It's ___ ${vowel.en}.`, OPTS, 'an', rand),
-        choice(`___ is this? — This is ${m3.en}.`, OPTS, 'Who', rand),
-        choice(`___ is this? — It's ${art(cons[3].en)}.`, OPTS, 'What', rand),
-        choice(`He ___ ${art(man.en)}.`, OPTS, 'is', rand),
-      ]);
-      const C = [
-        text(`He is ${nat(c2)}.`, `Is he ${nat(c2)}?`, 'loose', 'pytanie'),
-        text(`She is ${art(woman.en)}.`, `Is she ${art(woman.en)}?`, 'loose', 'pytanie'),
-        text(`It is ${art(cons[4].en)}.`, `Is it ${art(cons[4].en)}?`, 'loose', 'pytanie'),
-        text(`She is from ${c3.en}.`, `She's from ${c3.en}.`, 'contraction', 'skrót'),
-        text(`It is ${art(cons[5].en)}.`, `It's ${art(cons[5].en)}.`, 'contraction', 'skrót'),
-      ];
-      const thing = (t) => [`This is ${art(t.en)}.`, `It's ${art(t.en)}.`, `That is ${art(t.en)}.`];
-      const D = [
-        text('Kto to jest?', ['Who is this?', 'Who is it?', 'Who is that?']),
-        text(`To jest ${w3.pl}. Ona jest ${zPL(c1.gen)}.`, `This is ${w3.en}. She is from ${c1.en}.`),
-        text('Co to jest?', ['What is this?', 'What is it?', 'What is that?']),
-        text(`To jest ${cons[6].pl}.`, thing(cons[6])),
-        text(`On jest ${man.ins}.`, `He is ${art(man.en)}.`),
-        text(`Czy ona jest ${zPL(c2.gen)}?`, `Is she from ${c2.en}?`),
-        text('Tak, jest. (odpowiedź na 6)', 'Yes, she is.'),
-        text(`To jest ${vowel.pl}.`, thing(vowel)),
-      ];
-      return sections(A, 'Wpisz he, she albo it', B, 'Uzupełnij luki: is, a, an, Who albo What', C, 'Przekształć zdania', D);
-    },
+    L4: [
+      ['A', 'Wpisz he, she albo it', 6, [
+        (x) => choice(x, `${x.pick(x.men).en} → ___`, ['he', 'she', 'it'], 'he'),
+        (x) => choice(x, `${x.pick(x.women).en} → ___`, ['he', 'she', 'it'], 'she'),
+        (x) => { const t = x.pick(x.things); return t && choice(x, `${art(t.en)} → ___`, ['he', 'she', 'it'], 'it'); },
+        (x) => { const c = x.pick(x.countries); return c && choice(x, `${c.en} → ___`, ['he', 'she', 'it'], 'it'); },
+      ]],
+      ['B', 'Uzupełnij luki: is, a, an, Who albo What', 6, [
+        (x) => { const c = x.pick(x.countries); return c && choice(x, `She ___ from ${c.en}.`, ['is', 'a', 'an', 'Who', 'What'], 'is'); },
+        (x) => { const c = x.pick(x.nats); return c && choice(x, `He ___ ${c.nat}.`, ['is', 'a', 'an', 'Who', 'What'], 'is'); },
+        (x) => choice(x, `___ is this? — This is ${x.pick(x.names).en}.`, ['is', 'a', 'an', 'Who', 'What'], 'Who'),
+        (x) => { const t = x.pick(x.things); return t && choice(x, `It's ___ ${t.en}.`, ['is', 'a', 'an', 'Who', 'What'], /^[aeiou]/.test(t.en) ? 'an' : 'a'); },
+        (x) => { const t = x.pick(x.things); return t && choice(x, `___ is this? — It's ${art(t.en)}.`, ['is', 'a', 'an', 'Who', 'What'], 'What'); },
+        (x) => { const j = x.pick(x.jobs.filter((j) => j.g === 'm')); return j && choice(x, `He ___ ${art(j.en)}.`, ['is', 'a', 'an', 'Who', 'What'], 'is'); },
+      ]],
+      ['C', 'Przekształć zdania', 5, [
+        (x) => { const c = x.pick(x.nats); return c && text(`He is ${c.nat}.`, `Is he ${c.nat}?`, 'loose', 'pytanie'); },
+        (x) => { const c = x.pick(x.countries); return c && text(`She is from ${c.en}.`, `Is she from ${c.en}?`, 'loose', 'pytanie'); },
+        (x) => { const j = x.pick(x.jobs.filter((j) => j.g === 'f')); return j && text(`She is ${art(j.en)}.`, `Is she ${art(j.en)}?`, 'loose', 'pytanie'); },
+        (x) => { const t = x.pick(x.things); return t && text(`It is ${art(t.en)}.`, `Is it ${art(t.en)}?`, 'loose', 'pytanie'); },
+        (x) => { const c = x.pick(x.countries); return c && text(`She is from ${c.en}.`, `She's from ${c.en}.`, 'contraction', 'skrót'); },
+        (x) => { const c = x.pick(x.nats); return c && text(`He is ${c.nat}.`, `He's ${c.nat}.`, 'contraction', 'skrót'); },
+        (x) => { const t = x.pick(x.things); return t && text(`It is ${art(t.en)}.`, `It's ${art(t.en)}.`, 'contraction', 'skrót'); },
+      ]],
+      ['D', 'Przetłumacz na angielski', 8, [
+        () => text('Kto to jest?', ['Who is this?', 'Who is it?', 'Who is that?']),
+        () => text('Co to jest?', ['What is this?', 'What is it?', 'What is that?']),
+        (x) => { const w = x.pick(x.women); const c = x.pick(x.countries); return c && text(`To jest ${w.pl}. Ona jest ${zPL(c.gen)}.`, `This is ${w.en}. She is from ${c.en}.`); },
+        (x) => { const m = x.pick(x.men); const c = x.pick(x.countries); return c && text(`To jest ${m.pl}. On jest ${zPL(c.gen)}.`, `This is ${m.en}. He is from ${c.en}.`); },
+        (x) => { const c = x.pick(x.countries); return c && text(`Czy ona jest ${zPL(c.gen)}? — Tak.`, [`Is she from ${c.en}? Yes, she is.`, `Is she from ${c.en}? Yes.`]); },
+        (x) => { const t = x.pick(x.things); return t && text(`To jest ${t.pl}.`, [`This is ${art(t.en)}.`, `It's ${art(t.en)}.`, `That is ${art(t.en)}.`]); },
+        (x) => { const j = x.pick(x.jobs.filter((j) => j.g === 'm')); return j && text(`On jest ${j.ins}.`, `He is ${art(j.en)}.`); },
+        (x) => { const j = x.pick(x.jobs.filter((j) => j.g === 'f')); return j && text(`Ona jest ${j.ins}.`, `She is ${art(j.en)}.`); },
+      ]],
+    ],
   };
 
-  function sections(A, tA, B, tB, C, tC, D) {
-    return [
-      { key: 'A', title: tA, items: A },
-      { key: 'B', title: tB, items: B },
-      { key: 'C', title: tC, items: C },
-      { key: 'D', title: 'Przetłumacz na angielski', items: D },
-    ].filter((s) => s.items.length);
+  // Zbiera n różnych zadań: szablony po kolei (w losowej kolejności), każdy z innymi słowami.
+  function build(templates, n, x) {
+    const out = [];
+    const seen = new Set();
+    let order = x.shuffle(templates);
+    for (let i = 0; out.length < n && i < n * 30; i++) {
+      if (i && i % order.length === 0) order = x.shuffle(templates);
+      const it = order[i % order.length](x);
+      const key = it && it.prompt + '|' + (it.tag || '');
+      if (!it || seen.has(key)) continue;
+      seen.add(key);
+      out.push(it);
+    }
+    return out;
   }
 
-  function generate(lessonId, words = [], rand = Math.random) {
-    const g = GEN[lessonId];
-    return g ? { lesson: lessonId, sections: g(words, rand) } : null;
+  // opts.count — ile zadań w każdej części (domyślnie jak w lekcji); opts.parts — np. 'ABD'
+  function generate(lessonId, words = [], rand = Math.random, opts = {}) {
+    const def = LESSONS[lessonId];
+    if (!def) return null;
+    const x = pool(words, rand);
+    const parts = opts.parts || 'ABCD';
+    const sections = [];
+    const skipped = [];
+    for (const [key, title, size, templates] of def) {
+      if (!parts.includes(key)) continue;
+      const items = build(templates, opts.count || size, x);
+      if (items.length) sections.push({ key, title, items });
+      else skipped.push({ key, title });
+    }
+    return { lesson: lessonId, sections, skipped };
+  }
+
+  // Tytuły części lekcji (np. do ustawień) bez losowania.
+  function parts(lessonId) {
+    return (LESSONS[lessonId] || []).map(([key, title, size]) => ({ key, title, size }));
   }
 
   // ---------- sprawdzanie: 'ok' | 'typo' | 'wrong' ----------
-
   const keepApos = (s) => String(s).toLowerCase().replace(/[‘’`´]/g, "'").replace(/[^a-z0-9' ]/g, ' ').replace(/\s+/g, ' ').trim();
 
   function check(item, value) {
@@ -303,7 +292,7 @@
     return best;
   }
 
-  const api = { generate, check, supported: (id) => !!GEN[id], SUPPORTED: Object.keys(GEN) };
+  const api = { generate, check, parts, supported: (id) => !!LESSONS[id], SUPPORTED: Object.keys(LESSONS) };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Exercises = api;
 })(typeof window !== 'undefined' ? window : globalThis);

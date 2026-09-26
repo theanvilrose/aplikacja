@@ -14,6 +14,8 @@ const DEFAULT_SETTINGS = {
   // ustawienia planu dnia
   newOrder: 'lesson', warmup: true, reviewsFirst: false, listening: true, typing: true, reviewCap: 0,
   content: 'all', // co ćwiczyć w planie: 'all' | 'words' (bez zwrotów) | 'phrases' (same zwroty)
+  // zadania z lekcji: słowa ('all' = z Twoich lekcji, 'known' = tylko poznane w aplikacji), części, ile zadań w części (0 = jak w lekcji)
+  taskSource: 'all', taskParts: 'ABCD', taskCount: 0,
 };
 const LEVEL_NAMES = ['nowe', 'poznane', 'słyszę', 'pamiętam', 'piszę', 'umiem'];
 const WEEKDAYS = ['nd', 'pn', 'wt', 'śr', 'cz', 'pt', 'sb'];
@@ -797,12 +799,12 @@ function stopPlayer() {
 // ---------- widoki ----------
 
 function render() {
-  const views = { home: viewHome, listen: viewListen, words: viewWords, profile: viewProfile, session: viewSession, summary: viewSummary, player: viewPlayer, 'plan-settings': viewPlanSettings, packs: viewPacks, word: viewWord, pick: viewPick, tasks: viewTasks };
+  const views = { home: viewHome, listen: viewListen, words: viewWords, profile: viewProfile, session: viewSession, summary: viewSummary, player: viewPlayer, 'plan-settings': viewPlanSettings, packs: viewPacks, word: viewWord, pick: viewPick, tasks: viewTasks, 'task-settings': viewTaskSettings };
   $('#app').innerHTML = views[view]();
   const navHidden = view === 'session' || view === 'player' || view === 'pick' || view === 'word' || view === 'tasks' || (view === 'summary' && !!S?.chestOpened);
   $('#nav').hidden = navHidden;
   document.body.classList.toggle('no-nav', navHidden);
-  const tab = view === 'words' && wordsFilter.coll && collFrom !== 'words' ? 'home' : view === 'summary' || view === 'plan-settings' || view === 'packs' ? 'home' : view;
+  const tab = view === 'words' && wordsFilter.coll && collFrom !== 'words' ? 'home' : view === 'summary' || view === 'plan-settings' || view === 'task-settings' || view === 'packs' ? 'home' : view;
   document.querySelectorAll('#nav button').forEach((b) => b.classList.toggle('active', b.dataset.view === tab));
 
   const deck = $('#dailyDeck');
@@ -1929,33 +1931,116 @@ function lessonTasksCard() {
         <p class="lk-empty">Zadania pojawią się po pierwszej lekcji z planu (program_A1.md).</p>
       </section>`;
   }
-  const parts = Exercises.generate(L.id, words).sections;
+  const gen = taskGen(L.id);
+  const parts = gen.sections;
   const stats = db.tasks[L.id];
+  const src = db.settings.taskSource === 'known';
   return `
     <section class="card plan-focus daily-slide lesson-card">
-      <div class="focus-top"><h2 class="card-title">Zadania z lekcji</h2></div>
+      <div class="focus-top lk-head">
+        <h2 class="card-title">Zadania z lekcji</h2>
+        <button class="ph-settings" data-view="task-settings" aria-label="Ustawienia zadań" title="Ustawienia zadań">${ICON.sliders}</button>
+      </div>
       <div class="lk-lesson">
         <span class="lk-num">${L.id}</span>
         <div class="lk-info"><b>${esc(L.title || 'Lekcja ' + L.n)}</b>${L.grammar ? `<span>${esc(L.grammar)}</span>` : ''}</div>
         <span class="lk-status ${L.status}">${LESSON_STATUS[L.status] || ''}</span>
       </div>
       <div class="lk-parts">${parts.map((s) => `<button class="lk-part" data-act="tasks-start" data-part="${s.key}" title="Rozwiąż tylko część ${s.key}"><b>${s.key}</b><span>${esc(s.title)} · ${s.items.length}</span><i aria-hidden="true">›</i></button>`).join('')}</div>
+      ${gen.skipped.length ? `<p class="lk-note">Pominięto: ${gen.skipped.map((p) => `${p.key} (${esc(p.title)})`).join(', ')} — za mało ${src ? 'poznanych ' : ''}słówek. Pojawi się, gdy je poznasz.</p>` : ''}
+      ${src ? '<p class="lk-best">Tylko słowa poznane w aplikacji</p>' : ''}
       ${cur && !Exercises.supported(cur.id) ? `<p class="lk-note">Zadania do ${cur.id} „${esc(cur.title)}” jeszcze nie gotowe — na razie powtórz wcześniejsze lekcje.</p>` : ''}
       ${list.length > 1 ? `
       <div class="lk-pick" role="radiogroup" aria-label="Lekcja">
         ${list.map((l) => `<button class="lk-chip ${l.id === L.id ? 'on' : ''}" role="radio" aria-checked="${l.id === L.id}" data-act="task-lesson" data-lesson="${l.id}" title="${esc(l.title)}">${l.id}${l.status === 'done' ? ' ✓' : ''}</button>`).join('')}
       </div>` : ''}
       ${stats ? `<p class="lk-best">Ostatnio <b>${stats.last}/${stats.total}</b> · najlepiej <b>${stats.best}/${stats.total}</b> · rozwiązano ${stats.n}×</p>` : ''}
-      <button class="btn pill wide" data-act="tasks-start">Rozwiąż zadania</button>
+      <button class="btn pill wide" data-act="tasks-start" ${parts.length ? '' : 'disabled'}>Rozwiąż zadania</button>
     </section>`;
 }
 
 // part: 'A'…'D' = tylko ta część arkusza; bez niej — cały zestaw
+// Słowa do zadań: wszystkie z Twoich lekcji albo tylko te, które już poznałeś w aplikacji — nigdy spoza nich.
+function taskWords() {
+  return db.settings.taskSource === 'known' ? words.filter((w) => db.cards[w.id]) : words;
+}
+
+function taskGen(id, part = '') {
+  const s = db.settings;
+  return Exercises.generate(id, taskWords(), Math.random, { parts: part || s.taskParts, count: s.taskCount || 0 });
+}
+
+// ---------- ustawienia zadań z lekcji ----------
+
+const TASK_SOURCES = [
+  ['all', 'Z moich lekcji', (n) => `Wszystkie słówka z Twoich notatek (slowka.md) — ${wordsLabel(n)}.`],
+  ['known', 'Tylko poznane', (n) => `Tylko słowa, które już poznałeś w aplikacji — ${wordsLabel(n)}. Dobre na powtórkę bez niespodzianek; zadania, do których brakuje słów, zostaną pominięte.`],
+];
+const TASK_PART_HINTS = { A: 'Wybór jednej odpowiedzi z kilku.', B: 'Uzupełnianie luk w zdaniach.', C: 'Przekształcanie: zdanie → pytanie, pełna forma → skrót.', D: 'Tłumaczenie z polskiego na angielski (wpisujesz).' };
+PLAN_STEPS.taskCount = {
+  title: 'Zadań w każdej części', icon: 'target', tone: ['#DDEFFF', '#1F5FA8'],
+  options: [[0, 'Auto'], [3, '3'], [5, '5'], [8, '8']],
+  hints: { 0: 'Tyle, ile w lekcji (5–8 w części).', 3: 'Krótki zestaw — szybka powtórka w 2 minuty.', 5: 'Średni zestaw.', 8: 'Długi zestaw — pełny trening (jeśli starczy słów).' },
+};
+
+function viewTaskSettings() {
+  const s = db.settings;
+  const L = selectedTaskLesson();
+  const known = words.filter((w) => db.cards[w.id]).length;
+  const src = TASK_SOURCES.find(([v]) => v === s.taskSource) || TASK_SOURCES[0];
+  const gen = L ? taskGen(L.id) : null;
+  const total = gen ? gen.sections.reduce((n, x) => n + x.items.length, 0) : 0;
+  const nParts = gen ? gen.sections.length : 0;
+  return `
+  <header class="page-head">
+    <button class="icon-round" data-view="home" aria-label="Wróć">${ICON.back}</button>
+    <h1>Ustawienia zadań</h1>
+    <span class="page-head-spacer"></span>
+  </header>
+
+  <section class="plan-preview">
+    <span class="overline light">Twój zestaw${L ? ` · ${L.id} ${esc(L.title)}` : ''}</span>
+    <div class="pp-stats">
+      <div><b>${nParts}</b><span>${plural(nParts, 'część', 'części', 'części')}</span></div>
+      <div><b>${total}</b><span>${plural(total, 'zadanie', 'zadania', 'zadań')}</span></div>
+      <div><b>${s.taskSource === 'known' ? known : words.length}</b><span>słówek do użycia</span></div>
+    </div>
+    <p class="pp-forecast">${ICON.target}<span>Zadania układają się tylko z Twoich słówek — żadnych nowych słów. Imiona (Tom, Anna…) to tylko postacie w zdaniach.</span></p>
+    ${gen && gen.skipped.length ? `<p class="pp-exam warn">Pominięte: ${gen.skipped.map((p) => `${p.key} — ${esc(p.title)}`).join(', ')} (za mało słówek)</p>` : ''}
+  </section>
+
+  <h2 class="section-title">Słowa</h2>
+  <section class="card set-card">
+    <div class="set-head">${setIcon('words', ['#E7E0FF', '#5A3FE0'])}<b>Z jakich słów układać zadania</b></div>
+    <div class="segmented two" role="radiogroup" aria-label="Z jakich słów">
+      ${TASK_SOURCES.map(([v, label]) => `<button class="seg ${src[0] === v ? 'on' : ''}" role="radio" aria-checked="${src[0] === v}" data-setval="taskSource:${v}">${label}</button>`).join('')}
+    </div>
+    <p class="set-hint">${src[2](src[0] === 'known' ? known : words.length)}</p>
+  </section>
+
+  <h2 class="section-title">Zestaw</h2>
+  <section class="card set-list">
+    ${(L ? Exercises.parts(L.id) : []).map((p) => {
+      const on = s.taskParts.includes(p.key);
+      return `
+      <div class="set-row">
+        <span class="set-icon tk-part-icon">${p.key}</span>
+        <div class="set-text"><b>${esc(p.title)}</b><span>${TASK_PART_HINTS[p.key] || ''}</span></div>
+        <button class="switch ${on ? 'on' : ''}" role="switch" aria-checked="${on}" aria-label="Część ${p.key}: ${esc(p.title)}" data-taskpart="${p.key}"><span></span></button>
+      </div>`;
+    }).join('')}
+  </section>
+  ${stepper('taskCount')}
+
+  <button class="btn pill wide" data-act="tasks-start" ${total ? '' : 'disabled'}>Wygeneruj zestaw (${total} ${plural(total, 'zadanie', 'zadania', 'zadań')})</button>`;
+}
+
 function startTasks(id, part = '') {
-  const ex = Exercises.generate(id, words);
+  const ex = taskGen(id, part);
   if (!ex) return toast('Do tej lekcji nie ma jeszcze zadań');
   const sections = part ? ex.sections.filter((s) => s.key === part) : ex.sections;
-  EX = { lesson: id, part, sections: sections.length ? sections : ex.sections, values: {}, results: {}, checked: false, start: Date.now() };
+  if (!sections.length) return toast('Za mało słów do tych zadań — zmień ustawienia albo poznaj więcej słówek');
+  EX = { lesson: id, part, sections, values: {}, results: {}, checked: false, start: Date.now() };
   go('tasks');
 }
 
@@ -2231,7 +2316,7 @@ function openCollection(ref) {
 }
 
 document.addEventListener('click', (e) => {
-  const el = e.target.closest('[data-act],[data-say],[data-slow],[data-opt],[data-view],[data-coll],[data-status],[data-player],[data-exam],[data-listtoggle],[data-setval],[data-toggle],[data-slide],[data-ptab],[data-kind],[data-wopen]');
+  const el = e.target.closest('[data-act],[data-say],[data-slow],[data-opt],[data-view],[data-coll],[data-status],[data-player],[data-exam],[data-listtoggle],[data-setval],[data-toggle],[data-slide],[data-ptab],[data-kind],[data-wopen],[data-taskpart]');
   if (!el || el.disabled) return;
   const ds = el.dataset;
   if (ds.slide !== undefined) {
@@ -2257,6 +2342,12 @@ document.addEventListener('click', (e) => {
     return;
   }
   if (ds.toggle) { db.settings[ds.toggle] = !db.settings[ds.toggle]; save(); render(); return; }
+  if (ds.taskpart) {
+    const p = db.settings.taskParts;
+    const next = p.includes(ds.taskpart) ? p.replace(ds.taskpart, '') : [...p + ds.taskpart].sort().join('');
+    if (!next) return toast('Zostaw przynajmniej jedną część');
+    db.settings.taskParts = next; save(); render(); return;
+  }
   if (ds.status !== undefined) { wordsFilter.status = ds.status; render(); return; }
   if (ds.kind !== undefined) { wordsFilter.kind = ds.kind; wordsFilter.status = ''; render(); return; }
   if (ds.ptab) { packsTab = ds.ptab; render(); return; }

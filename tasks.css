@@ -3,6 +3,11 @@
 /* ---- karta ---- */
 .lesson-card { text-align: left; gap: 12px; }
 .lesson-card .focus-top { justify-content: center; }
+/* nagłówek jak w Planie dnia: tytuł po lewej, suwaki (ustawienia zadań) po prawej */
+.lesson-card .lk-head { justify-content: space-between; margin-bottom: 0; }
+.lesson-card .lk-head .ph-settings { flex-shrink: 0; }
+.segmented.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.tk-part-icon { background: #efeaff; color: #5a3fe0; font-family: var(--display); font-size: 20px; font-weight: 800; }
 .lk-lesson { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: 20px; background: rgba(255, 255, 255, 0.75); }
 .lk-num { width: 54px; height: 54px; flex-shrink: 0; display: grid; place-items: center; border-radius: 16px; font-family: var(--display); font-size: 22px; font-weight: 800; color: #fff; background: linear-gradient(135deg, #7a4bff, #38a5f1); box-shadow: 0 8px 18px -8px rgba(97, 67, 255, 0.8); }
 .lk-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }

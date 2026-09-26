@@ -6,7 +6,7 @@ const path = require('path');
 const E = require('../js/exercises.js');
 const { parseMarkdown } = require('../js/parser.js');
 
-// prawdziwe słówka, jeśli są obok; inaczej generator korzysta z list zapasowych
+// prawdziwe słówka, jeśli są obok (bez nich generator układa tylko zadania niepotrzebujące słówek)
 const md = path.join(__dirname, '..', '..', 'Angielski', 'slowka.md');
 const WORDS = fs.existsSync(md) ? parseMarkdown(fs.readFileSync(md, 'utf8')) : [];
 
@@ -14,25 +14,57 @@ function seeded(seed) {
   return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
 }
 
-test('każda obsługiwana lekcja daje 4 sekcje A–D bez pustych i powtórzonych zadań', () => {
+function allItems(ex) { return ex.sections.flatMap((s) => s.items.map((it) => ({ s, it }))); }
+
+test('każda obsługiwana lekcja: poprawne, niepowtórzone zadania (Twoje słówka, mało słów i żadnych)', () => {
   const rand = seeded(42);
+  const few = WORDS.filter((w, i) => i % 9 === 0); // „tylko poznane” — mały podzbiór
   for (const L of E.SUPPORTED) {
-    for (let k = 0; k < 200; k++) {
-      for (const words of [WORDS, []]) {
+    for (let k = 0; k < 150; k++) {
+      for (const words of [WORDS, few, []]) {
         const ex = E.generate(L, words, rand);
-        assert.deepEqual(ex.sections.map((s) => s.key), ['A', 'B', 'C', 'D'], L);
         for (const s of ex.sections) {
-          const prompts = s.items.map((i) => i.prompt);
-          assert.equal(new Set(prompts).size, prompts.length, `${L}${s.key}: powtórka ${prompts}`);
-          for (const it of s.items) {
-            assert.ok(it.prompt && !/undefined|null/.test(it.prompt), `${L}${s.key}: ${it.prompt}`);
-            if (it.kind === 'choice') assert.ok(it.options.includes(it.answer), `${L}${s.key}: brak odpowiedzi w opcjach`);
-            else assert.equal(E.check(it, it.answers[0]), 'ok', `${L}${s.key}: wzorcowa odpowiedź nie przechodzi: ${it.answers[0]}`);
+          assert.ok(s.items.length > 0, `${L}${s.key}: pusta sekcja`);
+          const keys = s.items.map((i) => i.prompt + '|' + (i.tag || ''));
+          assert.equal(new Set(keys).size, keys.length, `${L}${s.key}: powtórka`);
+        }
+        for (const { s, it } of allItems(ex)) {
+          assert.ok(it.prompt && !/undefined|null/.test(it.prompt), `${L}${s.key}: ${it.prompt}`);
+          if (it.kind === 'choice') assert.ok(it.options.includes(it.answer), `${L}${s.key}: brak odpowiedzi w opcjach`);
+          else assert.equal(E.check(it, it.answers[0]), 'ok', `${L}${s.key}: wzorcowa odpowiedź nie przechodzi: ${it.answers[0]}`);
+        }
+      }
+    }
+  }
+  // z pełnymi słówkami lekcje mają komplet części A–D
+  for (const L of ['L1', 'L2', 'L3', 'L4']) assert.deepEqual(E.generate(L, WORDS, rand).sections.map((s) => s.key), ['A', 'B', 'C', 'D'], L);
+});
+
+test('żadnych nowych słów: przedmioty, zawody, kraje i nastroje tylko z przekazanych słówek', () => {
+  const rand = seeded(5);
+  const LEXICON = ['laptop', 'desk', 'office', 'chair', 'computer', 'phone', 'bag', 'wallet', 'umbrella', 'manager', 'engineer', 'mechanic', 'boss', 'teacher', 'nurse', 'doctor', 'hungry', 'thirsty', 'bored', 'angry'];
+  const COUNTRIES = ['Poland', 'Spain', 'Germany', 'France', 'Italy', 'England', 'Canada', 'China', 'India', 'Japan', 'Mexico', 'Turkey', 'Sweden', 'Norway', 'Greece', 'Ireland', 'Portugal', 'Scotland', 'Ukraine'];
+  for (const words of [WORDS, WORDS.filter((w, i) => i % 7 === 0), []]) {
+    const allowed = new Set(words.map((w) => w.en.toLowerCase()));
+    const inWords = (t) => [...allowed].some((en) => new RegExp(`\\b${t}\\b`, 'i').test(en));
+    for (const L of E.SUPPORTED) {
+      for (let k = 0; k < 100; k++) {
+        for (const { it } of allItems(E.generate(L, words, rand))) {
+          const textAll = [it.prompt, ...(it.answers || []), ...(it.options || [])].join(' ');
+          for (const t of [...LEXICON, ...COUNTRIES]) {
+            if (new RegExp(`\\b${t}\\b`, 'i').test(textAll)) assert.ok(inWords(t), `${L}: „${t}” nie ma w słówkach, a jest w: ${textAll}`);
           }
         }
       }
     }
   }
+});
+
+test('ustawienia: liczba zadań w części i wybór części', () => {
+  const ex = E.generate('L4', WORDS, seeded(3), { count: 3, parts: 'AC' });
+  assert.deepEqual(ex.sections.map((s) => s.key), ['A', 'C']);
+  for (const s of ex.sections) assert.ok(s.items.length <= 3 && s.items.length > 0);
+  assert.deepEqual(E.parts('L1').map((p) => p.key), ['A', 'B', 'C', 'D']);
 });
 
 test('lekcja bez generatora zwraca null', () => {
