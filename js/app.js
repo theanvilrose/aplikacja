@@ -1567,10 +1567,10 @@ function viewSession() {
 
   const prompts = {
     en2pl: ['Co to znaczy?', `<div class="prompt-en">${esc(w.en)} <button class="icon-btn" data-say="${esc(w.en)}">🔊</button></div>`],
-    listen2pl: ['Posłuchaj i wybierz znaczenie', `<button class="listen" data-say="${esc(w.en)}" aria-label="Odtwórz">🔊</button>`],
+    listen2pl: ['Posłuchaj i wybierz znaczenie', `<div class="listen-row"><button class="listen" data-say="${esc(w.en)}" aria-label="Odtwórz">🔊</button><button class="listen-slow" data-slow="${esc(w.en)}" aria-label="Odtwórz wolniej" title="Wolniej">🐢<span>wolniej</span></button></div>`],
     pl2en: ['Jak to powiesz po angielsku?', `<div class="prompt-pl">${esc(w.pl)}</div>`],
     type: ['Napisz po angielsku', `<div class="prompt-pl">${esc(w.pl)}</div>`],
-    dictation: ['Napisz, co słyszysz', `<button class="listen" data-say="${esc(w.en)}" aria-label="Odtwórz">🔊</button><button class="btn small ghost" data-slow="${esc(w.en)}">🐢 wolniej</button>`],
+    dictation: ['Napisz, co słyszysz', `<div class="listen-row"><button class="listen" data-say="${esc(w.en)}" aria-label="Odtwórz">🔊</button><button class="listen-slow" data-slow="${esc(w.en)}" aria-label="Odtwórz wolniej" title="Wolniej">🐢<span>wolniej</span></button></div>`],
   };
   const [question, prompt] = prompts[type];
 
