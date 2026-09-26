@@ -298,3 +298,6 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .dv-home-text b { font-family: var(--display); font-size: 18px; font-weight: 700; color: #131d4c; }
 .dv-home-text span { font-size: 14px; font-weight: 600; color: #6f7590; }
 .dv-home-go { font-size: 26px; color: #6143ff; }
+.dv-hint { margin: -6px 4px 10px; font-size: 14px; color: #6f7590; }
+.dv-topics { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.dv-topics .lk-chip { height: auto; padding: 8px 14px; text-align: left; }

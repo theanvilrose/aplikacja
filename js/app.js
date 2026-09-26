@@ -216,6 +216,8 @@ const WORD_IMG = {
   "i'm": 'im', 'you': 'you', "you're": 'youre',
 };
 // + ikony dodane w panelu dewelopera (js/word-icons-extra.js)
+// oryginalne ikony (sprzed panelu) — „przywróć oryginał” w panelu dewelopera
+const BASE_WORD_IMG = { ...WORD_IMG };
 Object.assign(WORD_IMG, window.EXTRA_WORD_IMG || {});
 
 
@@ -2303,7 +2305,7 @@ function viewTasks() {
 // ---------- panel dewelopera: ikony słówek z OpenRouter (tylko przy lokalnym serwerze tools/server.js) ----------
 
 let DEV = null; // status z /api/dev/status; null = panel niedostępny (np. inna przeglądarka, telefon, GitHub)
-const DEVS = { model: '', busy: {}, preview: {}, errors: {}, spent: 0, bulk: null };
+const DEVS = { model: '', busy: {}, preview: {}, errors: {}, spent: 0, bulk: null, topic: '' }; // topic: temat w sekcji „Twoje ikony”
 const ICON_PRICE = 0.04; // ≈ $ za ikonę (Gemini 2.5 Flash Image) — tylko do podglądu kosztu
 
 async function devInit() {
@@ -2399,9 +2401,12 @@ async function devSave(id, { quiet = false } = {}) {
 }
 
 async function devRemove(id) {
-  if (!(await ask({ title: `Usunąć ikonę „${byId.get(id)?.en || id}”?`, text: 'Słowo znowu będzie bez ikony — możesz wygenerować nową.', ok: 'Usuń', danger: true }))) return;
+  const base = BASE_WORD_IMG[id];
+  if (!(await ask(base
+    ? { title: `Przywrócić oryginalną ikonę „${byId.get(id)?.en || id}”?`, text: 'Wygenerowana wersja zostanie usunięta, wróci Twoja ikona.', ok: 'Przywróć' }
+    : { title: `Usunąć ikonę „${byId.get(id)?.en || id}”?`, text: 'Słowo znowu będzie bez ikony — możesz wygenerować nową.', ok: 'Usuń', danger: true }))) return;
   await fetch('/api/dev/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
-  delete WORD_IMG[id];
+  if (base) WORD_IMG[id] = base; else delete WORD_IMG[id];
   if (DEV && DEV.extra) delete DEV.extra[id];
   render();
 }
@@ -2438,7 +2443,8 @@ function devRow(w) {
       <div class="dv-actions">
         ${busy ? '<span class="dv-busy">Generuję…</span>'
           : prev ? `<button class="dv-btn ok" data-act="dev-save" data-id="${esc(w.id)}">Zapisz</button><button class="dv-btn" data-act="dev-gen" data-id="${esc(w.id)}" title="Jeszcze raz">↻</button>`
-          : own ? `<button class="dv-btn" data-act="dev-gen" data-id="${esc(w.id)}" title="Nowa wersja">↻</button><button class="dv-btn danger" data-act="dev-remove" data-id="${esc(w.id)}" title="Usuń ikonę">✕</button>`
+          : own ? `<button class="dv-btn" data-act="dev-gen" data-id="${esc(w.id)}" title="Nowa wersja">↻</button><button class="dv-btn danger" data-act="dev-remove" data-id="${esc(w.id)}" title="${BASE_WORD_IMG[w.id] ? 'Przywróć oryginalną ikonę' : 'Usuń ikonę'}">${BASE_WORD_IMG[w.id] ? '↺' : '✕'}</button>`
+          : WORD_IMG[w.id] ? `<button class="dv-btn" data-act="dev-gen" data-id="${esc(w.id)}" title="Wygeneruj nową wersję (oryginał zostaje do przywrócenia)" ${DEVS.bulk ? 'disabled' : ''}>↻ Nowa wersja</button>`
           : `<button class="dv-btn go" data-act="dev-gen" data-id="${esc(w.id)}" ${DEVS.bulk ? 'disabled' : ''}>Generuj</button>`}
       </div>
     </div>`;
@@ -2452,6 +2458,10 @@ function viewDev() {
   }
   const missing = devMissing();
   const own = Object.keys(DEV.extra || {}).map((id) => byId.get(id)).filter(Boolean);
+  // Twoje ikony (oryginały, jeszcze bez nowej wersji z panelu) — wg tematów
+  const base = words.filter((w) => !isPhrase(w) && BASE_WORD_IMG[w.id] && !(DEV.extra || {})[w.id]);
+  const baseTopics = [...new Set(base.map((w) => w.topic))];
+  const baseTopic = baseTopics.includes(DEVS.topic) ? DEVS.topic : '';
   const groups = {};
   for (const w of missing) (groups[w.topic] = groups[w.topic] || []).push(w);
   const b = DEVS.bulk;
@@ -2490,7 +2500,13 @@ function viewDev() {
 
     ${own.length ? `
       <h2 class="section-title">Dodane w panelu <span class="dv-count">${own.length}</span></h2>
-      <section class="card dv-list">${own.map(devRow).join('')}</section>` : ''}` : ''}`;
+      <section class="card dv-list">${own.map(devRow).join('')}</section>` : ''}
+
+    ${base.length ? `
+      <h2 class="section-title">Twoje ikony — nowa wersja <span class="dv-count">${base.length}</span></h2>
+      <p class="dv-hint">Wybierz temat i kliknij „↻ Nowa wersja”. Oryginał nie znika — przy nowej ikonie jest ↺, które go przywraca.</p>
+      <div class="dv-topics">${baseTopics.map((t) => `<button class="lk-chip ${t === baseTopic ? 'on' : ''}" data-act="dev-topic" data-topic="${esc(t)}">${esc(t)} · ${base.filter((w) => w.topic === t).length}</button>`).join('')}</div>
+      ${baseTopic ? `<section class="card dv-list">${base.filter((w) => w.topic === baseTopic).map(devRow).join('')}</section>` : ''}` : ''}` : ''}`;
 }
 
 function viewProfile() {
@@ -2783,6 +2799,7 @@ document.addEventListener('click', (e) => {
     case 'dev-bulk': devBulk(); break;
     case 'dev-stop': if (DEVS.bulk) { DEVS.bulk.stop = true; toast('Zatrzymuję po bieżącej ikonie…'); } break;
     case 'dev-model': DEVS.model = ds.model; render(); break;
+    case 'dev-topic': DEVS.topic = DEVS.topic === ds.topic ? '' : ds.topic; render(); break;
     case 'backup-later': db.backupSnooze = Date.now() + 3 * DAY; save(); render(); break;
     case 'reset':
       ask({ title: 'Wyzerować wszystko?', text: 'Cały postęp nauki, diamenty, seria, odznaki i listy znikną. Tego nie da się cofnąć.', ok: 'Wyzeruj', danger: true }).then((yes) => {
