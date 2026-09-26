@@ -47,7 +47,7 @@ const COLL_ART = {
   'pack:podroze': 'podroze', 'pack:biznes': 'biznes', 'pack:phrases': 'rozmowki', 'pack:nouns': 'rzeczowniki',
   'pack:verbs': 'czasowniki', 'pack:adj': 'przymiotniki', 'pack:all': 'wszystkie',
   'topic:Powitania': 'powitania', 'topic:Przedstawianie się': 'przedstawianie', 'topic:Samopoczucie': 'samopoczucie',
-  'topic:Grzeczności': 'grzecznosci', 'topic:Pożegnania': 'pozegnania', 'topic:Kraje i narodowości': 'kraje',
+  'topic:Grzeczności': 'grzecznosci', 'topic:Pożegnania': 'pozegnania', 'topic:Kraje i narodowości': 'kraje', 'topic:Kraje i narodowości — Europa': 'kraje', 'topic:Kraje i narodowości — świat i kontynenty': 'swiat',
   'topic:Pochodzenie i miejsce zamieszkania': 'pochodzenie', 'topic:Reagowanie w rozmowie': 'reagowanie',
   'auto:last': 'ostatnia-lekcja', 'auto:hard': 'trudne', 'auto:mistakes': 'bledy',
 };
@@ -70,11 +70,15 @@ const WORD_IMG = {
   spain: 'hiszpania', poland: 'polska', sweden: 'szwecja', 'the netherlands': 'holandia', norway: 'norwegia',
   'the czech republic': 'czechy', greece: 'grecja', ireland: 'irlandia', japan: 'japonia', portugal: 'portugalia',
   scotland: 'szkocja', ukraine: 'ukraina', 'the usa': 'usa',
+  russia: 'rosja', 'south africa': 'rpa', brazil: 'brazylia', argentina: 'argentyna', egypt: 'egipt', 'saudi arabia': 'arabia_saudyjska',
+  belgium: 'belgia', denmark: 'dania', finland: 'finlandia',
   australian: 'australia', canadian: 'kanada', chinese: 'chiny', indian: 'indie', mexican: 'meksyk', turkish: 'turcja',
   german: 'niemcy', french: 'francja', british: 'wielka_brytania_autobus', english: 'wielka_brytania', italian: 'wlochy',
   spanish: 'hiszpania', polish: 'polska', swedish: 'szwecja_drakkar', dutch: 'holandia', norwegian: 'norwegia',
   czech: 'czechy', greek: 'grecja', irish: 'irlandia', japanese: 'japonia', portuguese: 'portugalia',
   scottish: 'szkocja', ukrainian: 'ukraina', american: 'usa',
+  russian: 'rosja', 'south african': 'rpa', brazilian: 'brazylia', argentinian: 'argentyna', egyptian: 'egipt', saudi: 'arabia_saudyjska',
+  belgian: 'belgia', danish: 'dania', finnish: 'finlandia',
 };
 
 // Testy jak w planie nauki: tygodniowy, miesięczny i egzamin próbny.
@@ -1880,6 +1884,10 @@ function viewPick() {
 
 // Karta „Wznów” na ekranie Pakietów: ostatni pakiet / temat, którego się uczyłeś.
 function resumeCard() {
+  if (db.lastColl && !collection(db.lastColl) && db.lastColl.startsWith('topic:')) {
+    const t = topicsList().find((x) => x.name.startsWith(db.lastColl.slice(6)));
+    if (t) { db.lastColl = 'topic:' + t.name; save(); }
+  }
   const c = db.lastColl && collection(db.lastColl);
   if (!c || !c.total || c.known === c.total) return '';
   return `

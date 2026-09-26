@@ -37,12 +37,23 @@
     greece: ['Grecji', 'greek'], ireland: ['Irlandii', 'irish'], portugal: ['Portugalii', 'portuguese'],
     scotland: ['Szkocji', 'scottish'], ukraine: ['Ukrainy', 'ukrainian'], 'the usa': ['USA', 'american'],
     'the uk': ['Wielkiej Brytanii', 'british'], 'the czech republic': ['Czech', 'czech'], australia: ['Australii', 'australian'],
+    austria: ['Austrii', 'austrian'], belarus: ['Białorusi', 'belarusian'], belgium: ['Belgii', 'belgian'], bulgaria: ['Bułgarii', 'bulgarian'],
+    croatia: ['Chorwacji', 'croatian'], denmark: ['Danii', 'danish'], estonia: ['Estonii', 'estonian'], finland: ['Finlandii', 'finnish'],
+    hungary: ['Węgier', 'hungarian'], iceland: ['Islandii', 'icelandic'], latvia: ['Łotwy', 'latvian'], lithuania: ['Litwy', 'lithuanian'],
+    romania: ['Rumunii', 'romanian'], russia: ['Rosji', 'russian'], serbia: ['Serbii', 'serbian'], slovakia: ['Słowacji', 'slovak'],
+    slovenia: ['Słowenii', 'slovenian'], switzerland: ['Szwajcarii', 'swiss'], wales: ['Walii', 'welsh'],
+    argentina: ['Argentyny', 'argentinian'], brazil: ['Brazylii', 'brazilian'], chile: ['Chile', 'chilean'], colombia: ['Kolumbii', 'colombian'],
+    cuba: ['Kuby', 'cuban'], egypt: ['Egiptu', 'egyptian'], georgia: ['Gruzji', 'georgian'], indonesia: ['Indonezji', 'indonesian'],
+    iran: ['Iranu', 'iranian'], israel: ['Izraela', 'israeli'], morocco: ['Maroka', 'moroccan'], 'new zealand': ['Nowej Zelandii', 'new zealander'],
+    nigeria: ['Nigerii', 'nigerian'], pakistan: ['Pakistanu', 'pakistani'], 'the philippines': ['Filipin', 'filipino'],
+    'saudi arabia': ['Arabii Saudyjskiej', 'saudi'], 'south africa': ['RPA', 'south african'], 'south korea': ['Korei Południowej', 'korean'],
+    thailand: ['Tajlandii', 'thai'], 'the uae': ['Zjednoczonych Emiratów Arabskich', 'emirati'], vietnam: ['Wietnamu', 'vietnamese'],
   };
   // przymiotniki pasujące do „I'm …” / „Jestem …”
   const MOOD_WORDS = ['tired', 'happy', 'sad', 'busy', 'hungry', 'thirsty', 'cold', 'hot', 'bored', 'angry', 'sick', 'ill'];
 
   const art = (en) => (/^[aeiou]/i.test(en) ? 'an ' : 'a ') + en;
-  const zPL = (gen) => (/^S[zk]/.test(gen) ? 'ze ' : 'z ') + gen;
+  const zPL = (gen) => (/^(S[zkł]|[ZŻŹŚ])/.test(gen) ? 'ze ' : 'z ') + gen; // ze Szwecji, ze Słowacji, ze Zjednoczonych…
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   const first = (s) => String(s).split(/\s*[\/(;,]\s*/)[0].trim();
 
@@ -74,7 +85,7 @@
 
     // zwroty z tematów lekcji do tłumaczenia; „(= And you?)” w tłumaczeniu to druga dobra odpowiedź
     const phrases = (topics, skip = []) => words
-      .filter((w) => topics.includes(w.topic) && /zwrot/i.test(w.pos || '') && w.en.length <= 40)
+      .filter((w) => topics.some((t) => (w.topic || '').startsWith(t)) && /zwrot/i.test(w.pos || '') && w.en.length <= 40)
       .map((w) => {
         const alt = [...w.pl.matchAll(/\(\s*=\s*([^)]+)\)/g)].map((m) => m[1].trim());
         return { pl: w.pl.replace(/\s*\(\s*=[^)]*\)/g, '').trim(), answers: [w.en, ...alt] };
