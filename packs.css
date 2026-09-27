@@ -495,3 +495,29 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 :root[data-theme="dark"] .pick-tile, :root[data-theme="dark"] .pic-card { background: color-mix(in srgb, var(--tint) 30%, #1f1c2b); box-shadow: 0 7px 0 color-mix(in srgb, var(--tint) 20%, #120f1e); }
 :root[data-theme="dark"] .wd-hero .wd-pron { color: #ffb089; }
 :root[data-theme="dark"] .pk-card { background: linear-gradient(90deg, color-mix(in srgb, var(--tint) 45%, #0f0d1c) 0 12px, color-mix(in srgb, var(--tint) 22%, #1f1c2b) 12px); }
+
+/* ---- grafiki 3D z assets/ui/ (zamiast płaskich SVG; core.js: ART3D) ---- */
+.art3d { display: block; object-fit: contain; filter: drop-shadow(0 6px 10px rgba(40, 50, 110, 0.18)); }
+.eh-icon:has(.art3d) { background: transparent; }
+.eh-icon .art3d { width: 52px; height: 52px; }
+.sticker .art3d { width: 58px; height: 58px; }
+.pnode.trophy .art3d { width: 44px; height: 44px; filter: none; }
+.lc-art .art3d { width: 118px; height: 118px; margin-top: -18px; }
+.audio-card > .art3d { width: 118px; height: 118px; margin: -6px auto 2px; }
+.cel-art .art3d { width: 210px; height: 210px; }
+.badge-card .art3d { width: 54px; height: 54px; flex-shrink: 0; }
+.badge-item .art3d { width: 46px; height: 46px; filter: none; }
+.plan-art .art3d { height: 140px; width: auto; }
+.ph-art-icon:has(.art3d) { background: #fff6d6; }
+.ph-art-icon .art3d { width: 40px; height: 40px; filter: none; }
+.set-icon.glossy {
+  color: #fff;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--c) 55%, #fff) 0%, var(--c) 100%);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35), inset 0 -3px 0 rgba(0, 0, 0, 0.12), 0 4px 10px rgba(40, 60, 120, 0.16);
+}
+.set-icon.glossy svg { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.15)); }
+
+/* główne przyciski w całej aplikacji — ten sam gradient i zaokrąglenie co „Ucz się” w Planie dnia */
+.btn.pill { border-radius: 999px; background: linear-gradient(90deg, #38a5f1 0%, #5981f3 50%, #715bfa 100%); box-shadow: 0 14px 28px -10px rgba(89, 110, 245, 0.7); }
+.btn.pill:hover:not(:disabled) { background: linear-gradient(90deg, #4f8ff6 0%, #6a6cfb 45%, #8a4dff 100%); box-shadow: 0 20px 36px -10px rgba(113, 91, 250, 0.8); }
+.btn.pill:disabled { opacity: 0.55; }

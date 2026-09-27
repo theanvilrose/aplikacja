@@ -179,3 +179,13 @@ html, body { overflow-x: clip; }
 .page-hero .ph-grid { grid-template-columns: minmax(0, 1fr); }
 .hero-select select { width: 100%; }
 @media (min-width: 720px) { .page-hero .ph-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); } }
+
+/* ---- podstrony (views.js: subHero) — ta sama sekcja co Plan dnia, z powrotem ---- */
+.sub-hero { padding-top: 18px; }
+.sh-title { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.sh-back svg { width: 24px; height: 24px; }
+.sh-back:hover svg { transform: translateX(-2px); }
+.sh-sub { margin: -2px 2px 6px 60px; font-family: var(--display); font-size: 16px; font-weight: 600; color: #4b5170; }
+.sub-hero .ph-label { overflow-wrap: anywhere; }
+.sub-hero .ph-label b { color: #5a3fe0; }
+@media (max-width: 719px) { .sub-hero .ph-art img { max-width: 230px; } }

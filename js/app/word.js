@@ -310,22 +310,16 @@ function viewTaskSettings() {
   const total = gen ? gen.sections.reduce((n, x) => n + x.items.length, 0) : 0;
   const nParts = gen ? gen.sections.length : 0;
   return `
-  <header class="page-head">
-    <button class="icon-round" data-view="home" aria-label="Wróć">${ICON.back}</button>
-    <h1>Ustawienia zadań</h1>
-    <span class="page-head-spacer"></span>
-  </header>
-
-  <section class="plan-preview">
-    <span class="overline light">Twój zestaw${L ? ` · ${L.id} ${esc(L.title)}` : ''}</span>
-    <div class="pp-stats">
-      <div><b>${nParts}</b><span>${plural(nParts, 'część', 'części', 'części')}</span></div>
-      <div><b>${total}</b><span>${plural(total, 'zadanie', 'zadania', 'zadań')}</span></div>
-      <div><b>${s.taskSource === 'known' ? known : words.length}</b><span>słówek do użycia</span></div>
-    </div>
-    <p class="pp-forecast">${ICON.target}<span>Zadania układają się tylko z Twoich słówek — żadnych nowych słów. Imiona (Tom, Anna…) to tylko postacie w zdaniach.</span></p>
-    ${gen && gen.skipped.length ? `<p class="pp-exam warn">Pominięte: ${gen.skipped.map((p) => `${p.key} — ${esc(p.title)}`).join(', ')} (za mało słówek)</p>` : ''}
-  </section>
+  ${subHero({
+    title: 'Ustawienia zadań',
+    sub: L ? `Twój zestaw · ${L.id} ${esc(L.title)}` : 'Twój zestaw',
+    art: heroArt('hero-tasks.png'),
+    rows: `
+      ${heroRow({ icon: sqIcon(ICON.order, '#8fb7ff', '#2f7fe6'), label: plural(nParts, 'Część', 'Części', 'Części'), sub: 'A–D z planu lekcji', right: heroNum(nParts), tint: '59, 142, 240', ink: '#2f7fe6', i: 0 })}
+      ${heroRow({ icon: IMG('task-star.png', 'ph-icon'), label: 'Zadania', sub: 'w jednym zestawie', right: heroNum(total), tint: '255, 194, 26', ink: '#e09a00', i: 1 })}
+      ${heroRow({ icon: IMG('stat-check.png', 'ph-icon'), label: 'Słówka do użycia', sub: 'tylko Twoje — żadnych nowych słów', right: heroNum(s.taskSource === 'known' ? known : words.length), tint: '39, 173, 179', ink: '#27adb3', i: 2 })}
+      ${gen && gen.skipped.length ? heroRow({ icon: sqIcon(ICON.target, '#ffb38a', '#e8590c'), label: 'Pominięte części', sub: `${gen.skipped.map((p) => `${p.key} — ${esc(p.title)}`).join(', ')} (za mało słówek)`, tint: '232, 89, 12', ink: '#e8590c', i: 3 }) : ''}`,
+  })}
 
   <h2 class="section-title">Słowa</h2>
   <section class="card set-card">

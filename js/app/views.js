@@ -67,6 +67,24 @@ function pageHero({ title, badge = '', head = '', art, rows }) {
     </div>
   </section>`;
 }
+// podstrona: ta sama sekcja na gradiencie, z przyciskiem powrotu zamiast paska statystyk
+function subHero({ title, sub = '', back = 'data-view="home"', head = '', art, rows }) {
+  return `
+  <section class="hero sub-hero">
+    <div class="hero-inner">
+      <section class="plan-hero page-hero">
+        <div class="ph-head">
+          <div class="sh-title"><button class="ph-settings sh-back" ${back} aria-label="Wróć">${ICON.back}</button><h2 class="ph-title">${title}</h2></div>
+          ${head}
+        </div>
+        ${sub ? `<p class="sh-sub">${sub}</p>` : ''}
+        <div class="ph-grid">${art}<div class="ph-tasks">${rows}</div></div>
+      </section>
+    </div>
+  </section>`;
+}
+const heroArt = (file) => `<div class="ph-art">${IMG(file, '', '')}</div>`;
+
 const heroNum = (n, of) => `<span class="ph-num"><b>${n}</b>${of !== undefined ? '/' + of : ''}</span>`;
 
 function sectionHead(title, action = '') {
@@ -356,16 +374,20 @@ function viewPacks() {
   const empty = { learning: 'Jeszcze nic nie zacząłeś — wybierz pakiet w zakładce Wszystkie.', known: 'Jeszcze nic nie wyuczone — ucz się dalej! 💪' };
 
   return `
-    <header class="pk-top">
-      <div class="pk-bar">
-        <button class="pk-back" data-view="home" aria-label="Wróć">${ICON.back}</button>
-        <h2>Pakiety słówek</h2>
-        <span class="pk-spacer"></span>
-      </div>
-      <nav class="pk-tabs">
-        ${PACK_TABS.map(([k, label]) => `<button class="${packsTab === k ? 'on' : ''}" data-ptab="${k}">${label}</button>`).join('')}
-      </nav>
-    </header>
+    ${(() => {
+      const all = [...PACKS.filter((p) => p.key !== 'all').map((p) => collection('pack:' + p.key)).filter((c) => c && c.total >= MIN_PACK), ...topicsList().map((t) => collection('topic:' + t.name))].filter((c) => c && c.total);
+      const n = (k) => (k === 'all' ? all.length : all.filter((c) => collStage(c) === k).length);
+      const look = { all: ['stat-check.png', '97, 67, 255', '#6143ff', 'pakiety i tematy'], learning: ['task-refresh.png', '59, 142, 240', '#2f7fe6', 'zaczęte, jeszcze nie opanowane'], known: ['task-star.png', '255, 194, 26', '#e09a00', 'umiesz wszystkie słowa'] };
+      return subHero({
+        title: 'Pakiety słówek',
+        art: heroArt('hero-packs.png'),
+        rows: PACK_TABS.map(([k, label], i) => heroRow({
+          icon: k === 'all' ? sqIcon(ICON.words, '#b39dff', '#6143ff') : IMG(look[k][0], 'ph-icon'), label, sub: look[k][3],
+          fill: k === 'all' ? null : n(k) / Math.max(1, n('all')), right: heroNum(n(k)),
+          tint: look[k][1], ink: look[k][2], i, attrs: `data-ptab="${k}"`, sel: packsTab === k,
+        })).join(''),
+      });
+    })()}
     ${packsTab !== 'known' ? resumeCard() : ''}
     ${groups.length ? groups.map(([title, cs]) => `
       <h3 class="pk-group">${title}</h3>
@@ -420,8 +442,11 @@ function levelBars(level, n) {
   return `<span class="lvl-bars" aria-hidden="true">${out}</span>`;
 }
 
-function setIcon(icon, [bg, fg]) {
-  return `<span class="set-icon" style="background:${bg};color:${fg}">${ICON[icon]}</span>`;
+// ikonka ustawień: błyszczący kwadrat z białym symbolem, jak ikonki zadań Planu dnia (kolor = drugi odcień z pary)
+// przygaszone kolory z dawnych pastelowych ikonek → żywe barwy ikonek Planu dnia
+const VIVID = { '#A5460A': '#f07800', '#0F7466': '#1fa45a', '#1F5FA8': '#2f7fe6', '#B4260F': '#e8590c', '#5A3FE0': '#6a4cff' };
+function setIcon(icon, [, fg]) {
+  return `<span class="set-icon glossy" style="--c:${VIVID[fg] || fg}">${ICON[icon]}</span>`;
 }
 
 function stepper(key) {
@@ -466,17 +491,16 @@ function planPreview() {
   } else if (unseen > 0) {
     forecastLine = 'Nowe słowa są wyłączone — ustaw ich liczbę niżej.';
   }
-  return `
-  <section class="plan-preview">
-    <span class="overline light">Twój plan na dziś</span>
-    <div class="pp-stats">
-      <div><b>${newN}</b><span>${plural(newN, 'nowe słowo', 'nowe słowa', 'nowych słów')}</span></div>
-      <div><b>${revN}</b><span>${plural(revN, 'powtórka', 'powtórki', 'powtórek')}</span></div>
-      <div><b>~${estMin}</b><span>min nauki</span></div>
-    </div>
-    <p class="pp-forecast">${ICON.target}<span>${forecastLine}</span></p>
-    ${examLine}
-  </section>`;
+  return subHero({
+    title: 'Ustawienia planu',
+    sub: 'Twój plan na dziś',
+    art: heroArt('hero-plan.png'),
+    rows: `
+      ${heroRow({ icon: IMG('task-star.png', 'ph-icon'), label: plural(newN, 'Nowe słowo', 'Nowe słowa', 'Nowe słowa'), sub: 'poznasz dziś', right: heroNum(newN), tint: '255, 194, 26', ink: '#e09a00', i: 0 })}
+      ${heroRow({ icon: IMG('task-refresh.png', 'ph-icon'), label: 'Powtórki', sub: 'słowa, którym mija termin', right: heroNum(revN), tint: '52, 192, 106', ink: '#1fa45a', i: 1 })}
+      ${heroRow({ icon: IMG('task-clock.png', 'ph-icon'), label: 'Czas nauki', sub: 'mniej więcej', right: `<span class="ph-num"><b>~${estMin}</b> min</span>`, tint: '59, 142, 240', ink: '#2f7fe6', i: 2 })}
+      ${heroRow({ icon: sqIcon(ICON.target, '#b39dff', '#6143ff'), label: forecastLine, sub: examLine.replace(/<[^>]+>/g, ''), tint: '97, 67, 255', ink: '#6143ff', i: 3 })}`,
+  });
 }
 
 function viewPlanSettings() {
@@ -484,12 +508,6 @@ function viewPlanSettings() {
   const order = PLAN_ORDERS.find(([v]) => v === s.newOrder) || PLAN_ORDERS[0];
   const content = PLAN_CONTENT.find(([v]) => v === s.content) || PLAN_CONTENT[0];
   return `
-  <header class="page-head">
-    <button class="icon-round" data-view="home" aria-label="Wróć">${ICON.back}</button>
-    <h1>Ustawienia planu</h1>
-    <span class="page-head-spacer"></span>
-  </header>
-
   ${planPreview()}
 
   <h2 class="section-title">Dobór słów</h2>
@@ -879,17 +897,18 @@ function viewSummary() {
   const c = counts();
   const left = STREAK_MIN - (db.days[dayKey()]?.n || 0);
   return `
-    ${statusBar()}
-    <section class="card result">
-      <div class="plan-art">${ART.rocketBook}</div>
-      <h3 class="card-title">Koniec sesji</h3>
-      <p class="muted small">${mins} min · średni czas reakcji ${avg} s</p>
-      <div class="cel-stats">
-        <div><b>${a.length}</b><span>odpowiedzi</span></div>
-        <div><b class="ok-text">${a.length ? Math.round((ok / a.length) * 100) : 0}%</b><span>poprawnych</span></div>
-        <div><b class="gem-text">+${S.gems}</b><span>diamentów</span></div>
-      </div>
-    </section>
+    ${(() => {
+      const rate = a.length ? ok / a.length : 0;
+      return subHero({
+        title: 'Koniec sesji',
+        sub: `${mins} min · średni czas reakcji ${avg} s`,
+        art: `<div class="ph-art launched">${IMG('plan-rocket.webp', '', '')}</div>`,
+        rows: `
+          ${heroRow({ icon: IMG('task-star.png', 'ph-icon'), label: 'Odpowiedzi', right: heroNum(a.length), tint: '255, 194, 26', ink: '#e09a00', i: 0 })}
+          ${heroRow({ icon: IMG('stat-check.png', 'ph-icon'), label: 'Poprawne', fill: rate, right: `<span class="ph-num"><b>${Math.round(rate * 100)}</b>%</span>`, tint: '34, 197, 94', ink: '#1fa45a', i: 1 })}
+          ${heroRow({ icon: IMG('stat-gem.png', 'ph-icon'), label: 'Diamenty', right: `<span class="ph-gems">+${S.gems}${IMG('gem-small.png', 'ph-gem')}</span>`, tint: '144, 97, 227', ink: '#9061e3', i: 2 })}`,
+      });
+    })()}
     ${S.streakUp ? streakCard() : ''}
     ${!counted(dayKey()) ? `<section class="banner">${ICON.flame}<div><b>Jeszcze ${left} ${plural(left, 'odpowiedź', 'odpowiedzi', 'odpowiedzi')}</b><span>i dzisiejszy dzień zaliczy się do serii</span></div></section>` : ''}
     ${wrong.length ? `

@@ -76,6 +76,11 @@ const ART_TINT = {
   wszystkie: ['#EEF0F7', '#8C95B6'],
 };
 
+// Grafiki 3D (Meta Muse Image → assets/ui/) zamiast płaskich rysunków SVG z js/icons.js — ten sam styl co rakieta i ikony pakietów
+const ART3D = { gradCap: 'gradcap', trophy: 'trophy', globe: 'globe', cup: 'cup', suitcase: 'suitcase', book: 'book', cardStack: 'cards', listenGirl: 'girl', ear: 'ear', chestOpen: 'chest', medal: 'medal' };
+for (const [k, file] of Object.entries(ART3D)) ART[k] = `<img class="art3d art-${file}" src="assets/ui/${file}.png" alt="" draggable="false">`;
+ART.rocketBook = '<img class="art3d art-rocket" src="assets/plan-rocket.webp" alt="" draggable="false">';
+
 // Ikony słówek: mapa w js/word-icons.js (window.WORD_ICONS)
 const WORD_IMG = { ...(window.WORD_ICONS || {}) };
 // + ikony dodane w panelu dewelopera (js/word-icons-extra.js)
