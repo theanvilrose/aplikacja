@@ -269,8 +269,13 @@ html, body { overflow-x: clip; }
 .ln-rv-text b { font-weight: 700; }
 .ln-rv-open { padding: 0; border: 0; background: none; cursor: pointer; font: 600 14px Nunito, sans-serif; color: #6b7390; }
 .ln-rv-open:hover { color: #5a3fe0; text-decoration: underline; }
-.ln-rv-sel select { max-width: 100%; padding: 0 22px 0 0; border: 0; cursor: pointer; appearance: none; -webkit-appearance: none; font-family: var(--display); font-size: 18px; font-weight: 700; color: #1b1f3e;
-  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231b1f3e' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right center / 14px; }
+.ln-rv-title { display: inline-flex; align-items: center; gap: 2px; }
+.ln-rv-name { padding: 0; border: 0; background: none; cursor: pointer; font-family: var(--display); font-size: 18px; font-weight: 700; color: #1b1f3e; text-align: left; }
+.ln-rv-name:hover { color: #5a3fe0; }
+.ln-rv-sel { position: relative; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; cursor: pointer;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231b1f3e' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat center / 14px; }
+.ln-rv-sel:hover { background-color: rgba(97, 67, 255, 0.1); }
+.ln-rv-sel select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 .ln-rv-go { flex-shrink: 0; padding: 8px 18px; border: 2.5px solid #7c4dff; border-radius: 999px; cursor: pointer; background: #ffffff; font-family: var(--display); font-size: 16px; font-weight: 800; color: #6d3df0; transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease; }
 .ln-rv-go:hover:not(:disabled) { background: #7c4dff; color: #ffffff; transform: translateY(-1px); }
 .ln-rv-go:active:not(:disabled) { transform: scale(0.96); }

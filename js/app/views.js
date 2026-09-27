@@ -181,16 +181,17 @@ let knownRange = 'known';
 const KNOWN_RANGES = [['known', 'Wyuczone'], ['known7', 'Ostatni tydzień'], ['known30', 'Ostatni miesiąc']];
 function lnReviewRows() {
   const bad = collection('auto:mistakes'), known = collection('auto:' + knownRange);
+  const knownSel = `<label class="ln-rv-sel" title="Okres"><select data-known-range aria-label="Okres">${KNOWN_RANGES.map(([k, l]) => `<option value="${k}" ${k === knownRange ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`;
   const row = (c, icon, title) => `
     <div class="ln-rv">
       ${IMG(icon, 'ln-rv-ic')}
-      <span class="ln-rv-text">${title}<button class="ln-rv-open" data-coll="${c.ref}" title="Pokaż słówka">${wordsLabel(c.total)} ›</button></span>
+      <span class="ln-rv-text"><span class="ln-rv-title"><button class="ln-rv-name" data-coll="${c.ref}" title="Pokaż słówka">${title}</button>${c.ref.startsWith('auto:known') ? knownSel : ''}</span><button class="ln-rv-open" data-coll="${c.ref}" title="Pokaż słówka">${wordsLabel(c.total)} ›</button></span>
       <button class="ln-rv-go" data-act="drill-coll" data-ref="${c.ref}" ${c.total ? '' : 'disabled'}>Powtórz</button>
     </div>`;
   return `
     <div class="ln-rvs">
-      ${bad.total ? row(bad, 'ui/voc-mistakes.png', '<b>Pomyłki</b>') : ''}
-      ${row(known, 'stat-check.png', `<label class="ln-rv-sel"><select data-known-range aria-label="Okres">${KNOWN_RANGES.map(([k, l]) => `<option value="${k}" ${k === knownRange ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`)}
+      ${bad.total ? row(bad, 'ui/voc-mistakes.png', 'Pomyłki') : ''}
+      ${row(known, 'stat-check.png', KNOWN_RANGES.find(([k]) => k === knownRange)[1])}
     </div>`;
 }
 
@@ -1245,6 +1246,7 @@ function viewLists() {
 }
 
 const WORDS_PAGE = 150;
+const REVIEW_LISTS = ['auto:mistakes', 'auto:known', 'auto:known7', 'auto:known30']; // listy z „Powtórz” zamiast „Ucz się”
 
 function viewWords() {
   const q = Answer.norm(wordsFilter.q);
@@ -1273,6 +1275,7 @@ function viewWords() {
     </div>`;
   // długie zestawy (np. Wszystkie słówka — kilka tysięcy) rysujemy partiami, żeby lista i szukanie działały płynnie
   const shown = wordsFilter.more ? list : list.slice(0, WORDS_PAGE);
+  const revList = coll && REVIEW_LISTS.includes(coll.ref);
   const rows = list.length ? shown.map(wordRow).join('') + (shown.length < list.length ? `<button class="btn ghost words-more" data-act="words-more">Pokaż wszystkie (${list.length})</button>` : '') : '<p class="muted center empty">Brak słówek w tym widoku</p>';
 
   // Zakładka Słownictwo: postęp, karty podpowiedzi i działy (jak w WRD, w stylu aplikacji)
@@ -1283,7 +1286,7 @@ function viewWords() {
     <header class="cv-top">
       <div class="cv-bar">
         <button class="pk-back" data-view="${collFrom}" aria-label="Wróć">${ICON.back}</button>
-        <div class="cv-title"><h2>${esc(coll.name)}</h2><span>${itemsLabel(coll.ws)}${coll.known ? ` · umiesz ${coll.known}` : ''}</span></div>
+        <div class="cv-title"><h2>${revList && coll.ref !== 'auto:mistakes' ? 'Wyuczone' : esc(coll.name)}</h2><span>${itemsLabel(coll.ws)}${coll.known ? ` · umiesz ${coll.known}` : ''}</span></div>
         <details class="cv-menu">
           <summary class="pk-back" aria-label="Więcej opcji" title="Więcej opcji"><span class="cv-dots"><i></i><i></i><i></i></span></summary>
           <div class="cv-pop">
@@ -1300,11 +1303,12 @@ function viewWords() {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
       <input type="search" id="q" placeholder="Szukaj" value="${esc(wordsFilter.q)}">
     </label>
-    ${options}
+    ${revList ? (coll.ref === 'auto:mistakes' ? '' : `<div class="cv-tabs" role="tablist">${KNOWN_RANGES.map(([k, l]) => `<button role="tab" class="${coll.ref === 'auto:' + k ? 'on' : ''}" aria-selected="${coll.ref === 'auto:' + k}" data-act="known-tab" data-k="${k}">${l}</button>`).join('')}</div>`) : options}
     ${coll.list && !coll.total ? '<p class="card muted small">Lista jest pusta. Rozwiń dowolne słówko w zakładce Słówka i kliknij nazwę tej listy.</p>' : ''}
     <div class="word-list cv-list">${rows}</div>
     <div class="cv-cta">
-      <button class="cv-learn" data-act="start-coll" ${learnN ? '' : 'disabled'}><span>Ucz się</span></button>
+      ${revList ? `<button class="cv-learn" data-act="drill-coll" data-ref="${coll.ref}" ${learnN ? '' : 'disabled'}><span>${ICON.refresh} Powtórz</span></button>
+      <div class="cv-links"><button data-act="coll-player" ${canSpeak && learnN ? '' : 'disabled'}>${ICON.listen}<span>Słuchaj</span></button></div>` : `<button class="cv-learn" data-act="start-coll" ${learnN ? '' : 'disabled'}><span>Ucz się</span></button>`}
     </div>`;
 }
 

@@ -86,7 +86,7 @@
 :root[data-theme="dark"] .ln-rv { background: rgba(32, 29, 42, 0.55); }
 :root[data-theme="dark"] .ln-rv-text { color: #d8dae3; }
 :root[data-theme="dark"] .ln-rv-open { color: #a5aabc; }
-:root[data-theme="dark"] .ln-rv-sel select { color: #d8dae3; }
+:root[data-theme="dark"] .ln-rv-name { color: #d8dae3; }
 :root[data-theme="dark"] .ln-rv-go { background: #201d2a; }
 
 /* packs.css */
@@ -249,6 +249,10 @@
 :root[data-theme="dark"] .sm-note { background: #412e13; }
 :root[data-theme="dark"] .sm-more:hover { background: #19123e; }
 :root[data-theme="dark"] .sm-prize { color: #a5aabc; }
+:root[data-theme="dark"] .cv-tabs { border-bottom: 1px solid #272536; }
+:root[data-theme="dark"] .cv-tabs button { color: #bfc2cf; }
+:root[data-theme="dark"] .cv-tabs button.on { color: #d4d7e5; }
+:root[data-theme="dark"] .cv-links button:hover:not(:disabled) { background: #19123e; }
 
 /* tasks.css */
 :root[data-theme="dark"] .tk-part-icon { background: #1d123f; }

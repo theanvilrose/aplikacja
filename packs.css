@@ -726,3 +726,16 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .sm-prize b { font-family: var(--display); font-size: 22px; color: #6d4ce0; }
 .sm-prize-gem { width: 24px; height: 26px; }
 @media (prefers-reduced-motion: reduce) { .sm-arc, .sm-title, .sm-day.done i, .sm-gem { animation: none; } }
+
+/* listy Pomyłki / Wyuczone (views.js: REVIEW_LISTS): zakładki okresu, „Powtórz” i „Słuchaj” na dole */
+.cv-tabs { display: flex; gap: 22px; margin: 4px 0 12px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid #e6e4f2; }
+.cv-tabs::-webkit-scrollbar { display: none; }
+.cv-tabs button { flex-shrink: 0; padding: 10px 0; border: 0; border-bottom: 4px solid transparent; background: none; cursor: pointer; font-family: var(--display); font-size: 17px; font-weight: 700; color: #8a90a8; }
+.cv-tabs button.on { color: #131d4c; border-bottom-color: #7c4dff; }
+.cv-learn > span:has(svg) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.cv-learn > span svg { display: inline-block; width: 24px; height: 24px; flex-shrink: 0; }
+.cv-links { display: flex; justify-content: center; margin-top: 8px; }
+.cv-links button { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border: 0; border-radius: 12px; background: none; cursor: pointer; font-family: var(--display); font-size: 18px; font-weight: 700; color: #6d3df0; }
+.cv-links button:hover:not(:disabled) { background: #f0edff; }
+.cv-links button:disabled { opacity: 0.45; cursor: default; }
+.cv-links svg { width: 22px; height: 22px; }

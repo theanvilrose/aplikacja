@@ -159,6 +159,7 @@ document.addEventListener('click', (e) => {
   switch (ds.act) {
     case 'start': startSession(); break;
     case 'drill-coll': { const c = collection(ds.ref); if (c && c.total) startSession({ ids: c.ws.map((w) => w.id), mode: 'drill', fix: ds.ref === 'auto:mistakes' }); break; } // Pomyłki / Wyuczone: powtórka tych słów
+    case 'known-tab': knownRange = ds.k; wordsFilter = { ...wordsFilter, coll: 'auto:' + ds.k, q: '', more: false }; render(); break; // Wyuczone / tydzień / miesiąc
     case 'learn-new': startPlanPick(ds.id); break; // karta Nauka: karuzela nowych słów, od słowa widocznego na karcie
     case 'review': startSession({ mode: 'review' }); break; // karta Powtórka: same powtórki
     case 'extra': startSession({ mode: 'extra' }); break;
