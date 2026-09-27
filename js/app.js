@@ -3300,9 +3300,12 @@ document.addEventListener('keydown', (e) => {
     else if (S.cur.answered) advance();
   } else if (!inInput && /^[1-4]$/.test(e.key) && S.cur.options) {
     choose(+e.key - 1);
-  } else if (!inInput && e.key === ' ') {
+  } else if (e.key === ' ' && (!inInput || (e.target.id === 'typed' && S.cur.answered))) {
+    // spacja: po odpowiedzi (i na ekranie nowego słowa) — „Dalej”; przed odpowiedzią — posłuchaj słowa
     e.preventDefault();
-    speak(S.cur.w.en);
+    if (S.cur.type === 'intro') introDone();
+    else if (S.cur.answered) advance();
+    else speak(S.cur.w.en);
   } else if (e.key === 'Escape') {
     // okienko otwieramy po zakończeniu tego Esc — inaczej przeglądarka od razu by je zamknęła
     e.preventDefault();
