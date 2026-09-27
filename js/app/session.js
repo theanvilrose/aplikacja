@@ -64,7 +64,7 @@ function buildQueue({ ids = null, mode = 'learn', intro = false, first = null, p
     }));
   }
   if (mode === 'extra') return shuffle(soonest(15)).map((w) => ({ id: w.id }));
-  // runda mieszana po karuzeli: każde słowo raz ang → pol i raz pol → ang, wymieszane (to samo słowo nie dwa razy z rzędu)
+  // utrwalenie po karuzeli: etapy ćwiczeń dla wszystkich poznanych słów (mixQueue)
   if (mode === 'mix') return mixQueue(pool.map((w) => w.id));
   // ćwiczenie konkretnych słów (np. błędów z testu): nieznane najpierw pokazujemy jako nowe
   if (mode === 'drill') return shuffle(pool).map((w) => (db.cards[w.id] && !intro ? { id: w.id } : { id: w.id, intro: true }));
@@ -107,14 +107,30 @@ function buildQueue({ ids = null, mode = 'learn', intro = false, first = null, p
   return queue;
 }
 
+// Utrwalenie po karuzeli — etapy po kolei, w każdym wszystkie poznane słowa (wymieszane):
+// ang → pol i pol → ang, „Czy to prawidłowe tłumaczenie?”, „Dopasuj kartę”, „Utwórz słowo” (rozsypanka),
+// „Dopasuj pary”, „Wpisz tłumaczenie”. Etap wyłączony w ustawieniach (albo niemożliwy dla słowa) jest pomijany.
+const MIX_STAGES = [['en2pl', 'pl2en'], ['truefalse'], ['pic4'], ['build'], ['pairs'], ['type']];
+
 function mixQueue(ids) {
-  const q = shuffle(ids.flatMap((id) => [{ id, force: 'en2pl' }, { id, force: 'pl2en' }]));
-  for (let k = 1; k < q.length; k++) {
-    if (q[k].id !== q[k - 1].id) continue;
-    const j = q.findIndex((x, m) => m > k && x.id !== q[k].id && (m + 1 >= q.length || q[m + 1].id !== q[k - 1].id));
-    if (j > 0) [q[k], q[j]] = [q[j], q[k]];
+  const q = [];
+  for (const types of MIX_STAGES) {
+    let stage = shuffle(ids.flatMap((id) => types.filter((t) => exAllowed(t, byId.get(id))).map((t) => ({ id, force: t }))));
+    if (types[0] === 'pairs') stage = stage.slice(0, Math.ceil(ids.length / 4)); // jedne pary łączą kilka słów naraz
+    q.push(...noRepeat(stage, q.length ? q[q.length - 1].id : null));
   }
   return q;
+}
+
+// to samo słowo nie dwa razy z rzędu (także na styku etapów)
+function noRepeat(list, prevId) {
+  for (let k = 0; k < list.length; k++) {
+    const before = k ? list[k - 1].id : prevId;
+    if (list[k].id !== before) continue;
+    const j = list.findIndex((x, m) => m > k && x.id !== before && (m + 1 >= list.length || list[m + 1].id !== list[k].id));
+    if (j > 0) [list[k], list[j]] = [list[j], list[k]];
+  }
+  return list;
 }
 
 function startSession(opts = {}) {

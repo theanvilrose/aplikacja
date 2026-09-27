@@ -184,12 +184,12 @@ function pickUndo() {
   speakPick();
 }
 
-// koniec karuzeli: poznane słowa (tyle, ile w ustawieniach) wracają w rundzie mieszanej ang → pol i pol → ang
+// koniec karuzeli: poznane słowa (tyle, ile w ustawieniach) wracają w utrwaleniu — kilka rodzajów ćwiczeń po kolei (mixQueue)
 function finishPick() {
   const { picked, known, back } = PK;
   PK = null;
   if (picked.length) {
-    toast(`Utrwalenie: ${picked.length} ${plural(picked.length, 'słowo', 'słowa', 'słów')} — ang → pol i pol → ang`);
+    toast(`Utrwalenie: ${picked.length} ${plural(picked.length, 'słowo', 'słowa', 'słów')} — tłumaczenia, karty, rozsypanka, pary i pisanie`);
     return startSession({ mode: 'mix', ids: picked });
   }
   view = back === 'pick' || back === 'session' ? 'home' : back;
