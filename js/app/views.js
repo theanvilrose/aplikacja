@@ -44,11 +44,6 @@ function statusBar() {
 // ikonka jak assets/task-*.png: błyszczący kolorowy kwadrat z białym symbolem
 const sqIcon = (glyph, from, to) => `<span class="ph-icon ph-sq" style="--g1:${from};--g2:${to}">${glyph}</span>`;
 
-// duża grafika sekcji: kafel z symbolem (wektor — ostry w każdym rozmiarze) i unoszące się ikonki 3D
-function heroTile(glyph, from, to, floats = []) {
-  return `<div class="ph-art tile-art" aria-hidden="true"><span class="ta-glow"></span><span class="ta-tile" style="--g1:${from};--g2:${to}">${glyph}</span>${floats.map((x, i) => `<span class="ta-float f${i}">${x}</span>`).join('')}</div>`;
-}
-
 // wiersz jak zadanie Planu dnia: ikonka, tytuł (+ opis), pasek, liczba po prawej
 function heroRow({ icon, label, sub = '', right = '', fill = null, tint = '97, 67, 255', ink = '#6143ff', attrs = '', i = 0, sel = false }) {
   const tag = attrs ? 'button' : 'div';
@@ -558,7 +553,7 @@ function viewListen() {
   return `
   ${pageHero({
     title: 'Słuchanie',
-    art: heroTile(ICON.listen, '#9a86ff', '#5b43f0', [IMG('task-star.png'), '<span class="ta-bubble">♪</span>', IMG('stat-gem.png')]),
+    art: `<div class="ph-art">${IMG('hero-audio.png', '', '')}</div>`,
     rows: `
       ${heroRow({ icon: sqIcon(ICON.play, '#8aa2ff', '#4f63f0'), label: 'Słuchaj w drodze', sub: 'słowo, tłumaczenie i przykład — bez patrzenia', right: heroNum(srcN), attrs: `data-act="player" ${canSpeak ? '' : 'disabled'}`, tint: '79, 99, 240', ink: '#4f63f0', i: 0 })}
       <label class="hero-select"><span>Co odtwarzać</span>
@@ -1017,7 +1012,7 @@ function viewWords() {
     ${pageHero({
       title: 'Słownictwo',
       badge: `<span class="ph-mode static">${itemsLabel(base)}</span>`,
-      art: heroTile(ICON.words, '#5fd99a', '#1f9f5a', [IMG('stat-check.png'), '<span class="ta-bubble">Aa</span>', IMG('task-star.png')]),
+      art: `<div class="ph-art">${IMG('hero-words.png', '', '')}</div>`,
       rows: `
         ${statRow('known', 'Umiem', 'stat-check.png', '34, 197, 94', '#1fa45a', 0)}
         ${statRow('learning', 'Uczę się', 'task-refresh.png', '59, 142, 240', '#2f7fe6', 1)}
@@ -1084,7 +1079,7 @@ function viewProfile() {
       title: 'Mój profil',
       badge: '<span class="ph-mode static">angielski</span>',
       head: `<button class="ph-settings" data-view="plan-settings" aria-label="Ustawienia planu dnia" title="Ustawienia planu">${ICON.sliders}</button>`,
-      art: `<div class="ph-art avatar-art" aria-hidden="true"><span class="ta-glow"></span><span class="aa-flag">${ICON.uk}</span><span class="ta-float f0">${IMG('stat-flame.png')}</span><span class="ta-float f1">${IMG('stat-gem.png')}</span><span class="ta-float f2">${IMG('stat-check.png')}</span></div>`,
+      art: `<div class="ph-art">${IMG('hero-profile.png', '', '')}</div>`,
       rows: `
         ${heroRow({ icon: IMG('stat-flame.png', 'ph-icon'), label: 'Seria dni', sub: st >= next.days ? 'wszystkie odznaki zdobyte!' : `do odznaki „${next.name}”: ${daysLabel(next.days - st)}`, fill: Math.min(1, st / next.days), right: heroNum(st), tint: '255, 138, 31', ink: '#ed7a18', i: 0 })}
         ${heroRow({ icon: IMG('stat-gem.png', 'ph-icon'), label: 'Diamenty', sub: `zamrożenie serii: ${FREEZE_PRICE} 💎 · masz ${db.freezes} z ${MAX_FREEZES}`, right: heroNum(db.gems), tint: '144, 97, 227', ink: '#9061e3', i: 1 })}
