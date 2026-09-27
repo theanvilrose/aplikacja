@@ -48,7 +48,7 @@ const MORE_NEW = 5; // „Ucz się dalej” po dziennym celu: tyle kolejnych now
 
 // mode: 'learn' (powtórki przeplatane nowymi), 'new' (Nauka: same nowe), 'review' (Powtórka: same powtórki),
 // 'extra' (powtórz więcej), 'listen', 'drill'
-function buildQueue({ ids = null, mode = 'learn', intro = false } = {}) {
+function buildQueue({ ids = null, mode = 'learn', intro = false, first = null } = {}) {
   const now = Date.now();
   const only = ids && new Set(ids);
   const pool = words.filter((w) => (only ? only.has(w.id) : inPlan(w)));
@@ -75,7 +75,10 @@ function buildQueue({ ids = null, mode = 'learn', intro = false } = {}) {
   // Nauka: same nowe słowa — dzienny cel, a gdy już zrobiony, kolejne porcje (bez nowych → powtórka)
   if (mode === 'new') {
     if (!fresh.length) return buildQueue({ ids, mode: 'review' });
-    return fresh.slice(0, only ? 8 : c.newLeft || MORE_NEW).map((w) => ({ id: w.id, intro: true }));
+    const list = fresh.slice(0, only ? 8 : c.newLeft || MORE_NEW);
+    const k = list.findIndex((w) => w.id === first); // słowo, które było widać na karcie Nauka, idzie pierwsze
+    if (k > 0) list.unshift(...list.splice(k, 1));
+    return list.map((w) => ({ id: w.id, intro: true }));
   }
   fresh = mode === 'review' ? [] : fresh.slice(0, only ? 8 : c.newLeft);
 

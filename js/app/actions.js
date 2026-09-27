@@ -129,7 +129,7 @@ document.addEventListener('click', (e) => {
   const coll = collection(wordsFilter.coll);
   switch (ds.act) {
     case 'start': startSession(); break;
-    case 'learn-new': startSession({ mode: 'new' }); break; // karta Nauka: same nowe słowa
+    case 'learn-new': startSession({ mode: 'new', first: ds.id }); break; // karta Nauka: same nowe słowa, od słowa widocznego na karcie
     case 'review': startSession({ mode: 'review' }); break; // karta Powtórka: same powtórki
     case 'extra': startSession({ mode: 'extra' }); break;
     case 'start-coll': if (coll) startPick(coll.ref); break;

@@ -137,9 +137,42 @@ function planHead(title) {
     </div>`;
 }
 
-// Karta 1: Nauka — jak „Plan dzienny” w WRD: następne nowe słowo w dużym kafelku i jeden przycisk „Ucz się”
+// Karta 1: Nauka — jak „Plan dzienny” w WRD: nowe słowa na dziś zmieniają się w dużym kafelku co 3 s,
+// „Ucz się” zaczyna od słowa, które właśnie widać.
+let LN = null; // { ids, i } — słowa pokazywane na karcie Nauka
+const LN_EVERY = 3000;
+const lnTile = (w) => `
+  <span class="ln-pic">${isPhrase(w) ? '<span class="wa-emoji">💬</span>' : wordArt(w)}</span>
+  <span class="ln-new">${ICON.sparkle}${isPhrase(w) ? 'Nowy zwrot' : 'Nowe słowo'}</span>`;
+const lnWord = (w) => `
+  <p class="ln-chips">${w.level ? `<span class="ln-cefr" title="Poziom CEFR">${esc(w.level)}</span>` : ''}<span class="ln-topic">${esc(w.icon || '📘')} ${esc(w.topic)}</span></p>
+  <h3 class="ln-en"><span>${esc(w.en)}</span><button class="ln-say" data-say="${esc(w.en)}" aria-label="Posłuchaj" title="Posłuchaj">${SPEAKER}</button></h3>
+  <p class="ln-pl">${esc(w.pl)}</p>`;
+
+// następne słowo na karcie — bez przerysowania strony (karuzela zostaje tam, gdzie jest)
+function lnTick() {
+  if (view !== 'home' || document.hidden || !LN || LN.ids.length < 2) return;
+  const card = document.querySelector('.learn-hero');
+  if (!card || (matchMedia('(hover: hover)').matches && card.matches(':hover'))) return; // myszka na karcie = pauza
+  LN.i = (LN.i + 1) % LN.ids.length;
+  const w = byId.get(LN.ids[LN.i]);
+  const tile = card.querySelector('.ln-tile'), word = card.querySelector('.ln-word');
+  if (!w || !tile || !word) return;
+  tile.style.setProperty('--tint', wordTint(w));
+  tile.dataset.wopen = w.id;
+  tile.setAttribute('aria-label', `${w.en} — szczegóły`);
+  tile.innerHTML = lnTile(w);
+  word.innerHTML = lnWord(w);
+  card.querySelectorAll('[data-act="learn-new"]').forEach((b) => { b.dataset.id = w.id; });
+  for (const el of [tile.querySelector('.ln-pic'), word]) { el.classList.remove('ln-in'); void el.offsetWidth; el.classList.add('ln-in'); } // animacja od nowa
+}
+setInterval(lnTick, LN_EVERY);
+
 function learnSlide(c, plan) {
-  const w = freshWords()[0];
+  // dzisiejsze nowe słowa (po celu dnia — kolejna porcja), w kolejności nauki
+  const ids = freshWords().slice(0, Math.min(10, c.newLeft || MORE_NEW)).map((x) => x.id);
+  if (!LN || LN.ids.join('|') !== ids.join('|')) LN = { ids, i: 0 };
+  const w = byId.get(LN.ids[LN.i]);
   if (!w) {
     return `
       <section class="plan-hero daily-slide learn-hero">
@@ -154,25 +187,17 @@ function learnSlide(c, plan) {
       </section>`;
   }
   const t = plan.tasks[1];
-  const art = isPhrase(w) ? '<span class="wa-emoji">💬</span>' : wordArt(w);
   return `
     <section class="plan-hero daily-slide learn-hero">
       ${planHead('Nauka')}
       <div class="ph-grid ln-grid">
         <div class="ln-art">
-          <button class="ln-tile" data-wopen="${esc(w.id)}" style="--tint:${wordTint(w)}" title="Szczegóły słówka" aria-label="${esc(w.en)} — szczegóły">
-            ${art}
-            <span class="ln-new">${ICON.sparkle}${isPhrase(w) ? 'Nowy zwrot' : 'Nowe słowo'}</span>
-          </button>
+          <button class="ln-tile" data-wopen="${esc(w.id)}" style="--tint:${wordTint(w)}" title="Szczegóły słówka" aria-label="${esc(w.en)} — szczegóły">${lnTile(w)}</button>
         </div>
         <div class="ph-tasks ln-info">
-          <div class="ln-word">
-            <p class="ln-chips">${w.level ? `<span class="ln-cefr" title="Poziom CEFR">${esc(w.level)}</span>` : ''}<span class="ln-topic">${esc(w.icon || '📘')} ${esc(w.topic)}</span></p>
-            <h3 class="ln-en"><span>${esc(w.en)}</span><button class="ln-say" data-say="${esc(w.en)}" aria-label="Posłuchaj" title="Posłuchaj">${SPEAKER}</button></h3>
-            <p class="ln-pl">${esc(w.pl)}</p>
-          </div>
+          <div class="ln-word">${lnWord(w)}</div>
           ${planRow(t, 'task-star.png', '255, 194, 26', '#e09a00', 'learn-new', 0)}
-          <button class="ph-cta" data-act="learn-new"><span>${c.newLeft ? 'Ucz się' : 'Ucz się dalej'}</span></button>
+          <button class="ph-cta" data-act="learn-new" data-id="${esc(w.id)}"><span>${c.newLeft ? 'Ucz się' : 'Ucz się dalej'}</span></button>
         </div>
       </div>
     </section>`;

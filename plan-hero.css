@@ -240,3 +240,8 @@ html, body { overflow-x: clip; }
 :root[data-theme="dark"] .ln-tile { background: linear-gradient(160deg, color-mix(in srgb, var(--tint, #efeaff) 42%, #2c2842) 0%, color-mix(in srgb, var(--tint, #efeaff) 24%, #1f1c2b) 100%); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 8px 0 color-mix(in srgb, var(--tint, #efeaff) 14%, #120f1e), 0 26px 40px -14px rgba(0, 0, 0, 0.6); }
 :root[data-theme="dark"] .ln-tile.done { --tint: #fff1c9; }
 :root[data-theme="dark"] .ln-art::before { background: radial-gradient(closest-side, rgba(140, 120, 255, 0.22), rgba(140, 120, 255, 0)); }
+/* słowa na karcie Nauka zmieniają się co 3 s (views.js: lnTick) */
+.ln-pic { display: grid; place-items: center; width: 100%; height: 100%; border-radius: inherit; }
+.ln-in { animation: ln-in 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes ln-in { from { opacity: 0; transform: translateY(10px) scale(0.96); } }
+@media (prefers-reduced-motion: reduce) { .ln-in { animation: none; } }
