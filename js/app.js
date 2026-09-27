@@ -13,7 +13,8 @@ const DEFAULT_SETTINGS = {
   examName: 'Certyfikat Busuu A1', examDate: '2027-01-17',
   // ustawienia planu dnia
   newOrder: 'lesson', warmup: true, reviewsFirst: false, listening: true, typing: true, reviewCap: 0,
-  autoNext: false, // po dobrej odpowiedzi samo przechodzi dalej (wyłączone: czeka na „Dalej”)
+  autoNext: false,
+  exOff: [], // wyłączone rodzaje ćwiczeń (np. ['dictation']) // po dobrej odpowiedzi samo przechodzi dalej (wyłączone: czeka na „Dalej”)
   content: 'all', // co ćwiczyć w planie: 'all' | 'words' (bez zwrotów) | 'phrases' (same zwroty)
   // zadania z lekcji: słowa ('all' = z Twoich lekcji, 'known' = tylko poznane w aplikacji), części, ile zadań w części (0 = jak w lekcji)
   taskSource: 'all', taskParts: 'ABCD', taskCount: 0,
@@ -764,9 +765,10 @@ function nextStep() {
   let type = item.intro ? 'intro' : item.force || SRS.pickType(card(w.id), w, opts);
   if ((SRS.isListening(type) && !opts.speak) || (SRS.isTyping(type) && !opts.typing)) type = SRS.pickType(card(w.id), w, opts);
   // „Czy to prawidłowe tłumaczenie?” — co trzecie łatwe pytanie wyboru (poziomy en→pl i pl→en)
-  if (!item.force && S.mode !== 'exam' && (type === 'en2pl' || type === 'pl2en') && Math.random() < 0.33) type = 'truefalse';
+  if (type !== 'intro') type = exerciseType(type, w, !!item.force);
   S.cur = { item, w, type, shownAt: Date.now(), answered: false, hints: 0, options: null, chosen: null, result: null, typed: '', earned: 0 };
   if (type.endsWith('2pl') || type === 'pl2en') S.cur.options = buildOptions(w, type === 'pl2en' ? 'en' : 'pl');
+  if (type === 'pic4') S.cur.options = picOptions(w);
   if (type === 'truefalse') {
     // pół na pół: prawdziwe tłumaczenie albo podobne słowo z tego samego tematu
     const other = buildOptions(w, 'pl').find((o) => o.id !== w.id);
@@ -774,9 +776,63 @@ function nextStep() {
     S.cur.tf = { text: ok ? w.pl : other.text, ok };
   }
   render();
-  if (db.settings.autoplay && (type === 'intro' || type === 'en2pl' || type === 'truefalse' || SRS.isListening(type))) setTimeout(() => speak(w.en), 250);
+  if (db.settings.autoplay && (type === 'intro' || type === 'en2pl' || type === 'truefalse' || type === 'pic4' || SRS.isListening(type))) setTimeout(() => speak(w.en), 250);
   const input = $('#typed');
   if (input) input.focus();
+}
+
+// Rodzaje ćwiczeń (kolejność = mniej więcej od najłatwiejszych); w ustawieniach planu można je wyłączać.
+const EX_TYPES = [
+  ['en2pl', '🔤', 'Co to znaczy?', 'słowo → 4 odpowiedzi po polsku'],
+  ['truefalse', '✅', 'Czy to dobre tłumaczenie?', 'tak albo nie'],
+  ['pic4', '🖼️', 'Dopasuj kartę', 'słowo → 4 obrazki'],
+  ['pl2en', '💬', 'Jak to powiesz po angielsku?', 'polskie słowo → 4 odpowiedzi'],
+  ['listen2pl', '👂', 'Posłuchaj i wybierz', 'ze słuchu → 4 odpowiedzi'],
+  ['type', '⌨️', 'Napisz po angielsku', 'wpisujesz z klawiatury'],
+  ['dictation', '📝', 'Dyktando', 'napisz, co słyszysz'],
+];
+const EX_ORDER = EX_TYPES.map((t) => t[0]);
+
+function exAllowed(t, w) {
+  if ((db.settings.exOff || []).includes(t)) return false;
+  const o = typeOpts();
+  if (SRS.isListening(t) && !o.speak) return false;
+  if (SRS.isTyping(t) && (!o.typing || w.en.length > 30)) return false;
+  if (t === 'pic4') return !!picOptions(w);
+  return true;
+}
+
+// Typ z drabiny SRS → czasem odmiana (tak/nie, obrazki); wyłączony typ → najbliższy włączony.
+function exerciseType(type, w, forced) {
+  if (!forced && S.mode !== 'exam') {
+    if ((type === 'en2pl' || type === 'pl2en') && Math.random() < 0.33 && exAllowed('truefalse', w)) type = 'truefalse';
+    else if ((type === 'en2pl' || type === 'listen2pl') && Math.random() < 0.3 && exAllowed('pic4', w)) type = 'pic4';
+  }
+  if (exAllowed(type, w)) return type;
+  const i = Math.max(0, EX_ORDER.indexOf(type));
+  const alt = EX_ORDER.filter((t) => exAllowed(t, w)).sort((a, b) => Math.abs(EX_ORDER.indexOf(a) - i) - Math.abs(EX_ORDER.indexOf(b) - i))[0];
+  return alt || 'en2pl';
+}
+
+// „Dopasuj kartę”: słowo + 4 obrazki — tylko gdy słowo i 3 inne mają różne ikony
+function picOptions(w) {
+  const img = WORD_IMG[w.id];
+  if (!img || isPhrase(w)) return null;
+  const used = new Set([img]), out = [];
+  // bez par kraj–narodowość (Austria / Austrian), które mają prawie ten sam obrazek
+  const stem = (x) => x.en.toLowerCase().replace(/[^a-z]/g, '').slice(0, 4);
+  const stems = new Set([stem(w)]);
+  const take = (pool) => {
+    for (const x of shuffle(pool)) {
+      if (out.length >= 3) break;
+      const im = WORD_IMG[x.id];
+      if (im && !used.has(im) && !isPhrase(x) && !stems.has(stem(x))) { used.add(im); stems.add(stem(x)); out.push(x); }
+    }
+  };
+  take(words.filter((x) => x.id !== w.id && x.topic === w.topic));
+  if (out.length < 3) take(words.filter((x) => x.id !== w.id));
+  if (out.length < 3) return null;
+  return shuffle([w, ...out]).map((x) => ({ id: x.id, text: x.pl }));
 }
 
 function buildOptions(w, field) {
@@ -1362,7 +1418,7 @@ function viewPacks() {
 
 // ---------- ustawienia planu dnia ----------
 
-const PLAN_KEYS = ['content', 'newOrder', 'warmup', 'reviewsFirst', 'listening', 'typing', 'autoNext', 'newPerDay', 'reviewCap', 'minutes'];
+const PLAN_KEYS = ['content', 'newOrder', 'warmup', 'reviewsFirst', 'listening', 'typing', 'autoNext', 'exOff', 'newPerDay', 'reviewCap', 'minutes'];
 
 const PLAN_ORDERS = [
   ['lesson', 'Jak w lekcjach', 'W kolejności z Twoich notatek — temat po temacie.'],
@@ -1509,6 +1565,19 @@ function viewPlanSettings() {
     }).join('')}
   </section>
 
+  <h2 class="section-title">Rodzaje ćwiczeń</h2>
+  <section class="card set-card">
+    <p class="set-hint ex-hint">Dotknij, żeby włączyć lub wyłączyć. Wyłączone ćwiczenie zastąpi najbliższe podobne.</p>
+    <div class="ex-grid">
+      ${EX_TYPES.map(([t, icon, name, desc]) => {
+        const on = !(s.exOff || []).includes(t);
+        const blocked = (SRS.isListening(t) && !s.listening) || (SRS.isTyping(t) && !s.typing);
+        return `<button class="ex-chip ${on && !blocked ? 'on' : ''}" data-act="ex-toggle" data-t="${t}" aria-pressed="${on}" ${blocked ? 'title="Wyłączone przełącznikiem powyżej"' : ''}>
+          <span class="ex-ic">${icon}</span><span class="ex-tx"><b>${name}</b><small>${blocked ? 'wyłączone wyżej' : desc}</small></span><i class="ex-check" aria-hidden="true"></i></button>`;
+      }).join('')}
+    </div>
+  </section>
+
   <h2 class="section-title">Tempo</h2>
   ${stepper('newPerDay')}
   ${stepper('reviewCap')}
@@ -1619,6 +1688,7 @@ function viewSession() {
         <div class="tf-pl">${esc(S.cur.tf.text)}</div>
         <div class="tf-en">${esc(w.en)} <button class="icon-btn" data-say="${esc(w.en)}" aria-label="Posłuchaj">🔊</button><button class="icon-btn slow-btn" data-slow="${esc(w.en)}" aria-label="Posłuchaj wolniej" title="Wolniej">🐢</button></div>
       </div>` : ''],
+    pic4: ['Dopasuj znaczenie z odpowiednią kartą', `<div class="prompt-en">${esc(w.en)} <button class="icon-btn" data-say="${esc(w.en)}">🔊</button><button class="icon-btn slow-btn" data-slow="${esc(w.en)}" aria-label="Posłuchaj wolniej" title="Wolniej">🐢</button></div>`],
     dictation: ['Napisz, co słyszysz', `<div class="listen-row"><button class="listen" data-say="${esc(w.en)}" aria-label="Odtwórz">🔊</button><button class="listen-slow" data-slow="${esc(w.en)}" aria-label="Odtwórz wolniej" title="Wolniej">🐢<span>wolniej</span></button></div>`],
   };
   const [question, prompt] = prompts[type];
@@ -1630,6 +1700,14 @@ function viewSession() {
       <button class="tf-btn no ${cls(false)}" data-act="tf-no" ${answered ? 'disabled' : ''} aria-label="Nie, to złe tłumaczenie" title="Nie (1 lub ←)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       <button class="tf-btn yes ${cls(true)}" data-act="tf-yes" ${answered ? 'disabled' : ''} aria-label="Tak, to dobre tłumaczenie" title="Tak (2 lub →)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5 9.5 17.5 19.5 6.5"/></svg></button>
     </div>`;
+  } else if (type === 'pic4' && options) {
+    body = `<div class="pic-grid">${options.map((o, i) => {
+      let cls = '';
+      if (answered && exam) cls = i === chosen ? 'picked' : 'dim';
+      else if (answered) { if (o.id === w.id) cls = 'ok'; else if (i === chosen) cls = 'bad'; else cls = 'dim'; }
+      const ow = byId.get(o.id);
+      return `<button class="pic-card ${cls}" data-opt="${i}" ${answered ? 'disabled' : ''} aria-label="Karta ${i + 1}${answered ? ': ' + esc(o.text) : ''}" style="--tint:${wordTint(ow)}"><img src="assets/words/${WORD_IMG[o.id]}.png" alt="" draggable="false"><kbd>${i + 1}</kbd>${answered ? `<span class="pic-label">${esc(o.text)}</span>` : ''}</button>`;
+    }).join('')}</div>`;
   } else if (options) {
     // obrazki słówek przy odpowiedziach po polsku (słuchanie, „co to znaczy?”) — przy pl→en zdradzałyby odpowiedź
     const pics = type === 'listen2pl' || type === 'en2pl';
@@ -3194,6 +3272,15 @@ document.addEventListener('click', (e) => {
     case 'coll-return': reopenColl(S.coll); go('words'); break;
     case 'buy-freeze': buyFreeze(); break;
     case 'chest-info': toast('🎁 Dzisiejsza skrzynia już otwarta — wróć jutro po kolejną!'); break;
+    case 'ex-toggle': {
+      const off = new Set(db.settings.exOff || []);
+      if (off.has(ds.t)) off.delete(ds.t);
+      else if (EX_ORDER.filter((t) => !off.has(t)).length <= 1) { toast('Zostaw włączone przynajmniej jedno ćwiczenie'); break; }
+      else off.add(ds.t);
+      db.settings.exOff = [...off];
+      save(); render();
+      break;
+    }
     case 'plan-defaults':
       for (const k of PLAN_KEYS) db.settings[k] = DEFAULT_SETTINGS[k];
       save(); toast('Przywrócono ustawienia domyślne'); render();
