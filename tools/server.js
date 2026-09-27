@@ -5,6 +5,8 @@
 //   1. zmiennej środowiskowej OPENROUTER_API_KEY,
 //   2. pliku .env.local w folderze aplikacji (linia OPENROUTER_API_KEY=...),
 //   3. pliku wskazanym w .dev-config.json → { "keyFile": "C:\\...\\klucz.txt" }.
+// Osobne klucze dla wybranych modeli (Recraft, Ming): .dev-config.json → { "modelKeysFile": "C:\\...\\klucze.txt" },
+// w pliku na zmianę: nazwa (np. recraft, ming) i klucz w następnej linii. Model, którego nazwa zawiera tę nazwę, używa tego klucza.
 // Klucz ElevenLabs (nagrania wymowy) — analogicznie: ELEVENLABS_API_KEY w środowisku albo w .env.local,
 // albo plik wskazany w .dev-config.json → { "elevenKeyFile": "C:\\...\\kod eleven.txt" }.
 // .env.local i .dev-config.json są w .gitignore.
@@ -27,7 +29,9 @@ const WORDS_DIR = path.join(ROOT, 'assets', 'words');
 const EXTRA_FILE = path.join(ROOT, 'js', 'word-icons-extra.js');
 const DEFAULT_MODEL = 'meta/muse-image';
 // Meta Muse Image (domyślny) — generuje obrazki z tekstu i obrazków-wzorów; Gemini do porównania
-const MODELS = ['meta/muse-image', 'google/gemini-2.5-flash-image', 'google/gemini-3.1-flash-lite-image', 'google/gemini-3.1-flash-image'];
+const MODELS = ['meta/muse-image', 'recraft/recraft-v4.1', 'inclusionai/ming-image-0.1-design', 'google/gemini-2.5-flash-image', 'google/gemini-3.1-flash-lite-image', 'google/gemini-3.1-flash-image'];
+// modele obrazków przez endpoint /images (jak Muse); Recraft i Ming bez wzorów stylu (Recraft chce wzorów ≥ 256 px, Ming przyjmuje tylko tekst)
+const IMAGES_API = ['meta/muse-image', 'recraft/recraft-v4.1', 'inclusionai/ming-image-0.1-design'];
 // ikony-wzory stylu wysyłane do modelu razem z opisem słowa
 const STYLE_REFS = ['friend.png', 'polska.png', 'mrs.png'];
 
@@ -36,6 +40,17 @@ const TYPES = {
   '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml',
   '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.md': 'text/markdown; charset=utf-8',
 };
+
+// klucz dla konkretnego modelu z pliku modelKeysFile (nazwa / klucz na zmianę); brak — zwykły klucz
+function modelKey(model) {
+  try {
+    const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, '.dev-config.json'), 'utf8'));
+    if (!cfg.modelKeysFile || !model) return '';
+    const lines = fs.readFileSync(cfg.modelKeysFile, 'utf8').split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+    for (let i = 0; i + 1 < lines.length; i += 2) if (String(model).toLowerCase().includes(lines[i].toLowerCase())) return lines[i + 1];
+  } catch (e) { /* brak pliku */ }
+  return '';
+}
 
 function readKey() {
   if (process.env.OPENROUTER_API_KEY) return process.env.OPENROUTER_API_KEY.trim();
@@ -177,8 +192,8 @@ async function elevenTts({ text, model, voice, voiceName, owner, lang }) {
   return { audio: 'data:audio/mpeg;base64,' + r.buf.toString('base64'), ext: 'mp3', credits: chars, voiceId: id };
 }
 
-function openrouter(method, apiPath, body) {
-  const key = readKey();
+function openrouter(method, apiPath, body, model) {
+  const key = modelKey(model) || readKey();
   if (!key) return Promise.reject(new Error('Brak klucza OpenRouter — zobacz komentarz na górze tools/server.js'));
   return new Promise((resolve, reject) => {
     const data = body ? JSON.stringify(body) : null;
@@ -269,21 +284,22 @@ async function generate(w, model, useMuse) {
     ...refs,
   ];
   const m = MODELS.includes(model) ? model : DEFAULT_MODEL;
-  if (m === 'meta/muse-image') {
-    // Meta Muse Image: osobny endpoint /images; wzory stylu w input_references
+  if (IMAGES_API.includes(m)) {
+    // Muse Image, Recraft, Ming: osobny endpoint /images; wzory stylu (input_references) tylko dla Muse
     const r = await openrouter('POST', '/images', {
       model: m,
       prompt: prompt(w) + (brief ? ` Scene to draw: ${brief}` : ''),
-      input_references: refs,
-      aspect_ratio: '1:1',
+      ...(m === 'meta/muse-image' ? { input_references: refs } : {}),
+      ...(m.includes('ming') ? {} : { aspect_ratio: '1:1' }), // Ming (Novita) nie przyjmuje proporcji — i tak rysuje kwadrat
       output_format: 'png',
       n: 1,
-    });
+    }, m);
     const d = (r.data && r.data[0]) || (r.images && r.images[0]) || {};
     const b64 = d.b64_json || d.base64 || (d.image && d.image.b64_json);
     const url = d.url || (d.image_url && d.image_url.url) || (typeof d === 'string' ? d : '');
-    const image = b64 ? `data:image/png;base64,${b64}` : url.startsWith('data:') ? url : url ? await fetchAsDataUrl(url) : '';
-    if (!image) throw new Error('Muse Image nie zwrócił obrazka: ' + JSON.stringify(r).slice(0, 200));
+    const mime = !b64 ? '' : b64.startsWith('UklGR') ? 'image/webp' : b64.startsWith('/9j/') ? 'image/jpeg' : 'image/png'; // Recraft oddaje WebP
+    const image = b64 ? `data:${mime};base64,${b64}` : url.startsWith('data:') ? url : url ? await fetchAsDataUrl(url) : '';
+    if (!image) throw new Error(m + ' nie zwrócił obrazka: ' + JSON.stringify(r).slice(0, 200));
     return { image, cost: ((r.usage && r.usage.cost) || 0) + museCost, brief };
   }
   const res = await openrouter('POST', '/chat/completions', {

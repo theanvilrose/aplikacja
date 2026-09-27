@@ -7,9 +7,9 @@
 let DEV = null; // status z /api/dev/status; null = panel niedostępny (np. inna przeglądarka, telefon, GitHub)
 const DEVS = { model: '', busy: {}, preview: {}, errors: {}, briefs: {}, spent: 0, bulk: null, topic: '' }; // topic: temat w sekcji „Twoje ikony”
 // ≈ $ za ikonę wg modelu — tylko do podglądu kosztu (Muse Image ok. $0,01, Gemini ok. $0,04)
-const MODEL_PRICE = { 'meta/muse-image': 0.01, 'google/gemini-2.5-flash-image': 0.04, 'google/gemini-3.1-flash-lite-image': 0.04, 'google/gemini-3.1-flash-image': 0.08 };
-const MODEL_LABEL = { 'meta/muse-image': 'Muse Image', 'google/gemini-2.5-flash-image': 'gemini-2.5-flash', 'google/gemini-3.1-flash-lite-image': 'gemini-3.1-lite', 'google/gemini-3.1-flash-image': 'gemini-3.1-flash' };
-const iconPrice = () => MODEL_PRICE[DEVS.model] || 0.04;
+const MODEL_PRICE = { 'meta/muse-image': 0.01, 'recraft/recraft-v4.1': 0.035, 'inclusionai/ming-image-0.1-design': 0, 'google/gemini-2.5-flash-image': 0.04, 'google/gemini-3.1-flash-lite-image': 0.04, 'google/gemini-3.1-flash-image': 0.08 };
+const MODEL_LABEL = { 'meta/muse-image': 'Muse Image', 'recraft/recraft-v4.1': 'Recraft V4.1', 'inclusionai/ming-image-0.1-design': 'Ming (darmowy)', 'google/gemini-2.5-flash-image': 'gemini-2.5-flash', 'google/gemini-3.1-flash-lite-image': 'gemini-3.1-lite', 'google/gemini-3.1-flash-image': 'gemini-3.1-flash' };
+const iconPrice = () => MODEL_PRICE[DEVS.model] ?? 0.04;
 
 async function devInit() {
   try {
@@ -467,7 +467,7 @@ function viewDev() {
         <div><b>${own.length}</b><span>z panelu</span></div>
         <div><b>${DEV.credits != null ? '$' + DEV.credits : '—'}</b><span>na koncie</span></div>
       </div>
-      <p class="pp-forecast">${ICON.target}<span>${DEV.hasKey ? `Rysuje ${esc(MODEL_LABEL[DEVS.model] || DEVS.model)} w stylu Twoich ikon (wzory: friend, Polska, Mrs). Tylko słówka — zwroty są bez ikon. Ok. $${iconPrice().toFixed(2)} za ikonę${DEVS.spent ? ` · w tej sesji: $${DEVS.spent.toFixed(2)}` : ''}.` : 'Brak klucza OpenRouter — zobacz .dev-config.json / .env.local (tools/server.js).'}</span></p>
+      <p class="pp-forecast">${ICON.target}<span>${DEV.hasKey ? `Rysuje ${esc(MODEL_LABEL[DEVS.model] || DEVS.model)}${/recraft|ming/.test(DEVS.model) ? ' (bez wzorów — styl z opisu)' : ' w stylu Twoich ikon (wzory: friend, Polska, Mrs)'}. Tylko słówka — zwroty są bez ikon. ${iconPrice() ? `Ok. $${+iconPrice().toFixed(3)} za ikonę` : 'Za darmo'}${DEVS.spent ? ` · w tej sesji: $${DEVS.spent.toFixed(2)}` : ''}.` : 'Brak klucza OpenRouter — zobacz .dev-config.json / .env.local (tools/server.js).'}</span></p>
     </section>
 
     ${DEV.hasKey ? `
@@ -476,7 +476,7 @@ function viewDev() {
       <div class="segmented" role="radiogroup" aria-label="Model">
         ${DEV.models.map((m) => `<button class="seg ${DEVS.model === m ? 'on' : ''}" data-act="dev-model" data-model="${esc(m)}">${esc(MODEL_LABEL[m] || m)}</button>`).join('')}
       </div>
-      <p class="set-hint">Muse Image (Meta) — domyślny, najtańszy (ok. $0,01), rysuje na podstawie Twoich wzorów. Gemini — do porównania (ok. $0,04–0,08).</p>
+      <p class="set-hint">Muse Image (Meta) — domyślny (ok. $0,01), rysuje na podstawie Twoich wzorów. Recraft V4.1 — ładne ikony 3D (ok. $0,035, bez wzorów). Ming — darmowy, bez wzorów. Gemini — do porównania (ok. $0,04–0,08).</p>
       <div class="set-row dv-muse">
         ${setIcon('sparkle', ['#FFE8D2', '#A5460A'])}
         <div class="set-text"><b>Opis przez Muse</b><span>Najpierw Muse Spark 1.3 pisze opis sceny (co narysować), potem wybrany model rysuje. Przydaje się przy trudnych słowach (he, it, what). Dodatkowo ok. $0,003.</span></div>
@@ -485,7 +485,7 @@ function viewDev() {
     </section>
 
     ${missing.length ? `
-    <button class="cv-learn dv-bulk" data-act="${b ? 'dev-stop' : 'dev-bulk'}"><span>${b ? `Generuję ${b.done}/${b.total}… (zatrzymaj)` : `Generuj wszystkie brakujące (${missing.length}) · ≈ $${(missing.length * iconPrice()).toFixed(2)}`}</span></button>` : '<p class="card muted center">Wszystkie słówka mają ikony 🎉</p>'}
+    <button class="cv-learn dv-bulk" data-act="${b ? 'dev-stop' : 'dev-bulk'}"><span>${b ? `Generuję ${b.done}/${b.total}… (zatrzymaj)` : `Generuj wszystkie brakujące (${missing.length})${iconPrice() ? ` · ≈ $${(missing.length * iconPrice()).toFixed(2)}` : " · za darmo"}`}</span></button>` : '<p class="card muted center">Wszystkie słówka mają ikony 🎉</p>'}
 
     ${Object.entries(groups).map(([t, ws]) => `
       <h2 class="section-title">${esc(t)} <span class="dv-count">${ws.length}</span></h2>
