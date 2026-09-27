@@ -7,7 +7,7 @@ const Answer = require('../js/answer.js');
 
 const DAY = SRS.DAY;
 const NOW = new Date(2026, 8, 26, 12, 0).getTime();
-const isKnown = (c) => c.s >= 2; // tak samo jak w js/app.js
+const isKnown = (c) => c.s >= 2; // tak samo jak w js/app/core.js
 
 test('nowe słowo: poprawne odpowiedzi podnoszą poziom i wydłużają przerwę', () => {
   let c = { ...SRS.fresh(), level: 1, due: NOW, last: NOW };
@@ -46,7 +46,7 @@ test('szybka odpowiedź daje wyższą ocenę niż wolna', () => {
 });
 
 test('„Wiem” (s = 2, sprawdzenie jutro): dobra odpowiedź zostawia słowo wyuczonym, pomyłka cofa do nauki', () => {
-  // ten sam stan, który ustawia markKnown() w js/app.js
+  // ten sam stan, który ustawia markKnown() w js/app/word.js
   const known = { ...SRS.fresh(), level: SRS.MAX_LEVEL - 1, s: 2, d: 5, reps: 1, last: NOW, due: NOW + DAY };
   assert.ok(isKnown(known));
   const ok = SRS.review(known, 2, NOW + DAY);

@@ -478,3 +478,20 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .bw-slots.long { flex-wrap: nowrap; gap: 4px; }
 .bw-slots.long .bw-slot { flex: 0 1 26px; min-width: 0; font-size: 22px; height: 38px; }
 .bw-slots.long .bw-fix { font-size: 22px; }
+
+/* profil: synchronizacja */
+.sync-card .set-head { display: flex; align-items: center; gap: 10px; }
+.sync-card .set-head .btn { margin-left: auto; }
+.sync-ok { font-size: 14px; font-weight: 700; color: #15803d; }
+.sync-bad { font-size: 14px; font-weight: 700; color: #c92a2a; }
+.sync-code { letter-spacing: 2px; }
+.sync-pin { display: flex; gap: 8px; margin: 8px 0; }
+.sync-pin input { flex: 1; min-width: 0; padding: 11px 12px; border-radius: 14px; border: 1.5px solid #e4e1f2; font: 700 18px Nunito, sans-serif; letter-spacing: 3px; }
+
+/* ciemny motyw: rakieta ma jasne tło w pliku — miękko wygaszamy rogi, zostaje okrągła poświata */
+:root[data-theme="dark"] .ph-art img { -webkit-mask-image: radial-gradient(closest-side, #000 72%, transparent 100%); mask-image: radial-gradient(closest-side, #000 72%, transparent 100%); }
+/* ciemny motyw: pastelowe tła z kodu (--tint) przyciemnione, żeby jasny tekst był czytelny */
+:root[data-theme="dark"] .wd-hero, :root[data-theme="dark"] .rs-art { background: color-mix(in srgb, var(--tint) 18%, #1a1830); }
+:root[data-theme="dark"] .pick-tile, :root[data-theme="dark"] .pic-card { background: color-mix(in srgb, var(--tint) 30%, #1f1c2b); box-shadow: 0 7px 0 color-mix(in srgb, var(--tint) 20%, #120f1e); }
+:root[data-theme="dark"] .wd-hero .wd-pron { color: #ffb089; }
+:root[data-theme="dark"] .pk-card { background: linear-gradient(90deg, color-mix(in srgb, var(--tint) 45%, #0f0d1c) 0 12px, color-mix(in srgb, var(--tint) 22%, #1f1c2b) 12px); }

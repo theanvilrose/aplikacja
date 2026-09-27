@@ -13,12 +13,12 @@ Zakładka **Nauka**:
 1. **Plan dnia** — 3 zadania (powtórki, nowe słowa, minuty), każde z kolorowym paskiem postępu; pasek przy skrzyni pokazuje postęp całego planu. Wszystkie zrobione = skrzynia z +10 💎 i ekran nagrody.
    **Zadania z lekcji** (druga karta, przesuń w bok): arkusz jak z lekcji na czacie — A. wybór (np. he / she / it), B. luki, C. przekształcenia (pytanie, skrót), D. tłumaczenie na angielski. Co kliknięcie „Nowy zestaw” inne zadania, z gramatyki lekcji i Twoich słówek. Domyślnie bieżąca lekcja z `program_A1.md` (📝), pod spodem wybór wcześniejszych. Obsługiwane lekcje: L1–L4 (kolejne dopisuje się w `js/exercises.js`). Wynik zapisuje się na karcie, każda dobra odpowiedź = +1 💎, czas liczy się do celu dnia. Kliknięcie części A–D = tylko ta część. Suwaki na karcie otwierają **Ustawienia zadań**: z jakich słów (wszystkie z lekcji albo tylko poznane w aplikacji), które części, ile zadań w części (Auto / 3 / 5 / 8). Zadania nigdy nie używają słów spoza Twoich słówek — jeśli do jakiejś części brakuje słów, jest pomijana (jedyny dodatek to imiona postaci: Tom, Anna…).
    Ikona suwaków otwiera **Ustawienia planu**: podgląd planu i prognoza (kiedy poznasz wszystkie słówka, czy zdążysz przed egzaminem), **co ćwiczyć** (wszystko / same słówka bez zwrotów / same zwroty — dotyczy nowych słów i powtórek w planie dnia), kolejność nowych słów (jak w lekcjach / najnowsze / losowo), rozgrzewka, najpierw powtórki, ćwiczenia ze słuchu i z pisania (do wyłączenia), nowe słowa dziennie, limit powtórek i dzienny cel.
-2. **Pakiety słówek** — Podróże (kraje, pochodzenie; bez przymiotników narodowości), Grzeczności i rozmowa, Rozmówki (wszystkie zwroty), Rzeczowniki, Przymiotniki, Czasowniki. Pakiet z mniej niż 5 słowami się nie pokazuje (`MIN_PACK` w `js/app.js`) — pojawi się sam, gdy dojdą słowa z lekcji.
+2. **Pakiety słówek** — Podróże (kraje, pochodzenie; bez przymiotników narodowości), Grzeczności i rozmowa, Rozmówki (wszystkie zwroty), Rzeczowniki, Przymiotniki, Czasowniki. Pakiet z mniej niż 5 słowami się nie pokazuje (`MIN_PACK` w `js/app/core.js`) — pojawi się sam, gdy dojdą słowa z lekcji.
    Po kliknięciu pakietu, tematu albo listy: ekran jak w WRD — tytuł i liczba słówek, zielony pasek postępu, szukajka, przełącznik Wszystko / Słówka / Zwroty, filtry Umiem / Uczę się / Nowe, lista słówek z ikonami (🔊 odsłuch, ✓ umiesz, ⋯ szczegóły) i przycisk „Ucz się” na dole. Menu ⋯ w nagłówku: Słuchaj w drodze, Powtórz poznane (i zmiana nazwy / usuwanie dla własnych list).
    **Ucz się** w pakiecie otwiera ekran **Nauka**: nowe słowa po kolei — *Ucz się* (dodaj do lekcji), *Później* (pomiń), *Wiem* (od razu wyuczone, ale następnego dnia wraca na szybkie sprawdzenie — pomyłka cofa je do nauki). Po 5 wybranych rusza lekcja (razem z zaległymi powtórkami z pakietu); można też zacząć wcześniej. Po lekcji: „Ucz się dalej” w tym samym pakiecie albo „Wróć do pakietu”. Liczniki pokazują osobno słówka i zwroty (np. „21 słówek · 68 zwrotów”). Klawisze: Enter / ← / →.
    **Wznów** — na górze ekranu Pakietów karta ostatniego pakietu, którego się uczyłeś.
    **Kliknięcie słówka** otwiera jego ekran: grafika, wymowa, tłumaczenie, przykład, skojarzenie, postęp, listy, ❤️ (lista „Ulubione”). Na dole stan: *Ucz się / Wiem* (nowe), *Uczenie* z kółkiem postępu (w trakcie), *✓ Wyuczone* + *Naucz się ponownie* (słowo wraca na początek nauki). W wierszu listy kropki poziomu obok ⋯.
-   Ikony słówek: `assets/words/` (na razie flagi krajów; przypisanie w `WORD_IMG` w `js/app.js`), pozostałe słowa mają emoji tematu.
+   Ikony słówek: `assets/words/` (na razie flagi krajów; przypisanie w `js/word-icons.js`), pozostałe słowa mają emoji tematu.
    „Wszystkie ›” otwiera ekran **Pakiety słówek** (jak w WRD): zakładki Wszystkie / Uczę się / Wyuczone, karty pakietów i tematów z ikoną i postępem „✓ umiem X/Y”.
 3. **Przygotuj się do egzaminu** — odliczanie do egzaminu (nazwa i data w Profilu), gotowość i **ścieżka testów**: 3 testy tygodnia (10 pytań), potem test miesięczny (25), i tak dalej. Pomarańczowa gwiazda = następny test; zaliczenie (≥ 80%) odblokowuje kolejny. Puchar = egzamin próbny (40 pytań), dostępny zawsze. Odpowiedzi poznajesz na końcu testu.
    **Powtórka błędów** zbiera słowa, w których pomyliłeś się w testach; słowo znika po poprawnej odpowiedzi.
@@ -76,8 +76,19 @@ Ręcznie (np. na telefonie): **Profil → Importuj slowka.md**.
 
 ```
 index.html          ekran aplikacji
-styles.css          wygląd (tylko jasny motyw; kolory ciemnego czekają pod data-theme="dark")
-js/app.js           ekrany, sesja nauki, statystyki, wymowa
+styles.css          wygląd i kolory bazowe (jasne + ciemne zmienne)
+dark.css            ciemny motyw — generuje tools/build-dark.js (nie edytuj ręcznie)
+js/app/*.js         aplikacja podzielona na części, ładowane po kolei (index.html):
+  core.js           dane, zapis, synchronizacja (klient), seria i diamenty, wymowa
+  session.js        sesja nauki: dobór ćwiczeń wg postępu, ocena, tryb słuchania
+  views.js          ekrany: główny, słownictwo, ustawienia planu, sesja, podsumowania, profil
+  word.js           szczegóły słowa, wybór słów, zadania z lekcji
+  dev.js            panel dewelopera (ikony i nagrania)
+  actions.js        kliknięcia, klawiatura i start — zawsze ostatni
+js/word-icons.js    ikony słówek (mapa słowo → assets/words/*.png)
+js/builder.js       „Utwórz słowo”: sylaby, litery, pułapki
+js/sync.js          łączenie postępu z dwóch urządzeń (przeglądarka i serwer)
+sw-assets.js        lista ikon i nagrań do pracy offline — generuje tools/build-assets.js
 plan-hero.css       wygląd sekcji Plan dnia (gradient, karty zadań, efekty przycisków)
 assets/             ikony i ilustracja Planu dnia wycięte z design/plan-mockup.jpg
 tools/cutter.html   wycina te grafiki (node tools/save-server.js → http://127.0.0.1:8766)
@@ -91,10 +102,22 @@ js/exercises.js     generator zadań z lekcji (szablony gramatyki L1–L4) i spr
 js/seed-lessons.js  plan lekcji (generowany przez start.bat z program_A1.md)
 tasks.css           karta i arkusz zadań z lekcji
 js/seed-words.js    słówka (generowane)
-sw.js, manifest     działanie offline i instalacja jak aplikacja
-tests/              testy algorytmu powtórek i sprawdzania odpowiedzi — uruchom: node --test
+sw.js, manifest     działanie offline (pliki aplikacji + osobna pamięć ikon i nagrań) i instalacja jak aplikacja
+tests/              testy (powtórki, zadania, układanie słów, synchronizacja, aktualność plików generowanych) — uruchom: node --test
 design/archiwum/    stare porównanie ikon i oryginalne wycinki (nieużywane przez aplikację)
 ```
+
+## Synchronizacja (komputer ↔ telefon)
+
+Przy uruchomieniu przez `start.bat` postęp zapisuje się też na komputerze (`.data/progress.json`, poza gitem) i łączy między przeglądarkami (`localhost`, `127.0.0.1`).
+Telefon w tym samym Wi‑Fi: w `.dev-config.json` ustaw `"lan": true`, uruchom `start.bat` (Windows zapyta o zgodę zapory — zezwól w sieci prywatnej), na telefonie otwórz adres z **Profil → Synchronizacja** i wpisz PIN.
+Łączenie (`js/sync.js`): każde słowo osobno (wygrywa nowsza nauka), dni — większe liczniki, reszta — nowsza zmiana. Panel dewelopera działa tylko na komputerze; telefon ma dostęp wyłącznie do synchronizacji (z PIN-em).
+Uwaga: przez Wi‑Fi (http) telefon nie ma trybu offline — do nauki bez internetu służy wersja zainstalowana z GitHuba (bez synchronizacji, z kopią zapasową).
+
+## Ciemny motyw i praca offline
+
+- **Profil → Wygląd:** Jasny / Ciemny / Jak w systemie. Ciemne kolory wylicza `node tools/build-dark.js` z jasnych stylów (uruchom po zmianie kolorów; test pilnuje aktualności).
+- **Offline:** service worker zapisuje pliki aplikacji oraz — osobno, w tle i tylko raz — wszystkie ikony słówek i nagrania wymowy (`sw-assets.js`, odświeżany automatycznie przez serwer po zmianach w panelu).
 
 ## Kopia zapasowa
 

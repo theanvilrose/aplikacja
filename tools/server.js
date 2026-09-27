@@ -1,4 +1,4 @@
-// Lokalny serwer Słowika: pliki aplikacji + panel dewelopera (ikony i nagrania wymowy słówek przez OpenRouter).
+// Lokalny serwer Słowika: pliki aplikacji, synchronizacja postępu i panel dewelopera (ikony i nagrania wymowy).
 // Uruchamia go start.bat. Adres http://localhost:8765 (tylko ten komputer).
 //
 // Klucz OpenRouter NIGDY nie trafia do przeglądarki ani do repozytorium. Serwer szuka go kolejno w:
@@ -13,8 +13,15 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const os = require('os');
+const Sync = require('../js/sync.js');
+const assets = require('./build-assets');
 
 const ROOT = path.join(__dirname, '..');
+// Postęp z synchronizacji: ukryty folder — serwer nie wydaje go jako pliku, git go pomija (.gitignore)
+const DATA_DIR = process.env.SLOWIK_DATA || path.join(ROOT, '.data'); // SLOWIK_DATA — osobny folder do testów
+const PROGRESS_FILE = path.join(DATA_DIR, 'progress.json');
+const SYNC_FILE = path.join(DATA_DIR, 'sync.json');
 const PORT = +process.env.PORT || 8765; // inny port tylko do testów
 const WORDS_DIR = path.join(ROOT, 'assets', 'words');
 const EXTRA_FILE = path.join(ROOT, 'js', 'word-icons-extra.js');
@@ -367,11 +374,15 @@ function readAudio() {
     return m ? JSON.parse(m[1]) : {};
   } catch (e) { return {}; }
 }
+// lista ikon i nagrań do pracy offline (sw-assets.js) — po każdej zmianie
+function rebuildAssets() { try { assets.build(); } catch (e) { console.error('sw-assets.js:', e.message); } }
+
 function writeAudio(map) {
   const out = {};
   for (const l of TTS_LANGS) out[l] = Object.fromEntries(Object.entries(map[l] || {}).sort(([a], [b]) => a.localeCompare(b)));
   fs.writeFileSync(AUDIO_FILE, '// Nagrania wymowy dodane w panelu dewelopera (tools/server.js) — nie edytuj ręcznie.\n' +
     'window.WORD_AUDIO = ' + JSON.stringify(out, null, 1) + ';\n');
+  rebuildAssets();
 }
 const audioKey = (t) => String(t || '').trim().toLowerCase();
 const audioName = (t) => (audioKey(t).normalize('NFKD').replace(/[^\w]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'x') +
@@ -388,6 +399,7 @@ function writeExtra(map) {
   const sorted = Object.fromEntries(Object.entries(map).sort(([a], [b]) => a.localeCompare(b)));
   fs.writeFileSync(EXTRA_FILE, '// Ikony słówek dodane w panelu dewelopera (tools/server.js) — nie edytuj ręcznie.\n' +
     'window.EXTRA_WORD_IMG = ' + JSON.stringify(sorted, null, 1) + ';\n');
+  rebuildAssets();
 }
 const slug = (id) => 'gen_' + id.toLowerCase().normalize('NFKD').replace(/[^\w]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40);
 
@@ -404,11 +416,73 @@ function json(res, code, obj) {
   res.end(JSON.stringify(obj));
 }
 
+// ---------- synchronizacja postępu (telefon przez Wi‑Fi: "lan": true w .dev-config.json) ----------
+function devConfig() {
+  try { return JSON.parse(fs.readFileSync(path.join(ROOT, '.dev-config.json'), 'utf8')); } catch (e) { return {}; }
+}
+const LAN = process.env.SLOWIK_LAN === '1' || devConfig().lan === true;
+const isLocal = (req) => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
+function lanIps() {
+  return Object.values(os.networkInterfaces()).flat().filter((i) => i && i.family === 'IPv4' && !i.internal).map((i) => i.address);
+}
+// PIN dla telefonu: losowany raz, zapisany w .data/sync.json
+function syncPin() {
+  try { const p = JSON.parse(fs.readFileSync(SYNC_FILE, 'utf8')).pin; if (p) return String(p); } catch (e) { /* pierwszy start */ }
+  const pin = String(crypto.randomInt(100000, 1000000));
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(SYNC_FILE, JSON.stringify({ pin }, null, 1));
+  return pin;
+}
+function readProgress() {
+  try { return JSON.parse(fs.readFileSync(PROGRESS_FILE, 'utf8')); } catch (e) { return null; }
+}
+function writeProgress(db) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  if (fs.existsSync(PROGRESS_FILE)) fs.copyFileSync(PROGRESS_FILE, path.join(DATA_DIR, 'progress.bak.json')); // poprzednia wersja na wszelki wypadek
+  const tmp = PROGRESS_FILE + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(db));
+  fs.renameSync(tmp, PROGRESS_FILE);
+}
+// ochrona PIN-u przed zgadywaniem: po 10 złych próbach z jednego adresu — 10 minut przerwy
+const pinFails = new Map();
+function pinOk(req) {
+  const ip = req.socket.remoteAddress, f = pinFails.get(ip) || { n: 0, until: 0 };
+  if (f.until > Date.now()) return false;
+  if (String(req.headers['x-sync-pin'] || '') === syncPin()) { pinFails.delete(ip); return true; }
+  f.n++;
+  if (f.n >= 10) { f.n = 0; f.until = Date.now() + 10 * 60000; }
+  pinFails.set(ip, f);
+  return false;
+}
+
+async function syncApi(req, res, url, local) {
+  if (url.pathname === '/api/sync/status' && req.method === 'GET') return json(res, 200, { ok: true, needPin: !local });
+  if (url.pathname === '/api/sync/info' && req.method === 'GET') {
+    if (!local) return json(res, 403, { error: 'Tylko na komputerze' });
+    return json(res, 200, { pin: syncPin(), lan: LAN, urls: LAN ? lanIps().map((ip) => `http://${ip}:${PORT}`) : [] });
+  }
+  if (!local && !pinOk(req)) return json(res, 401, { error: 'Zły PIN synchronizacji' });
+  if (url.pathname === '/api/sync' && req.method === 'POST') {
+    const { db } = JSON.parse((await body(req, 8e6)).toString('utf8'));
+    if (!db || typeof db !== 'object' || !db.cards) return json(res, 400, { error: 'Złe dane' });
+    const stored = readProgress();
+    const merged = Sync.merge(db, stored);
+    if (!stored || !Sync.same(merged, stored)) writeProgress(merged);
+    return json(res, 200, { db: merged });
+  }
+  return json(res, 404, { error: 'Nie ma takiego polecenia' });
+}
+
 async function api(req, res, url) {
-  // tylko z tego komputera i tylko z samej aplikacji (bez obcych stron)
+  // tylko z samej aplikacji (bez obcych stron): Host i Origin muszą być adresem tego serwera
+  const local = isLocal(req);
+  const hosts = [`localhost:${PORT}`, `127.0.0.1:${PORT}`, ...(LAN ? lanIps().map((ip) => `${ip}:${PORT}`) : [])];
   const origin = req.headers.origin;
-  if (origin && origin !== `http://localhost:${PORT}` && origin !== `http://127.0.0.1:${PORT}`) return json(res, 403, { error: 'Niedozwolone źródło' });
+  if (!hosts.includes(req.headers.host) || (origin && !hosts.some((h) => origin === `http://${h}`))) return json(res, 403, { error: 'Niedozwolone źródło' });
   try {
+    if (url.pathname.startsWith('/api/sync')) return await syncApi(req, res, url, local);
+    // panel dewelopera (klucze API, zapis plików) — wyłącznie z tego komputera
+    if (!local) return json(res, 403, { error: 'Panel dewelopera działa tylko na komputerze' });
     if (url.pathname === '/api/dev/status' && req.method === 'GET') {
       const hasKey = !!readKey();
       let credits = null;
@@ -495,6 +569,8 @@ http.createServer((req, res) => {
   if (url.pathname.startsWith('/api/')) return api(req, res, url);
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); return res.end(); }
   serveStatic(req, res, url);
-}).listen(PORT, '127.0.0.1', () => {
+}).listen(PORT, LAN ? '0.0.0.0' : '127.0.0.1', () => {
+  rebuildAssets();
   console.log(`Słowik: http://localhost:${PORT}  (panel dewelopera: ${readKey() ? 'klucz OpenRouter znaleziony' : 'brak klucza OpenRouter'}, ${readElevenKey() ? 'klucz ElevenLabs znaleziony' : 'brak klucza ElevenLabs'})`);
+  if (LAN) console.log(`Telefon (to samo Wi‑Fi): ${lanIps().map((ip) => `http://${ip}:${PORT}`).join('  ')}   PIN: ${syncPin()}`);
 });

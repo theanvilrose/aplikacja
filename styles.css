@@ -30,8 +30,7 @@
   color-scheme: light;
 }
 
-/* Ciemny motyw na razie wyłączony — Plan dnia, Pakiety i ekran słówka mają tylko jasne kolory.
-   Kolory zostają na później: włącza je <html data-theme="dark">. */
+/* Ciemny motyw: <html data-theme="dark"> (Profil → Wygląd). Tu kolory bazowe; resztę wylicza tools/build-dark.js → dark.css. */
 :root[data-theme="dark"] {
     --bg: #14121d;
     --surface: #1f1c2b;

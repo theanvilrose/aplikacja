@@ -10,3 +10,6 @@ node_modules/
 # panel dewelopera: klucz OpenRouter i ścieżka do niego (nigdy do repozytorium)
 .env.local
 .dev-config.json
+
+# postęp z synchronizacji i PIN telefonu (tools/server.js)
+.data/

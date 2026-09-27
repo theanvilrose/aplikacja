@@ -19,14 +19,32 @@
       .trim();
   }
 
+  // Typowe cząstki angielskich słów — kawałki na ich granicach czytają się naturalnie (na|tion|al|ity).
+  const UNITS = ['tion', 'sion', 'ture', 'ment', 'ness', 'ship', 'less', 'ful', 'ity', 'ous', 'ing', 'ish', 'ese', 'ian', 'est', 'er', 'or', 'al', 'ly', 'ty', 'ble'];
+  const PREFIXES = ['un', 're', 'dis', 'pre', 'in', 'im', 'con', 'com', 'ex'];
+  // spółgłoski, od których może zacząć się sylaba (Aus|tra|lia, cir|cum|stance)
+  const ONSETS = ['tr', 'br', 'pr', 'cr', 'dr', 'gr', 'fr', 'pl', 'bl', 'cl', 'gl', 'fl', 'sl', 'st', 'sp', 'sc', 'sk', 'sm', 'sn', 'sw', 'tw', 'thr', 'str', 'spr'];
+
   // Koszt cięcia słowa przed znakiem i (0 = naturalna granica sylaby).
   function cutCost(s, i) {
-    const a = s[i - 1], b = s[i], c = s[i + 1] || '';
-    if (DIGRAPHS.includes((a + b).toLowerCase())) return 4;
+    const low = s.toLowerCase();
+    const a = low[i - 1], b = low[i], c = low[i + 1] || '';
+    // nie tniemy w środku dwuznaku ani typowej cząstki (ti|on, men|t)
+    if (DIGRAPHS.includes(a + b) && !(a + b === 'ng' && isVowel(c))) return 4; // Hun|ga|ry — ale nie sin|g
+    if (UNITS.some((u) => u.length > 2 && [...Array(u.length - 1)].some((_, k) => low.slice(i - k - 1, i - k - 1 + u.length) === u))) return 4;
     if (!isVowel(b) && c && isVowel(c)) return 0; // pa|per, ho|tel
+    if (!isVowel(a) || isVowel(b)) { /* dalej */ } else if (ONSETS.some((o) => low.startsWith(o, i) && isVowel(low[i + o.length] || ''))) return 0; // Aus|tra
     if (!isVowel(a) && !isVowel(b)) return 1; // win|dow, pa|ck
     if (isVowel(a) && isVowel(b)) return 3;
     return 2;
+  }
+
+  // premia za kawałek, który jest znaną cząstką (końcówka na końcu słowa, przedrostek na początku)
+  function chunkBonus(ch, i, count) {
+    const low = ch.toLowerCase();
+    if (i === 0 && PREFIXES.includes(low) && count > 2) return -1.5;
+    if (UNITS.includes(low)) return (low.length > 2 ? -2 : -0.8) - (i === count - 1 ? 1 : 0);
+    return 0;
   }
 
   // Słowo (same litery) → 2–4 kawałki po min. 2 znaki, możliwie równe i na naturalnych granicach.
@@ -34,24 +52,30 @@
     const s = String(word);
     const n = s.length;
     if (n < 4) return [s];
-    const k = Math.min(4, Math.max(2, Math.round(n / 3.3)));
-    const ideal = n / k;
+    const kMin = n >= 9 ? 3 : 2, kMax = Math.min(4, Math.floor(n / 2));
     let best = null;
-    const walk = (start, cuts) => {
-      if (cuts.length === k - 1) {
-        const bounds = [0, ...cuts, n];
-        const lens = bounds.slice(1).map((b, i) => b - bounds[i]);
-        if (lens.some((l) => l < 2)) return;
-        const chunks = bounds.slice(1).map((b, i) => s.slice(bounds[i], b));
-        // kawałek bez samogłoski (np. „Sw”) źle się czyta — dozwolony tylko na końcu (pa|ck)
-        const noVowel = chunks.filter((ch, i) => ![...ch].some(isVowel) && i < chunks.length - 1).length;
-        const cost = cuts.reduce((sum, i) => sum + cutCost(s, i), 0) + lens.reduce((sum, l) => sum + (l - ideal) ** 2, 0) * 0.6 + noVowel * 5;
-        if (!best || cost < best.cost) best = { cost, cuts: cuts.slice() };
-        return;
-      }
-      for (let i = start; i < n; i++) walk(i + 1, [...cuts, i]);
-    };
-    walk(2, []);
+    for (let k = kMin; k <= kMax; k++) {
+      const ideal = n / k;
+      const walk = (start, cuts) => {
+        if (cuts.length === k - 1) {
+          const bounds = [0, ...cuts, n];
+          const lens = bounds.slice(1).map((b, i) => b - bounds[i]);
+          if (lens.some((l) => l < 2 || l > 6)) return;
+          const chunks = bounds.slice(1).map((b, i) => s.slice(bounds[i], b));
+          // kawałek bez samogłoski (np. „Sw”) źle się czyta — dozwolony tylko na końcu (pa|ck)
+          const noVowel = chunks.filter((ch, i) => ![...ch].some(isVowel) && i < chunks.length - 1).length
+            + (![...chunks[chunks.length - 1]].some(isVowel) ? 0.4 : 0); // na końcu (pa|ck) tylko, gdy nie ma lepszego podziału
+          const cost = cuts.reduce((sum, i) => sum + cutCost(s, i), 0)
+            + lens.reduce((sum, l) => sum + (l - ideal) ** 2, 0) * 0.35
+            + chunks.reduce((sum, ch, i) => sum + chunkBonus(ch, i, chunks.length), 0)
+            + noVowel * 5 + k * 0.4; // mniej kawałków, jeśli to nic nie psuje
+          if (!best || cost < best.cost) best = { cost, cuts: cuts.slice() };
+          return;
+        }
+        for (let i = start; i < n; i++) walk(i + 1, [...cuts, i]);
+      };
+      walk(2, []);
+    }
     if (!best) return [s];
     const bounds = [0, ...best.cuts, n];
     return bounds.slice(1).map((b, i) => s.slice(bounds[i], b));

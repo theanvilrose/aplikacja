@@ -19,6 +19,11 @@ test('sylaby: 2–4 kawałki po min. 2 znaki, sklejają się w słowo', () => {
     assert.ok(parts.every((p) => p.length >= 2), `${w}: ${parts}`);
   }
   assert.deepStrictEqual(B.syllables('pack'), ['pa', 'ck']);
+  // typowe cząstki i granice sylab
+  assert.deepStrictEqual(B.syllables('nationality'), ['na', 'tion', 'al', 'ity']);
+  assert.deepStrictEqual(B.syllables('information'), ['in', 'for', 'ma', 'tion']);
+  assert.deepStrictEqual(B.syllables('friend'), ['fri', 'end']);
+  assert.deepStrictEqual(B.syllables('doctor'), ['doc', 'tor']);
   assert.deepStrictEqual(B.syllables('you'), ['you']); // krótkie słowo zostaje w całości
 });
 
