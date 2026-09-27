@@ -184,10 +184,14 @@ function pickUndo() {
   speakPick();
 }
 
-// koniec karuzeli (przejrzane wszystkie słowa albo „Wróć”)
+// koniec karuzeli: poznane słowa (tyle, ile w ustawieniach) wracają w rundzie mieszanej ang → pol i pol → ang
 function finishPick() {
   const { picked, known, back } = PK;
   PK = null;
+  if (picked.length) {
+    toast(`Utrwalenie: ${picked.length} ${plural(picked.length, 'słowo', 'słowa', 'słów')} — ang → pol i pol → ang`);
+    return startSession({ mode: 'mix', ids: picked });
+  }
   view = back === 'pick' || back === 'session' ? 'home' : back;
   render();
   const parts = [picked.length && `poznane: ${picked.length}`, known && `już znane: ${known}`].filter(Boolean);
@@ -199,7 +203,7 @@ function backToPick() {
   if (S && S.chestOpened) { view = 'summary'; render(); return; }
   S = null;
   if (!PK) { go('home'); return; }
-  if (PK.i >= PK.ids.length) return finishPick();
+  if (PK.picked.length >= PK.goal || PK.i >= PK.ids.length) return finishPick();
   view = 'pick';
   render();
   window.scrollTo(0, 0);

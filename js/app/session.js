@@ -64,6 +64,8 @@ function buildQueue({ ids = null, mode = 'learn', intro = false, first = null, p
     }));
   }
   if (mode === 'extra') return shuffle(soonest(15)).map((w) => ({ id: w.id }));
+  // runda mieszana po karuzeli: każde słowo raz ang → pol i raz pol → ang, wymieszane (to samo słowo nie dwa razy z rzędu)
+  if (mode === 'mix') return mixQueue(pool.map((w) => w.id));
   // ćwiczenie konkretnych słów (np. błędów z testu): nieznane najpierw pokazujemy jako nowe
   if (mode === 'drill') return shuffle(pool).map((w) => (db.cards[w.id] && !intro ? { id: w.id } : { id: w.id, intro: true }));
 
@@ -105,6 +107,16 @@ function buildQueue({ ids = null, mode = 'learn', intro = false, first = null, p
   return queue;
 }
 
+function mixQueue(ids) {
+  const q = shuffle(ids.flatMap((id) => [{ id, force: 'en2pl' }, { id, force: 'pl2en' }]));
+  for (let k = 1; k < q.length; k++) {
+    if (q[k].id !== q[k - 1].id) continue;
+    const j = q.findIndex((x, m) => m > k && x.id !== q[k].id && (m + 1 >= q.length || q[m + 1].id !== q[k - 1].id));
+    if (j > 0) [q[k], q[j]] = [q[j], q[k]];
+  }
+  return q;
+}
+
 function startSession(opts = {}) {
   stopPlayer();
   const exam = opts.exam ? examDef(opts.exam) : null;
@@ -112,7 +124,7 @@ function startSession(opts = {}) {
   if (!queue.length) return toast('Najpierw poznaj kilka słówek');
   const mins = db.settings.minutes;
   S = {
-    queue, pos: 0, start: Date.now(), budget: !exam && mins && !opts.pick ? mins * 60000 : 0,
+    queue, pos: 0, start: Date.now(), budget: !exam && mins && !opts.pick && opts.mode !== 'mix' ? mins * 60000 : 0,
     mode: exam ? 'exam' : opts.mode || 'learn', exam, recorded: false,
     answers: [], wrong: new Set(), newIds: new Set(), extraSteps: {}, cur: null, timer: null,
     gems: 0, streakUp: 0, chestOpened: false, badge: null, pathAdvanced: false,

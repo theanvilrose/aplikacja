@@ -1012,7 +1012,7 @@ function viewSummary() {
 
 // „jeszcze raz” w tym samym trybie: po Nauce kolejne nowe słowa, po Powtórce kolejne powtórki
 function againButton(c) {
-  if (S.mode === 'new') return freshWords().length ? '<button class="btn pill wide" data-act="learn-new">Ucz się dalej</button>' : '';
+  if (S.mode === 'new' || S.mode === 'mix') return freshWords().length ? '<button class="btn pill wide" data-act="learn-new">Ucz się dalej</button>' : '';
   if (S.mode === 'review') return c.dueLeft ? '<button class="btn pill wide" data-act="review">Powtórz dalej</button>' : c.newLeft ? '<button class="btn pill wide" data-act="learn-new">Poznaj nowe słowa</button>' : '';
   return c.dueLeft + c.newLeft ? '<button class="btn pill wide" data-act="start">Jeszcze jedna sesja</button>' : '';
 }
