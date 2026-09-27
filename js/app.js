@@ -812,11 +812,24 @@ function introDone() {
 // „Wiem”: od razu wyuczone (jak na ekranie wyboru słówek), jutro wraca na szybkie sprawdzenie.
 function introSkip(known) {
   const { w } = S.cur;
+  // stan sprzed decyzji — do „Cofnij”
+  const ref = S, before = { queue: S.queue.slice(), pos: S.pos, cur: S.cur, card: db.cards[w.id] ? { ...db.cards[w.id] } : null };
   trackTime();
-  if (known) { markKnown(w.id); toast(`✓ „${w.en}” — umiesz`); }
+  if (known) markKnown(w.id);
   S.queue = S.queue.filter((it, i) => i <= S.pos || it.id !== w.id);
   S.pos++;
   nextStep();
+  toast(known ? `✓ „${w.en}” — oznaczone jako znane` : `„${w.en}” — wróci w kolejnej sesji`, {
+    undo: () => {
+      if (known) { if (before.card) db.cards[w.id] = before.card; else delete db.cards[w.id]; save(); }
+      // wracamy do tego słowa, jeśli sesja jeszcze trwa
+      if (S === ref && view === 'session') {
+        clearTimeout(S.timer);
+        Object.assign(S, { queue: before.queue, pos: before.pos, cur: before.cur });
+        render();
+      } else if (known) toast(`„${w.en}” znowu jest nowe`);
+    },
+  });
 }
 
 function insertLater(item, gap) {
@@ -2989,12 +3002,16 @@ function viewProfile() {
 
 // ---------- akcje ----------
 
-function toast(msg) {
+// toast(msg) — krótki komunikat; toast(msg, { undo }) — z przyciskiem „Cofnij” i paskiem odliczania (ok. 5 s)
+function toast(msg, { undo, ms } = {}) {
   const t = $('#toast');
-  t.textContent = msg;
+  ms = ms || (undo ? 5000 : 2800);
+  t.className = 'toast' + (undo ? ' has-undo' : '');
+  t.innerHTML = `<span>${esc(msg)}</span>` + (undo ? `<button class="toast-undo" type="button">Cofnij</button><i class="toast-time" style="animation-duration:${ms}ms"></i>` : '');
+  if (undo) t.querySelector('.toast-undo').onclick = () => { clearTimeout(toast.timer); t.hidden = true; undo(); };
   t.hidden = false;
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => { t.hidden = true; }, 2800);
+  toast.timer = setTimeout(() => { t.hidden = true; }, ms);
 }
 
 function importMarkdown(text) {

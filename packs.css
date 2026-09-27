@@ -346,3 +346,10 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .packs.dragging { cursor: grabbing; scroll-snap-type: none; user-select: none; }
 .packs.dragging .pack { pointer-events: none; }
 .packs img { -webkit-user-drag: none; user-select: none; }
+/* komunikat z „Cofnij” */
+.toast.has-undo { display: flex; align-items: center; gap: 14px; padding: 10px 10px 10px 18px; overflow: hidden; }
+.toast.has-undo[hidden] { display: none; }
+.toast-undo { flex-shrink: 0; border: 0; border-radius: 10px; padding: 8px 14px; background: rgba(255, 255, 255, 0.16); color: #b9a8ff; font: 800 15px Nunito, sans-serif; cursor: pointer; }
+.toast-undo:hover { background: rgba(255, 255, 255, 0.26); color: #fff; }
+.toast-time { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: #8b6cff; transform-origin: left; animation: toast-time linear forwards; }
+@keyframes toast-time { from { transform: scaleX(1); } to { transform: scaleX(0); } }
