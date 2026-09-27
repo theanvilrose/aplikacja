@@ -341,3 +341,8 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .listen-slow:active { transform: translateY(-50%) scale(0.94); }
 .slow-btn { margin-left: 2px; font-size: 0.8em; opacity: 0.85; }
 .slow-btn:hover { opacity: 1; }
+/* Pakiety słówek: przeciąganie myszą */
+.packs { cursor: grab; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+.packs.dragging { cursor: grabbing; scroll-snap-type: none; user-select: none; }
+.packs.dragging .pack { pointer-events: none; }
+.packs img { -webkit-user-drag: none; user-select: none; }

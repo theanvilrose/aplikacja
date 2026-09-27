@@ -3194,6 +3194,40 @@ document.addEventListener('pointerdown', (e) => {
   setTimeout(() => s.remove(), 650);
 });
 
+// Poziome paski (Pakiety słówek): przeciąganie myszą jak palcem na telefonie; kółko myszy też przewija w bok.
+const DRAG_ROWS = '.packs';
+let rowDrag = null;
+document.addEventListener('pointerdown', (e) => {
+  const row = e.pointerType === 'mouse' && e.button === 0 && e.target.closest(DRAG_ROWS);
+  if (!row) return;
+  rowDrag = { row, x: e.clientX, left: row.scrollLeft, moved: false };
+});
+document.addEventListener('pointermove', (e) => {
+  if (!rowDrag) return;
+  const dx = e.clientX - rowDrag.x;
+  if (!rowDrag.moved && Math.abs(dx) < 6) return;
+  if (!rowDrag.moved) { rowDrag.moved = true; rowDrag.row.classList.add('dragging'); }
+  rowDrag.row.scrollLeft = rowDrag.left - dx;
+});
+const endRowDrag = () => {
+  if (!rowDrag) return;
+  const { row, moved } = rowDrag;
+  rowDrag = null;
+  row.classList.remove('dragging');
+  // po przeciągnięciu nie otwieraj pakietu, na którym puszczono przycisk
+  if (moved) document.addEventListener('click', (ev) => { ev.stopPropagation(); ev.preventDefault(); }, { capture: true, once: true });
+};
+document.addEventListener('pointerup', endRowDrag);
+document.addEventListener('pointercancel', endRowDrag);
+document.addEventListener('wheel', (e) => {
+  const row = e.target.closest(DRAG_ROWS);
+  if (!row || Math.abs(e.deltaX) > Math.abs(e.deltaY) || row.scrollWidth <= row.clientWidth) return;
+  const max = row.scrollWidth - row.clientWidth;
+  if ((e.deltaY < 0 && row.scrollLeft <= 0) || (e.deltaY > 0 && row.scrollLeft >= max - 1)) return; // na końcu — przewijaj stronę
+  e.preventDefault();
+  row.scrollBy({ left: e.deltaY, behavior: 'smooth' });
+}, { passive: false });
+
 // Pamiętamy rozwinięte słówko, żeby nie zwijało się po zmianie listy.
 document.addEventListener('click', (e) => {
   document.querySelectorAll('.cv-menu[open]').forEach((m) => { if (!m.contains(e.target) || e.target.closest('.cv-pop button')) m.open = false; });
