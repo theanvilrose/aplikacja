@@ -607,3 +607,60 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .pk-img.svg .pk-emoji { display: grid; place-items: center; width: 92px; height: 92px; border-radius: 28px; font-size: 56px; line-height: 1; background: linear-gradient(160deg, #ffffff, #f1f3fb); box-shadow: 0 10px 18px rgba(30, 40, 90, 0.16), inset 0 -4px 0 rgba(30, 40, 90, 0.06); }
 .wd-pl .wd-cefr { margin-top: 10px; padding: 3px 12px; border-radius: 999px; font-size: 14px; font-weight: 800; letter-spacing: 0.04em; color: #fff; background: linear-gradient(180deg, #8b6cff, #6143ff); box-shadow: 0 4px 10px rgba(97, 67, 255, 0.3); }
 .words-more { display: block; margin: 14px auto 0; }
+
+/* ---- karuzela „Nowe słówka” (word.js: viewPick) — jak w WRD: sąsiednie karty wystają po bokach, przechylone ---- */
+.pick-right { display: flex; align-items: center; gap: 8px; }
+.pick-top { position: relative; z-index: 10; } /* podpowiedź nad kartami */
+.pc-stage { position: relative; height: calc(min(240px, 62vw) + 34px); margin: 14px -16px 20px; overflow: hidden; touch-action: pan-y; }
+.pc-card {
+  position: absolute; top: 12px; left: 50%; width: min(240px, 62vw); aspect-ratio: 1; margin-left: calc(min(240px, 62vw) / -2);
+  display: grid; place-items: center; border-radius: 44px; background: var(--tint);
+  box-shadow: 0 7px 0 color-mix(in srgb, var(--tint) 80%, #c0673f 20%);
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.pc-card .wa-img { width: 100%; height: 100%; border-radius: inherit; box-shadow: none; }
+.pc-card:has(.wa-img) { overflow: hidden; }
+.pc-card .wa-emoji { font-size: 110px; }
+.pc-card.cur { z-index: 2; }
+.pc-card.prev { transform: translateX(-96%) rotate(-6deg) scale(0.82); opacity: 0.9; }
+.pc-card.next { transform: translateX(96%) rotate(6deg) scale(0.82); opacity: 0.9; }
+/* przejście: dalej (Naucz się / Później / Wiem) i wstecz (Cofnij) */
+.pc-stage.next .pc-card.cur { animation: pc-from-next 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+.pc-stage.next .pc-card.prev { animation: pc-cur-to-prev 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+.pc-stage.next .pc-card.next { animation: pc-in-next 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+.pc-stage.prev .pc-card.cur { animation: pc-from-prev 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+.pc-stage.prev .pc-card.next { animation: pc-cur-to-next 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes pc-from-next { from { transform: translateX(96%) rotate(6deg) scale(0.82); } }
+@keyframes pc-from-prev { from { transform: translateX(-96%) rotate(-6deg) scale(0.82); } }
+@keyframes pc-cur-to-prev { from { transform: none; opacity: 1; } }
+@keyframes pc-cur-to-next { from { transform: none; opacity: 1; } }
+@keyframes pc-in-next { from { transform: translateX(150%) rotate(12deg) scale(0.7); opacity: 0; } }
+.pc-text { animation: pick-in 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+.pick-pron { margin: 4px 0 0; font-size: 16px; font-weight: 700; letter-spacing: 0.06em; color: #9aa0b8; }
+.pc-dots { display: flex; justify-content: center; align-items: center; gap: 14px; height: 18px; margin: 22px 0 0; }
+.pc-dots i { width: 11px; height: 11px; border-radius: 50%; background: #dcdfea; transition: all 0.3s ease; }
+.pc-dots i.d0 { width: 16px; height: 16px; background: #7c4dff; box-shadow: 0 3px 8px rgba(124, 77, 255, 0.4); }
+.pc-dots i.d2 { width: 8px; height: 8px; }
+.pc-dots i.d3 { width: 5px; height: 5px; }
+.pick-actions .pick-go { background: linear-gradient(90deg, #8b5cff, #7c3aed); box-shadow: 0 16px 30px -12px rgba(124, 58, 237, 0.75); }
+.pick-actions .pick-go:hover { box-shadow: 0 20px 36px -10px rgba(124, 58, 237, 0.9); }
+
+/* znak zapytania: podpowiedź po najechaniu (albo dotknięciu) */
+.pick-help { position: relative; width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; cursor: help; background: #efeaff; color: #5a3fe0; font-family: var(--display); font-size: 19px; font-weight: 800; transition: transform 0.2s ease, background 0.2s ease; }
+.pick-help:hover, .pick-help:focus { background: #e2d9ff; transform: scale(1.08); outline: none; }
+.pick-help:focus-visible { box-shadow: 0 0 0 3px #5a4dff; }
+.pick-tip {
+  position: absolute; right: -4px; top: calc(100% + 12px); z-index: 30; width: min(300px, 82vw); padding: 13px 15px; border-radius: 16px;
+  background: #1b1f3e; color: #ffffff; font: 600 14px/1.5 Nunito, sans-serif; text-align: left; letter-spacing: 0; cursor: default;
+  box-shadow: 0 16px 34px rgba(20, 20, 60, 0.3); opacity: 0; visibility: hidden; transform: translateY(-6px); transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+}
+.pick-tip::before { content: ""; position: absolute; right: 15px; top: -6px; width: 12px; height: 12px; border-radius: 2px; background: inherit; transform: rotate(45deg); }
+.pick-tip b { color: #c4b5ff; }
+.pick-tip small { display: block; margin-top: 6px; font-size: 12px; color: #a3a8c9; }
+.pick-help:hover .pick-tip, .pick-help:focus .pick-tip { opacity: 1; visibility: visible; transform: none; }
+
+/* komunikat z ikonką słowa (Przeskoczyłeś słowo / Już wyuczone) */
+.toast-ic { width: 32px; height: 32px; flex-shrink: 0; display: grid; place-items: center; font-size: 24px; }
+.toast-ic img { width: 100%; height: 100%; object-fit: cover; border-radius: 9px; }
+@media (prefers-reduced-motion: reduce) { .pc-stage .pc-card, .pc-text { animation: none !important; } }
+:root[data-theme="dark"] .pc-card { background: color-mix(in srgb, var(--tint) 30%, #1f1c2b); box-shadow: 0 7px 0 color-mix(in srgb, var(--tint) 20%, #120f1e); }

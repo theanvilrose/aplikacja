@@ -122,7 +122,8 @@ function viewWord() {
   </div>`;
 }
 
-// „Ucz się” w pakiecie: najpierw wybierasz nowe słowa (Ucz się / Później / Wiem), potem rusza lekcja.
+// „Ucz się” w pakiecie albo na karcie Nauka: karuzela nowych słów (jak „Nowe słówka” w WRD) —
+// Naucz się / Później / Wiem (z „Cofnij”); po wybraniu celu rusza lekcja.
 function startPick(ref) {
   const coll = collection(ref);
   if (!coll) return;
@@ -131,7 +132,21 @@ function startPick(ref) {
   const ws = byKind(coll.ws);
   const ids = ws.filter((w) => !db.cards[w.id]).map((w) => w.id);
   if (!ids.length) return startSession({ ids: ws.map((w) => w.id), coll: ref }); // wszystko poznane — powtórka pakietu
-  PK = { ref, ids, i: 0, picked: [], known: 0, back: view };
+  openPick({ ref, ids, goal: Math.min(PICK_BATCH, ids.length) });
+}
+
+// karta Nauka: do przejrzenia 2× tyle nowych słów, ile jest w ustawieniach planu; cel = ile zostało na dziś
+// (po dziennym celu — kolejne 5). Karuzela zaczyna od słowa, które było widać na karcie.
+function startPlanPick(first) {
+  const fresh = freshWords();
+  if (!fresh.length) return startSession({ mode: 'review' });
+  let ids = fresh.slice(0, Math.max(2, db.settings.newPerDay * 2)).map((w) => w.id);
+  if (first && ids.includes(first)) ids = [first, ...ids.filter((x) => x !== first)];
+  openPick({ ref: null, ids, goal: Math.min(counts().newLeft || MORE_NEW, ids.length) });
+}
+
+function openPick({ ref, ids, goal }) {
+  PK = { ref, ids, goal, i: 0, picked: [], known: 0, back: view, hist: [], dir: '' };
   go('pick');
   speakPick();
 }
@@ -141,12 +156,27 @@ function speakPick() {
   if (w && db.settings.autoplay) setTimeout(() => speak(w.en), 250);
 }
 
+const pickIcon = (w) => (WORD_IMG[w.id] && !isPhrase(w) ? `<img src="assets/words/${WORD_IMG[w.id]}.png" alt="">` : `<span>${esc(isPhrase(w) ? '💬' : w.icon || '📘')}</span>`);
+
 function pickWord(action) {
-  const id = PK.ids[PK.i];
+  const id = PK.ids[PK.i], w = byId.get(id);
+  PK.hist.push({ i: PK.i, picked: PK.picked.slice(), known: PK.known, card: db.cards[id] ? { ...db.cards[id] } : null, action });
   if (action === 'learn') PK.picked.push(id);
   else if (action === 'known') { markKnown(id); PK.known++; }
   PK.i++;
-  if (PK.picked.length >= PICK_BATCH || PK.i >= PK.ids.length) return finishPick();
+  PK.dir = 'next';
+  if (PK.picked.length >= PK.goal || PK.i >= PK.ids.length) return finishPick();
+  render();
+  speakPick();
+  if (action !== 'learn') toast(action === 'known' ? 'Już wyuczone' : 'Przeskoczyłeś słowo', { undo: pickUndo, icon: pickIcon(w) });
+}
+
+// „Cofnij” w komunikacie albo przesunięcie karuzeli w prawo: wraca poprzednie słowo (i jego stan sprzed „Wiem”)
+function pickUndo() {
+  if (view !== 'pick' || !PK || !PK.hist.length) return;
+  const h = PK.hist.pop(), id = PK.ids[h.i];
+  if (h.action === 'known') { if (h.card) db.cards[id] = h.card; else delete db.cards[id]; save(); }
+  Object.assign(PK, { i: h.i, picked: h.picked, known: h.known, dir: 'prev' });
   render();
   speakPick();
 }
@@ -155,6 +185,7 @@ function finishPick() {
   const { picked, known, ref, back } = PK;
   PK = null;
   if (picked.length) {
+    if (!ref) return startSession({ mode: 'new', ids: picked }); // karta Nauka: same wybrane nowe słowa
     // wybrane nowe słowa + zaległe powtórki z tego pakietu
     const coll = collection(ref);
     const now = Date.now();
@@ -168,22 +199,39 @@ function finishPick() {
 
 function viewPick() {
   const w = byId.get(PK.ids[PK.i]);
-  const goal = Math.min(PICK_BATCH, PK.ids.length);
+  const art = (x) => (isPhrase(x) ? '<span class="wa-emoji">💬</span>' : wordArt(x));
+  const card = (x, cls) => (x ? `<div class="pc-card ${cls}" style="--tint:${wordTint(x)}" ${cls === 'cur' ? '' : 'aria-hidden="true"'}>${art(x)}</div>` : '');
+  // kropki jak w WRD: bieżąca duża, dalsze coraz mniejsze
+  const dots = [];
+  for (let k = Math.max(0, PK.i - 2); k < Math.min(PK.ids.length, PK.i + 4); k++) dots.push(`<i class="d${Math.min(3, Math.abs(k - PK.i))}"></i>`);
+  const n = PK.goal;
   return `
   <header class="pick-top">
     <button class="pk-back" data-act="pick-back" aria-label="Wróć">${ICON.back}</button>
-    <h2>Nauka</h2>
-    <span class="pick-count" title="Wybrane do nauki">${ICON.sparkle}<b>${PK.picked.length}/${goal}</b></span>
+    <h2>${PK.ref ? 'Nauka' : 'Nowe słówka'}</h2>
+    <span class="pick-right">
+      <span class="pick-count" title="Wybrane do nauki">${ICON.sparkle}<b>${PK.picked.length}/${n}</b></span>
+      <span class="pick-help" tabindex="0" role="button" aria-label="Jak to działa?">?<span class="pick-tip" role="tooltip">
+        <b>Naucz się</b> — słowo trafia do dzisiejszej lekcji.<br>
+        <b>Później</b> — pomijasz je na razie, wróci w kolejnych dniach.<br>
+        <b>Wiem</b> — znasz je: od razu wyuczone, jutro szybkie sprawdzenie.<br>
+        Po wybraniu ${n} ${plural(n, 'słowa', 'słów', 'słów')} rusza lekcja. Przesuń w lewo = Później, w prawo = cofnij.
+        <small>Klawisze: Enter — Naucz się, ← Później, → Wiem</small>
+      </span></span>
+    </span>
   </header>
   <span class="pick-progress"><i style="width:${pct(PK.i / PK.ids.length)}"></i></span>
-  <section class="pick-card">
-    <p class="pick-label">${isPhrase(w) ? 'Nowy zwrot' : 'Nowe słówko'} <span>${PK.i + 1} z ${PK.ids.length}</span></p>
-    ${isPhrase(w) ? '' : `<div class="pick-tile" style="--tint:${wordTint(w)}">${wordArt(w)}</div>`}
+  <section class="pc-stage ${PK.dir}">
+    ${card(byId.get(PK.ids[PK.i - 1]), 'prev')}${card(byId.get(PK.ids[PK.i + 1]), 'next')}${card(w, 'cur')}
+  </section>
+  <section class="pick-card pc-text">
     <h1 class="pick-en">${esc(w.en)}<button class="wd-say" data-say="${esc(w.en)}" aria-label="Posłuchaj">${SPEAKER}</button></h1>
+    ${w.pron ? `<p class="pick-pron">${esc(w.pron)}</p>` : ''}
     <p class="pick-pl">${esc(w.pl)}</p>
   </section>
+  <div class="pc-dots" aria-label="Słowo ${PK.i + 1} z ${PK.ids.length}">${dots.join('')}</div>
   <div class="pick-actions">
-    <button class="pick-go" data-act="pick-learn"><span>Ucz się</span></button>
+    <button class="pick-go" data-act="pick-learn"><span>Naucz się</span></button>
     <div class="wd-actions"><button class="wd-link" data-act="pick-later">Później</button><span></span><button class="wd-link" data-act="pick-known">Wiem</button></div>
     ${PK.picked.length ? `<button class="pick-start" data-act="pick-start">Zacznij teraz z ${PK.picked.length} ${plural(PK.picked.length, 'słowem', 'słowami', 'słowami')} ›</button>` : ''}
   </div>`;

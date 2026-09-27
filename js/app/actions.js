@@ -5,11 +5,11 @@
 // ---------- akcje ----------
 
 // toast(msg) — krótki komunikat; toast(msg, { undo }) — z przyciskiem „Cofnij” i paskiem odliczania (ok. 5 s)
-function toast(msg, { undo, ms } = {}) {
+function toast(msg, { undo, ms, icon } = {}) {
   const t = $('#toast');
   ms = ms || (undo ? 5000 : 2800);
   t.className = 'toast' + (undo ? ' has-undo' : '');
-  t.innerHTML = `<span>${esc(msg)}</span>` + (undo ? `<button class="toast-undo" type="button">Cofnij</button><i class="toast-time" style="animation-duration:${ms}ms"></i>` : '');
+  t.innerHTML = (icon ? `<span class="toast-ic">${icon}</span>` : '') + `<span>${esc(msg)}</span>` + (undo ? `<button class="toast-undo" type="button">Cofnij</button><i class="toast-time" style="animation-duration:${ms}ms"></i>` : '');
   if (undo) t.querySelector('.toast-undo').onclick = () => { clearTimeout(toast.timer); t.hidden = true; undo(); };
   t.hidden = false;
   clearTimeout(toast.timer);
@@ -83,6 +83,17 @@ function openCollection(ref) {
   go('words');
 }
 
+// karuzela nowych słów: przesunięcie w lewo = Później, w prawo = cofnij
+let pcTouch = null;
+document.addEventListener('touchstart', (e) => { pcTouch = view === 'pick' && e.target.closest('.pc-stage') ? e.touches[0].clientX : null; }, { passive: true });
+document.addEventListener('touchend', (e) => {
+  if (pcTouch === null || view !== 'pick' || !PK) return;
+  const dx = e.changedTouches[0].clientX - pcTouch;
+  pcTouch = null;
+  if (dx < -50) pickWord('later');
+  else if (dx > 50) pickUndo();
+}, { passive: true });
+
 document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-act],[data-say],[data-slow],[data-opt],[data-view],[data-coll],[data-status],[data-player],[data-exam],[data-listtoggle],[data-setval],[data-toggle],[data-slide],[data-ptab],[data-kind],[data-wopen],[data-taskpart]');
   if (!el || el.disabled) return;
@@ -129,7 +140,7 @@ document.addEventListener('click', (e) => {
   const coll = collection(wordsFilter.coll);
   switch (ds.act) {
     case 'start': startSession(); break;
-    case 'learn-new': startSession({ mode: 'new', first: ds.id }); break; // karta Nauka: same nowe słowa, od słowa widocznego na karcie
+    case 'learn-new': startPlanPick(ds.id); break; // karta Nauka: karuzela nowych słów, od słowa widocznego na karcie
     case 'review': startSession({ mode: 'review' }); break; // karta Powtórka: same powtórki
     case 'extra': startSession({ mode: 'extra' }); break;
     case 'start-coll': if (coll) startPick(coll.ref); break;

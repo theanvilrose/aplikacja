@@ -75,7 +75,7 @@ function buildQueue({ ids = null, mode = 'learn', intro = false, first = null } 
   // Nauka: same nowe słowa — dzienny cel, a gdy już zrobiony, kolejne porcje (bez nowych → powtórka)
   if (mode === 'new') {
     if (!fresh.length) return buildQueue({ ids, mode: 'review' });
-    const list = fresh.slice(0, only ? 8 : c.newLeft || MORE_NEW);
+    const list = fresh.slice(0, only ? undefined : c.newLeft || MORE_NEW);
     const k = list.findIndex((w) => w.id === first); // słowo, które było widać na karcie Nauka, idzie pierwsze
     if (k > 0) list.unshift(...list.splice(k, 1));
     return list.map((w) => ({ id: w.id, intro: true }));
