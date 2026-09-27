@@ -1853,7 +1853,7 @@ function viewSession() {
     type: ['Napisz po angielsku', `<div class="prompt-pl">${esc(w.pl)}</div>`],
     truefalse: ['Czy to jest prawidłowe tłumaczenie?', S.cur.tf ? `
       <div class="tf-tile">
-        <svg class="tf-art" viewBox="0 0 64 64" aria-hidden="true"><rect x="10" y="8" width="44" height="12" rx="6" fill="#cbc6f5"/><rect x="10" y="26" width="44" height="12" rx="6" fill="#6cb944"/><circle cx="17" cy="32" r="4.4" fill="#fff"/><path d="m14.8 32 1.6 1.6 3-3.2" fill="none" stroke="#6cb944" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><rect x="10" y="44" width="44" height="12" rx="6" fill="#cbc6f5"/></svg>
+        ${!isPhrase(w) && WORD_IMG[w.id] ? `<div class="tf-img">${wordArt(w)}</div>` : `<svg class="tf-art" viewBox="0 0 64 64" aria-hidden="true"><rect x="10" y="8" width="44" height="12" rx="6" fill="#cbc6f5"/><rect x="10" y="26" width="44" height="12" rx="6" fill="#6cb944"/><circle cx="17" cy="32" r="4.4" fill="#fff"/><path d="m14.8 32 1.6 1.6 3-3.2" fill="none" stroke="#6cb944" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><rect x="10" y="44" width="44" height="12" rx="6" fill="#cbc6f5"/></svg>`}
         <div class="tf-pl">${esc(S.cur.tf.text)}</div>
         <div class="tf-en">${esc(w.en)} <button class="icon-btn" data-say="${esc(w.en)}" aria-label="Posłuchaj">${SPEAKER}</button><button class="icon-btn slow-btn" data-slow="${esc(w.en)}" aria-label="Posłuchaj wolniej" title="Wolniej">${TURTLE}</button></div>
       </div>` : ''],
@@ -2111,7 +2111,7 @@ function listTags(w) {
 // Ikona słówka: obrazek z assets/words albo emoji tematu na pastelowym tle.
 const SPEAKER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>';
 // żółw „wolniej” — SVG zamiast emoji, żeby 🔊 i 🐢 miały ten sam rozmiar i linię na każdym systemie
-const TURTLE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 16.5a7.5 6.5 0 0 1 15 0z" fill="currentColor"/><path d="M7 16.2 9.2 11.6h3.6l2.2 4.6M9.2 11.6 11 9.9l1.8 1.7" fill="none" stroke="#fff" stroke-width="1.1" stroke-linejoin="round" opacity=".55"/><circle cx="20.3" cy="13.6" r="2.3" fill="currentColor"/><path d="M5.2 16.5v2.3M9 16.5v2.3M13 16.5v2.3M16.8 16.5v2.3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="20.9" cy="13.1" r=".55" fill="#fff"/></svg>';
+const TURTLE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.2 15.2c0-4.6 3.5-8 7.9-8s7.9 3.4 7.9 8z" fill="currentColor"/><path d="M7.2 15 8.9 11h4.4l1.7 4M8.9 11l2.2-3.2 2.2 3.2" fill="none" stroke="#fff" stroke-width="1.2" stroke-linejoin="round" opacity=".6"/><rect x="2.2" y="14.6" width="17.8" height="2.4" rx="1.2" fill="currentColor"/><path d="M18.6 13.4c.9-.3 1.4-1.1 1.4-2" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/><circle cx="21" cy="10.8" r="2.3" fill="currentColor"/><circle cx="21.6" cy="10.3" r=".6" fill="#fff"/><path d="M6.2 17v2.6M15.8 17v2.6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
 
 // Ikony tylko przy słówkach — zwroty (wyrażenia) są bez ikony.
 function wordIcon(w) {

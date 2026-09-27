@@ -470,3 +470,7 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .slow-btn svg { width: 30px; height: 30px; }
 .tf-en .icon-btn { color: #8f86d9; }
 .listen-slow svg { width: 26px; height: 26px; color: #3f9d4a; }
+/* tak/nie: obrazek angielskiego słowa (jak w WRD) */
+.tf-img { width: 120px; height: 120px; margin: 0 auto 12px; }
+.tf-img .wa-img { width: 100%; height: 100%; border-radius: 26px; }
+.tf-img .wa-emoji { font-size: 80px; }
