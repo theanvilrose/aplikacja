@@ -609,7 +609,6 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .words-more { display: block; margin: 14px auto 0; }
 
 /* ---- karuzela „Nowe słówka” (word.js: viewPick) — jak w WRD: sąsiednie karty wystają po bokach, przechylone ---- */
-.pick-right { display: flex; align-items: center; gap: 8px; }
 .pick-top { position: relative; z-index: 10; } /* podpowiedź nad kartami */
 .pc-stage { position: relative; height: calc(min(240px, 62vw) + 34px); margin: 14px -16px 20px; overflow: hidden; touch-action: pan-y; }
 .pc-card {
@@ -621,9 +620,9 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .pc-card .wa-img { width: 100%; height: 100%; border-radius: inherit; box-shadow: none; }
 .pc-card:has(.wa-img) { overflow: hidden; }
 .pc-card .wa-emoji { font-size: 110px; }
-.pc-card.cur { z-index: 2; }
-.pc-card.prev { transform: translateX(-96%) rotate(-6deg) scale(0.82); opacity: 0.9; }
-.pc-card.next { transform: translateX(96%) rotate(6deg) scale(0.82); opacity: 0.9; }
+.pc-card.cur { z-index: 2; transform: translateX(var(--dx, 0px)) rotate(calc(var(--dr, 0) * 1deg)); }
+.pc-card.prev { transform: translateX(calc(-96% + var(--dx, 0px) * 0.6)) rotate(-6deg) scale(0.82); opacity: 0.9; }
+.pc-card.next { transform: translateX(calc(96% + var(--dx, 0px) * 0.6)) rotate(6deg) scale(0.82); opacity: 0.9; }
 /* przejście: dalej (Naucz się / Później / Wiem) i wstecz (Cofnij) */
 .pc-stage.next .pc-card.cur { animation: pc-from-next 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
 .pc-stage.next .pc-card.prev { animation: pc-cur-to-prev 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
@@ -645,22 +644,33 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .pick-actions .pick-go { background: linear-gradient(90deg, #8b5cff, #7c3aed); box-shadow: 0 16px 30px -12px rgba(124, 58, 237, 0.75); }
 .pick-actions .pick-go:hover { box-shadow: 0 20px 36px -10px rgba(124, 58, 237, 0.9); }
 
-/* znak zapytania: podpowiedź po najechaniu (albo dotknięciu) */
-.pick-help { position: relative; width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; cursor: help; background: #efeaff; color: #5a3fe0; font-family: var(--display); font-size: 19px; font-weight: 800; transition: transform 0.2s ease, background 0.2s ease; }
-.pick-help:hover, .pick-help:focus { background: #e2d9ff; transform: scale(1.08); outline: none; }
-.pick-help:focus-visible { box-shadow: 0 0 0 3px #5a4dff; }
-.pick-tip {
-  position: absolute; right: -4px; top: calc(100% + 12px); z-index: 30; width: min(300px, 82vw); padding: 13px 15px; border-radius: 16px;
-  background: #1b1f3e; color: #ffffff; font: 600 14px/1.5 Nunito, sans-serif; text-align: left; letter-spacing: 0; cursor: default;
-  box-shadow: 0 16px 34px rgba(20, 20, 60, 0.3); opacity: 0; visibility: hidden; transform: translateY(-6px); transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
-}
-.pick-tip::before { content: ""; position: absolute; right: 15px; top: -6px; width: 12px; height: 12px; border-radius: 2px; background: inherit; transform: rotate(45deg); }
-.pick-tip b { color: #c4b5ff; }
-.pick-tip small { display: block; margin-top: 6px; font-size: 12px; color: #a3a8c9; }
-.pick-help:hover .pick-tip, .pick-help:focus .pick-tip { opacity: 1; visibility: visible; transform: none; }
-
 /* komunikat z ikonką słowa (Przeskoczyłeś słowo / Już wyuczone) */
 .toast-ic { width: 32px; height: 32px; flex-shrink: 0; display: grid; place-items: center; font-size: 24px; }
 .toast-ic img { width: 100%; height: 100%; object-fit: cover; border-radius: 9px; }
 @media (prefers-reduced-motion: reduce) { .pc-stage .pc-card, .pc-text { animation: none !important; } }
 :root[data-theme="dark"] .pc-card { background: color-mix(in srgb, var(--tint) 30%, #1f1c2b); box-shadow: 0 7px 0 color-mix(in srgb, var(--tint) 20%, #120f1e); }
+
+/* przeciąganie palcem: karty bez opóźnienia, po puszczeniu wracają płynnie */
+.pc-stage { cursor: grab; user-select: none; -webkit-user-select: none; }
+.pc-stage.dragging { cursor: grabbing; }
+.pc-stage.dragging .pc-card { transition: none; animation: none !important; }
+/* poziom i część mowy nad słowem */
+.pick-meta { display: flex; justify-content: center; align-items: center; gap: 8px; min-height: 26px; margin: 0 0 8px; }
+.pick-meta .wr-pos { margin: 0; height: 28px; padding: 0 11px 0 8px; font-size: 13px; }
+.pick-meta .wr-pos span { display: inline; } /* na ekranie wyboru zawsze z nazwą części mowy */
+.pick-meta .wr-pos i { font-size: 15px; }
+.pick-meta .ln-cefr { line-height: 22px; }
+/* „?” obok głośnika — po najechaniu / dotknięciu: uwagi, przykład, skojarzenie */
+.pc-text { position: relative; z-index: 5; }
+.pick-q { width: 30px; height: 30px; margin-left: 6px; flex-shrink: 0; border: 0; border-radius: 50%; vertical-align: middle; cursor: help; background: #efeaff; color: #5a3fe0; font-family: var(--display); font-size: 17px; font-weight: 800; transition: transform 0.2s ease, background 0.2s ease; }
+.pick-q:hover, .pick-q:focus { background: #e2d9ff; transform: scale(1.1); outline: none; }
+.pick-q:focus-visible { box-shadow: 0 0 0 3px #5a4dff; }
+.pick-info {
+  position: absolute; left: 50%; top: 96px; z-index: 30; width: min(380px, calc(100vw - 32px)); padding: 14px 16px; border-radius: 18px; text-align: left;
+  background: #1b1f3e; color: #ffffff; font: 600 15px/1.45 Nunito, sans-serif; box-shadow: 0 18px 38px rgba(20, 20, 60, 0.32);
+  opacity: 0; visibility: hidden; transform: translate(-50%, -6px); transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s; pointer-events: none;
+}
+.pick-info h4 { margin: 10px 0 2px; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #b9a8ff; }
+.pick-info h4:first-child { margin-top: 0; }
+.pick-info p { margin: 0; }
+.pc-text:has(.pick-q:hover) .pick-info, .pc-text:has(.pick-q:focus) .pick-info { opacity: 1; visibility: visible; transform: translate(-50%, 0); }

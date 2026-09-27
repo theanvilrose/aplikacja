@@ -205,29 +205,25 @@ function viewPick() {
   const dots = [];
   for (let k = Math.max(0, PK.i - 2); k < Math.min(PK.ids.length, PK.i + 4); k++) dots.push(`<i class="d${Math.min(3, Math.abs(k - PK.i))}"></i>`);
   const n = PK.goal;
+  // „?” przy głośniku: po najechaniu (albo dotknięciu) uwagi, przykład i skojarzenie
+  const info = [['Uwagi', w.notes], ['Przykład', w.example && `<i>${esc(w.example)}</i>`, true], ['Skojarzenie', w.mnemo && `🧠 ${esc(w.mnemo)}`, true]]
+    .filter(([, v]) => v).map(([h, v, html]) => `<h4>${h}</h4><p>${html ? v : esc(v)}</p>`).join('');
   return `
   <header class="pick-top">
     <button class="pk-back" data-act="pick-back" aria-label="Wróć">${ICON.back}</button>
     <h2>${PK.ref ? 'Nauka' : 'Nowe słówka'}</h2>
-    <span class="pick-right">
-      <span class="pick-count" title="Wybrane do nauki">${ICON.sparkle}<b>${PK.picked.length}/${n}</b></span>
-      <span class="pick-help" tabindex="0" role="button" aria-label="Jak to działa?">?<span class="pick-tip" role="tooltip">
-        <b>Naucz się</b> — słowo trafia do dzisiejszej lekcji.<br>
-        <b>Później</b> — pomijasz je na razie, wróci w kolejnych dniach.<br>
-        <b>Wiem</b> — znasz je: od razu wyuczone, jutro szybkie sprawdzenie.<br>
-        Po wybraniu ${n} ${plural(n, 'słowa', 'słów', 'słów')} rusza lekcja. Przesuń w lewo = Później, w prawo = cofnij.
-        <small>Klawisze: Enter — Naucz się, ← Później, → Wiem</small>
-      </span></span>
-    </span>
+    <span class="pick-count" title="Wybrane do nauki (po ${n} rusza lekcja)">${ICON.sparkle}<b>${PK.picked.length}/${n}</b></span>
   </header>
   <span class="pick-progress"><i style="width:${pct(PK.i / PK.ids.length)}"></i></span>
   <section class="pc-stage ${PK.dir}">
     ${card(byId.get(PK.ids[PK.i - 1]), 'prev')}${card(byId.get(PK.ids[PK.i + 1]), 'next')}${card(w, 'cur')}
   </section>
   <section class="pick-card pc-text">
-    <h1 class="pick-en">${esc(w.en)}<button class="wd-say" data-say="${esc(w.en)}" aria-label="Posłuchaj">${SPEAKER}</button></h1>
+    <p class="pick-meta">${w.level ? `<span class="ln-cefr" title="Poziom CEFR">${esc(w.level)}</span>` : ''}${posBadge(w)}</p>
+    <h1 class="pick-en">${esc(w.en)}<button class="wd-say" data-say="${esc(w.en)}" aria-label="Posłuchaj">${SPEAKER}</button>${info ? '<button class="pick-q" type="button" aria-label="Więcej o słowie: uwagi, przykład, skojarzenie">?</button>' : ''}</h1>
     ${w.pron ? `<p class="pick-pron">${esc(w.pron)}</p>` : ''}
     <p class="pick-pl">${esc(w.pl)}</p>
+    ${info ? `<div class="pick-info" role="tooltip">${info}</div>` : ''}
   </section>
   <div class="pc-dots" aria-label="Słowo ${PK.i + 1} z ${PK.ids.length}">${dots.join('')}</div>
   <div class="pick-actions">

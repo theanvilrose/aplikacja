@@ -83,16 +83,34 @@ function openCollection(ref) {
   go('words');
 }
 
-// karuzela nowych słów: przesunięcie w lewo = Później, w prawo = cofnij
-let pcTouch = null;
-document.addEventListener('touchstart', (e) => { pcTouch = view === 'pick' && e.target.closest('.pc-stage') ? e.touches[0].clientX : null; }, { passive: true });
-document.addEventListener('touchend', (e) => {
-  if (pcTouch === null || view !== 'pick' || !PK) return;
-  const dx = e.changedTouches[0].clientX - pcTouch;
-  pcTouch = null;
-  if (dx < -50) pickWord('later');
-  else if (dx > 50) pickUndo();
-}, { passive: true });
+// karuzela nowych słów: karty jadą za palcem (albo myszką); puszczone w lewo = Później, w prawo = poprzednie słowo
+let pcDrag = null;
+document.addEventListener('pointerdown', (e) => {
+  const st = view === 'pick' && PK && e.target.closest('.pc-stage');
+  if (!st || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  pcDrag = { st, x: e.clientX, dx: 0 };
+  st.classList.add('dragging');
+});
+document.addEventListener('pointermove', (e) => {
+  if (!pcDrag) return;
+  let dx = e.clientX - pcDrag.x;
+  if (dx > 0 && !PK.hist.length) dx /= 3; // pierwsze słowo — w prawo tylko lekko się ugina
+  pcDrag.dx = dx;
+  pcDrag.st.style.setProperty('--dx', dx + 'px');
+  pcDrag.st.style.setProperty('--dr', (dx / 28).toFixed(2));
+});
+const pcRelease = () => {
+  if (!pcDrag) return;
+  const { st, dx } = pcDrag;
+  pcDrag = null;
+  st.classList.remove('dragging');
+  st.style.removeProperty('--dx');
+  st.style.removeProperty('--dr');
+  if (dx < -70) pickWord('later');
+  else if (dx > 70 && PK && PK.hist.length) pickUndo();
+};
+document.addEventListener('pointerup', pcRelease);
+document.addEventListener('pointercancel', pcRelease);
 
 document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-act],[data-say],[data-slow],[data-opt],[data-view],[data-coll],[data-status],[data-player],[data-exam],[data-listtoggle],[data-setval],[data-toggle],[data-slide],[data-ptab],[data-kind],[data-wopen],[data-taskpart]');
