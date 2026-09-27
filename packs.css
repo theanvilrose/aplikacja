@@ -474,3 +474,7 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .tf-img { width: 120px; height: 120px; margin: 0 auto 12px; }
 .tf-img .wa-img { width: 100%; height: 100%; border-radius: 26px; }
 .tf-img .wa-emoji { font-size: 80px; }
+/* długie słowo: pola w jednej linii (mniejsze), zamiast łamać się jak dwa wyrazy */
+.bw-slots.long { flex-wrap: nowrap; gap: 4px; }
+.bw-slots.long .bw-slot { flex: 0 1 26px; min-width: 0; font-size: 22px; height: 38px; }
+.bw-slots.long .bw-fix { font-size: 22px; }

@@ -905,10 +905,11 @@ function makePairs(w) {
   take(words.filter((x) => x.id !== w.id && x.topic === w.topic));
   if (out.length <= n) take(words.filter((x) => x.id !== w.id));
   if (out.length < 3) return null;
-  const ids = out.map((x) => x.id), en = shuffle(ids);
+  // shuffle() miesza w miejscu — każda kolumna dostaje własną kopię
+  const ids = out.map((x) => x.id), en = shuffle([...ids]);
   // polska kolumna zawsze w innej kolejności niż angielska (inaczej pary łączą się „w poziomie”)
-  let pl = shuffle(ids);
-  for (let i = 0; i < 8 && pl.some((id, j) => id === en[j]); i++) pl = shuffle(ids);
+  let pl = shuffle([...ids]);
+  for (let i = 0; i < 20 && pl.some((id, j) => id === en[j]); i++) pl = shuffle([...ids]);
   return { ids, en, pl, sel: null, done: [], miss: 0, missTarget: false, bad: null };
 }
 function pairPick(side, id) {
@@ -1815,7 +1816,7 @@ function buildBody(B, answered, result) {
     }).join('');
   }
   return `
-    <div class="bw-slots${state}">${slots}</div>
+    <div class="bw-slots${state}${T.kind === 'chars' && T.template.length > 8 ? ' long' : ''}">${slots}</div>
     <div class="bw-tiles">
       ${T.tiles.map((t) => `<button class="bw-tile ${B.placed.includes(t.id) ? 'used' : ''}" data-act="b-tile" data-i="${t.id}" ${answered || B.placed.includes(t.id) ? 'disabled' : ''}>${esc(t.text)}</button>`).join('')}
       <button class="bw-back" data-act="b-back" aria-label="Cofnij ostatni kafelek" title="Cofnij (Backspace)" ${answered || !B.placed.length ? 'disabled' : ''}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6-7z"/><path d="m12.5 9.5 5 5m0-5-5 5"/></svg></button>
