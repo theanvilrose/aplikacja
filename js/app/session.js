@@ -455,7 +455,9 @@ function answer(correct, struggled = false, given = '') {
 
   if (exam) { S.timer = setTimeout(advance, 450); return; }
   if (db.settings.autoplay && (type === 'pl2en' || type === 'build' || SRS.isTyping(type) || !correct)) speak(w.en);
-  if (correct && !struggled && db.settings.autoNext) S.timer = setTimeout(advance, 1300);
+  // pytanie z karuzeli: po odpowiedzi samo wraca do karuzeli z następnym słowem (przy pomyłce chwila na zobaczenie poprawnej)
+  if (S.pick) S.timer = setTimeout(advance, correct ? 800 : 2000);
+  else if (correct && !struggled && db.settings.autoNext) S.timer = setTimeout(advance, 1300);
 }
 
 function advance() {
