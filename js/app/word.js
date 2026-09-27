@@ -205,8 +205,8 @@ function viewPick() {
   const dots = [];
   for (let k = Math.max(0, PK.i - 2); k < Math.min(PK.ids.length, PK.i + 4); k++) dots.push(`<i class="d${Math.min(3, Math.abs(k - PK.i))}"></i>`);
   const n = PK.goal;
-  // „?” przy głośniku: po najechaniu (albo dotknięciu) uwagi, przykład i skojarzenie
-  const info = [['Uwagi', w.notes], ['Przykład', w.example && `<i>${esc(w.example)}</i>`, true], ['Skojarzenie', w.mnemo && `🧠 ${esc(w.mnemo)}`, true]]
+  // „?” przy głośniku: po najechaniu (albo dotknięciu) wymowa, uwagi, przykład i skojarzenie
+  const info = [['Wymowa', w.pron], ['Uwagi', w.notes], ['Przykład', w.example && `<i>${esc(w.example)}</i>`, true], ['Skojarzenie', w.mnemo && `🧠 ${esc(w.mnemo)}`, true]]
     .filter(([, v]) => v).map(([h, v, html]) => `<h4>${h}</h4><p>${html ? v : esc(v)}</p>`).join('');
   return `
   <header class="pick-top">
@@ -220,8 +220,7 @@ function viewPick() {
   </section>
   <section class="pick-card pc-text">
     <p class="pick-meta">${w.level ? `<span class="ln-cefr" title="Poziom CEFR">${esc(w.level)}</span>` : ''}${posBadge(w)}</p>
-    <h1 class="pick-en">${esc(w.en)}<button class="wd-say" data-say="${esc(w.en)}" aria-label="Posłuchaj">${SPEAKER}</button>${info ? '<button class="pick-q" type="button" aria-label="Więcej o słowie: uwagi, przykład, skojarzenie">?</button>' : ''}</h1>
-    ${w.pron ? `<p class="pick-pron">${esc(w.pron)}</p>` : ''}
+    <h1 class="pick-en">${esc(w.en)}<button class="wd-say" data-say="${esc(w.en)}" aria-label="Posłuchaj">${SPEAKER}</button>${info ? '<button class="pick-q" type="button" aria-label="Więcej o słowie: wymowa, uwagi, przykład, skojarzenie">?</button>' : ''}</h1>
     <p class="pick-pl">${esc(w.pl)}</p>
     ${info ? `<div class="pick-info" role="tooltip">${info}</div>` : ''}
   </section>
