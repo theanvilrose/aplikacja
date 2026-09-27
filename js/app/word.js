@@ -185,12 +185,12 @@ function finishPick() {
   const { picked, known, ref, back } = PK;
   PK = null;
   if (picked.length) {
-    if (!ref) return startSession({ mode: 'new', ids: picked }); // karta Nauka: same wybrane nowe słowa
+    if (!ref) return startSession({ mode: 'new', ids: picked, picked: true }); // karta Nauka: same wybrane nowe słowa, od razu wybór tłumaczenia
     // wybrane nowe słowa + zaległe powtórki z tego pakietu
     const coll = collection(ref);
     const now = Date.now();
     const due = coll ? byKind(coll.ws).filter((w) => db.cards[w.id] && db.cards[w.id].due <= now).map((w) => w.id) : [];
-    return startSession({ ids: [...picked, ...due], coll: ref });
+    return startSession({ ids: [...picked, ...due], coll: ref, picked: true });
   }
   view = back;
   render();

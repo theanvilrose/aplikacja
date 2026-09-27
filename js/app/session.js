@@ -48,7 +48,9 @@ const MORE_NEW = 5; // „Ucz się dalej” po dziennym celu: tyle kolejnych now
 
 // mode: 'learn' (powtórki przeplatane nowymi), 'new' (Nauka: same nowe), 'review' (Powtórka: same powtórki),
 // 'extra' (powtórz więcej), 'listen', 'drill'
-function buildQueue({ ids = null, mode = 'learn', intro = false, first = null } = {}) {
+// picked: słowa wybrane w karuzeli „Naucz się” — bez ekranu nowego słowa, od razu wybór tłumaczenia
+function buildQueue({ ids = null, mode = 'learn', intro = false, first = null, picked = false } = {}) {
+  const newItem = (w) => (picked ? { id: w.id, picked: true, force: 'en2pl' } : { id: w.id, intro: true });
   const now = Date.now();
   const only = ids && new Set(ids);
   const pool = words.filter((w) => (only ? only.has(w.id) : inPlan(w)));
@@ -78,19 +80,19 @@ function buildQueue({ ids = null, mode = 'learn', intro = false, first = null } 
     const list = fresh.slice(0, only ? undefined : c.newLeft || MORE_NEW);
     const k = list.findIndex((w) => w.id === first); // słowo, które było widać na karcie Nauka, idzie pierwsze
     if (k > 0) list.unshift(...list.splice(k, 1));
-    return list.map((w) => ({ id: w.id, intro: true }));
+    return list.map(newItem);
   }
   fresh = mode === 'review' ? [] : fresh.slice(0, only ? 8 : c.newLeft);
 
   const queue = [];
   if (s.reviewsFirst) {
     due.forEach((w) => queue.push({ id: w.id }));
-    fresh.forEach((w) => queue.push({ id: w.id, intro: true }));
+    fresh.forEach((w) => queue.push(newItem(w)));
   } else {
     let i = 0, j = 0;
     while (i < due.length || j < fresh.length) {
       for (let k = 0; k < 2 && i < due.length; k++) queue.push({ id: due[i++].id });
-      if (j < fresh.length) queue.push({ id: fresh[j++].id, intro: true });
+      if (j < fresh.length) queue.push(newItem(fresh[j++]));
     }
   }
   if (!queue.length) return buildQueue({ ids, mode: 'extra' });
@@ -133,6 +135,13 @@ function nextStep() {
   const item = S.queue[S.pos];
   const w = byId.get(item.id);
   if (!w) { S.pos++; return nextStep(); }
+  // słowo wybrane w karuzeli: poznane już tam, więc tu od razu staje się nowym słowem w nauce (jak po ekranie nowego słowa)
+  if (item.picked && !db.cards[w.id]) {
+    db.cards[w.id] = { ...SRS.fresh(), level: 1, due: Date.now(), last: Date.now() };
+    today().nw++;
+    S.newIds.add(w.id);
+    save();
+  }
   const opts = typeOpts();
   let type = item.intro ? 'intro' : item.force || SRS.pickType(card(w.id), w, opts);
   if ((SRS.isListening(type) && !opts.speak) || (SRS.isTyping(type) && !opts.typing)) type = SRS.pickType(card(w.id), w, opts);
