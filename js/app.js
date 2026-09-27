@@ -1535,7 +1535,7 @@ function viewPlayer() {
 
 function wordInfo(w, { full = true } = {}) {
   return `
-    <div class="word-en">${esc(w.en)} <button class="icon-btn" data-say="${esc(w.en)}" aria-label="Posłuchaj">🔊</button></div>
+    <div class="word-en">${esc(w.en)} <button class="icon-btn" data-say="${esc(w.en)}" aria-label="Posłuchaj">🔊</button><button class="icon-btn slow-btn" data-slow="${esc(w.en)}" aria-label="Posłuchaj wolniej" title="Wolniej">🐢</button></div>
     ${w.pron ? `<div class="pron">${esc(w.pron)}</div>` : ''}
     <div class="word-pl">${esc(w.pl)}</div>
     ${full && w.mnemo ? `<div class="mnemo">🧠 ${esc(w.mnemo)}</div>` : ''}
@@ -1566,7 +1566,7 @@ function viewSession() {
   }
 
   const prompts = {
-    en2pl: ['Co to znaczy?', `<div class="prompt-en">${esc(w.en)} <button class="icon-btn" data-say="${esc(w.en)}">🔊</button></div>`],
+    en2pl: ['Co to znaczy?', `<div class="prompt-en">${esc(w.en)} <button class="icon-btn" data-say="${esc(w.en)}">🔊</button><button class="icon-btn slow-btn" data-slow="${esc(w.en)}" aria-label="Posłuchaj wolniej" title="Wolniej">🐢</button></div>`],
     listen2pl: ['Posłuchaj i wybierz znaczenie', `<div class="listen-row"><button class="listen" data-say="${esc(w.en)}" aria-label="Odtwórz">🔊</button><button class="listen-slow" data-slow="${esc(w.en)}" aria-label="Odtwórz wolniej" title="Wolniej">🐢<span>wolniej</span></button></div>`],
     pl2en: ['Jak to powiesz po angielsku?', `<div class="prompt-pl">${esc(w.pl)}</div>`],
     type: ['Napisz po angielsku', `<div class="prompt-pl">${esc(w.pl)}</div>`],

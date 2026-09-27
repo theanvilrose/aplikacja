@@ -339,3 +339,5 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .listen-slow span { font-size: 10px; font-weight: 800; color: #6b7090; }
 .listen-slow:hover { transform: translateY(-50%) scale(1.06); }
 .listen-slow:active { transform: translateY(-50%) scale(0.94); }
+.slow-btn { margin-left: 2px; font-size: 0.8em; opacity: 0.85; }
+.slow-btn:hover { opacity: 1; }
