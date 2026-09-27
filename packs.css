@@ -339,7 +339,7 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .listen-slow span { font-size: 10px; font-weight: 800; color: #6b7090; }
 .listen-slow:hover { transform: translateY(-50%) scale(1.06); }
 .listen-slow:active { transform: translateY(-50%) scale(0.94); }
-.slow-btn { margin-left: 2px; font-size: 0.8em; opacity: 0.85; }
+.slow-btn { opacity: 0.9; }
 .slow-btn:hover { opacity: 1; }
 /* Pakiety słówek: przeciąganie myszą */
 .packs { cursor: grab; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
@@ -400,3 +400,73 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 :root[data-theme="dark"] .ex-chip { background: #22243c; border-color: #34375a; }
 :root[data-theme="dark"] .ex-chip.on { background: #2d2854; border-color: #7c63ff; }
 :root[data-theme="dark"] .ex-tx b { color: #eceaff; }
+/* 🔊 i 🐢 obok słowa: równe, okrągłe przyciski w jednej linii */
+.prompt-en .icon-btn, .word-en .icon-btn, .tf-en .icon-btn, .bw-say .icon-btn { width: 36px; height: 36px; padding: 0; display: inline-grid; place-items: center; vertical-align: middle; border-radius: 50%; font-size: 18px; line-height: 1; }
+.tf-en { gap: 2px; }
+.tf-en .icon-btn:hover, .bw-say .icon-btn:hover { background: rgba(255, 255, 255, 0.7); }
+
+/* „Utwórz prawidłowe słowo” */
+.bw-pic { width: min(150px, 42vw); border-radius: 32px; margin: 10px auto 6px; }
+.bw-say { display: flex; justify-content: center; gap: 4px; margin-top: 4px; }
+.bw-level { margin: 8px 0 0; font-size: 13px; font-weight: 700; color: #8b90a8; }
+.bw-slots { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 6px; min-height: 56px; margin: 6px 0 22px; }
+.bw-slot { width: 30px; height: 44px; display: grid; place-items: end center; padding-bottom: 4px; border-bottom: 4px solid #b9bdcc; font-family: var(--display); font-size: 30px; font-weight: 700; line-height: 1; color: #1b1f3e; transition: border-color 0.2s ease; }
+.bw-slot.on { border-color: #6143ff; }
+.bw-fix { font-family: var(--display); font-size: 30px; font-weight: 700; color: #8b90a8; padding-bottom: 8px; }
+.bw-sp { width: 14px; }
+.bw-word { min-height: 44px; padding: 6px 12px; border-bottom: 4px solid #b9bdcc; font-family: var(--display); font-size: 24px; font-weight: 700; color: #1b1f3e; }
+.bw-word.on { border-color: #6143ff; }
+.bw-slots.ok .bw-slot, .bw-slots.ok .bw-word { border-color: var(--green); color: #15803d; }
+.bw-slots.bad .bw-slot, .bw-slots.bad .bw-word { border-color: var(--bad); color: #c92a2a; }
+.bw-tiles { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-bottom: 16px; }
+.bw-tile { min-width: 58px; height: 62px; padding: 0 16px; border: 2px solid #eceaf6; border-radius: 20px; background: #fff; box-shadow: 0 6px 0 #e4e1f2; cursor: pointer; font-family: var(--display); font-size: 28px; font-weight: 700; color: #1b1f3e; transition: transform 0.12s ease, opacity 0.2s ease; }
+.bw-tile:hover:not(:disabled) { transform: translateY(-2px); }
+.bw-tile:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 3px 0 #e4e1f2; }
+.bw-tile.used { opacity: 0.25; box-shadow: none; }
+.bw-tile:disabled { cursor: default; }
+.bw-back { width: 66px; height: 62px; border: 0; border-radius: 20px; background: #a3acb9; cursor: pointer; display: grid; place-items: center; box-shadow: 0 6px 0 #8a93a1; }
+.bw-back svg { width: 30px; height: 30px; fill: #fff; stroke: #a3acb9; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.bw-back svg path:first-child { stroke: none; }
+.bw-back:disabled { opacity: 0.45; cursor: default; }
+
+/* „Dopasuj dwa słowa o tym samym znaczeniu” */
+.pr-hint { margin: 4px 0 0; font-size: 14px; color: #8b90a8; }
+.pr-wrap { display: grid; gap: 22px; margin-bottom: 16px; }
+.pr-col { display: grid; gap: 10px; }
+.pr-btn { min-height: 56px; padding: 10px 18px; border: 3px solid transparent; border-radius: 999px; background: #fff; box-shadow: 0 6px 16px -10px rgba(30, 40, 90, 0.35); cursor: pointer; font-size: 19px; font-weight: 700; color: #1b1f3e; transition: border-color 0.15s ease, opacity 0.3s ease, transform 0.15s ease; }
+.pr-btn:hover:not(:disabled) { transform: translateY(-1px); }
+.pr-btn.sel { border-color: #4cc81a; }
+.pr-btn.bad { border-color: var(--bad); background: var(--bad-bg); animation: pr-shake 0.35s ease; }
+.pr-btn.done { opacity: 0.3; border-color: #4cc81a; background: var(--ok-bg); cursor: default; }
+@keyframes pr-shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+/* szczegóły słowa: ścieżka etapów nauki */
+.wd-track { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin: 4px 0 10px; }
+.wd-step { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.wd-step::before { content: ""; position: absolute; top: 8px; left: -50%; width: 100%; height: 4px; background: #e4e1f2; z-index: 0; }
+.wd-step:first-child::before { display: none; }
+.wd-step i { position: relative; z-index: 1; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 3px solid #d9d5ee; }
+.wd-step small { font-size: 12px; font-weight: 700; color: #9a9fb6; }
+.wd-step.done::before, .wd-step.cur::before { background: #6143ff; }
+.wd-step.done i { background: #6143ff; border-color: #6143ff; }
+.wd-step.cur i { border-color: #6143ff; box-shadow: 0 0 0 5px rgba(97, 67, 255, 0.18); }
+.wd-step.cur small { color: #5a3fe0; }
+.wd-level { margin: 0 0 4px; font-size: 15px; color: #4b5170; }
+.wd-level b { color: #1b1f3e; }
+.wd-meta { margin: 0; font-size: 14px; color: #8b90a8; }
+
+/* ciemny motyw dla nowszych elementów sesji */
+:root[data-theme="dark"] .bw-tile, :root[data-theme="dark"] .pr-btn { background: #242640; border-color: #34375a; color: #eceaff; box-shadow: 0 6px 0 #1a1c30; }
+:root[data-theme="dark"] .bw-slot, :root[data-theme="dark"] .bw-word { color: #eceaff; border-color: #4a4e70; }
+:root[data-theme="dark"] .listen-slow, :root[data-theme="dark"] .pic-card kbd { background: #242640; border-color: #34375a; color: #c9c6e8; }
+:root[data-theme="dark"] .opt-pic .wr-emoji, :root[data-theme="dark"] .intro-tile { filter: brightness(0.92); }
+:root[data-theme="dark"] .toast.has-undo { background: #eceaff; color: #1b1f3e; }
+:root[data-theme="dark"] .toast-undo { background: rgba(97, 67, 255, 0.12); color: #5a3fe0; }
+:root[data-theme="dark"] .wd-step i { background: #242640; border-color: #4a4e70; }
+:root[data-theme="dark"] .wd-level, :root[data-theme="dark"] .wd-level b { color: #d9d7f0; }
+/* ikony 🔊 / 🐢 jako SVG */
+.prompt-en .icon-btn, .word-en .icon-btn, .bw-say .icon-btn, .example .icon-btn, .mistake .icon-btn { color: #8b90a8; }
+.icon-btn:hover svg { color: #6143ff; }
+.slow-btn svg { width: 30px; height: 30px; }
+.tf-en .icon-btn { color: #8f86d9; }
+.listen-slow svg { width: 26px; height: 26px; color: #3f9d4a; }

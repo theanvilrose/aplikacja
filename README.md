@@ -61,7 +61,10 @@ Każde słowo przechodzi po kolei przez 6 poziomów ćwiczeń:
 
 Pomyłka: słowo wraca jeszcze w tej samej sesji, a potem po 10 minutach i spada o poziom niżej.
 
-Skróty klawiszowe: `1–4` wybór odpowiedzi (w „Czy to prawidłowe tłumaczenie?” `1`/`←` = nie, `2`/`→` = tak) · `Enter` lub `Spacja` dalej (przed odpowiedzią spacja odtwarza słowo) · `Esc` koniec sesji.
+**Ćwiczenia w sesji** (włączasz/wyłączasz w Ustawieniach planu → „Rodzaje ćwiczeń”): Co to znaczy? · Czy to dobre tłumaczenie? (tak/nie) · Dopasuj kartę (4 obrazki) · Dopasuj pary (EN ↔ PL, tylko poznane słowa) · Jak to powiesz po angielsku? · Posłuchaj i wybierz · **Utwórz słowo** · Napisz po angielsku · Dyktando.
+„Utwórz słowo” zależy od postępu słowa (`js/builder.js`): *poznane / słyszę* — sylaby przy obrazku i z dźwiękiem, *pamiętam* — litery przy polskim tłumaczeniu, *piszę / umiem* — litery z pułapkami, bez podpowiedzi. Zwroty układa się z wyrazów. Etapy i to, co na nich ćwiczysz, widać na ekranie słowa („Twój postęp”).
+
+Skróty klawiszowe: `1–4` wybór odpowiedzi (w „Czy to prawidłowe tłumaczenie?” `1`/`←` = nie, `2`/`→` = tak) · w „Utwórz słowo” litery z klawiatury i `Backspace` · `Enter` lub `Spacja` dalej (przed odpowiedzią spacja odtwarza słowo, jeśli nie zdradza odpowiedzi) · `Esc` koniec sesji.
 
 ## Słówka
 

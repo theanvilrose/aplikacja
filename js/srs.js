@@ -43,7 +43,7 @@
     if (g === 0) {
       c.lapses = prev.lapses + 1;
       c.d = clamp(prev.d + 1.5, 1, 10);
-      c.s = clamp(prev.s * 0.3, 0.01, 2);
+      c.s = clamp(prev.s * 0.3, 0.01, 1.9); // < 2 — po pomyłce słowo przestaje być „wyuczone”
       c.level = Math.max(1, prev.level - 1);
       c.due = now + 10 * MIN;
       return c;

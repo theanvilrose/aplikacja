@@ -20,6 +20,15 @@ const DEFAULT_SETTINGS = {
   taskSource: 'all', taskParts: 'ABCD', taskCount: 0,
 };
 const LEVEL_NAMES = ['nowe', 'poznane', 'słyszę', 'pamiętam', 'piszę', 'umiem'];
+// co ćwiczysz na danym etapie — te same zasady stosuje dobór ćwiczeń w sesji (exerciseType, buildMode)
+const LEVEL_HINTS = [
+  'Jeszcze nie ćwiczone — zacznij od „Ucz się”.',
+  'Rozpoznajesz znaczenie (wybór z 4, tak/nie, obrazki) i układasz słowo z sylab.',
+  'Rozpoznajesz ze słuchu i układasz słowo z sylab przy obrazku.',
+  'Tłumaczysz na angielski, łączysz pary i układasz słowo z liter.',
+  'Wpisujesz słowo i układasz je z liter z pułapkami.',
+  'Dyktando i szybkie powtórki — słowo prawie opanowane.',
+];
 const WEEKDAYS = ['nd', 'pn', 'wt', 'śr', 'cz', 'pt', 'sb'];
 
 // Odznaki za serię dni — premia: 5 💎 × liczba dni (tylko za pierwsze zdobycie).
@@ -766,17 +775,29 @@ function nextStep() {
   if ((SRS.isListening(type) && !opts.speak) || (SRS.isTyping(type) && !opts.typing)) type = SRS.pickType(card(w.id), w, opts);
   // „Czy to prawidłowe tłumaczenie?” — co trzecie łatwe pytanie wyboru (poziomy en→pl i pl→en)
   if (type !== 'intro') type = exerciseType(type, w, !!item.force);
+  // przygotowanie ćwiczeń z obrazkami / parami / układaniem; gdy się nie da — zwykły wybór z 4
+  const pics = type === 'pic4' ? takePicOptions(w) : null;
+  const pairs = type === 'pairs' ? makePairs(w) : null;
+  if ((type === 'pic4' && !pics) || (type === 'pairs' && !pairs)) type = 'en2pl';
   S.cur = { item, w, type, shownAt: Date.now(), answered: false, hints: 0, options: null, chosen: null, result: null, typed: '', earned: 0 };
   if (type.endsWith('2pl') || type === 'pl2en') S.cur.options = buildOptions(w, type === 'pl2en' ? 'en' : 'pl');
-  if (type === 'pic4') S.cur.options = picOptions(w);
+  if (type === 'pic4') S.cur.options = pics;
+  if (type === 'pairs') S.cur.pairs = pairs;
+  if (type === 'build') {
+    const mode = buildMode(w);
+    S.cur.build = { mode, task: Builder.make(w.en, mode, { decoyWords: buildDecoys(w) }), placed: [], backs: 0 };
+  }
   if (type === 'truefalse') {
-    // pół na pół: prawdziwe tłumaczenie albo podobne słowo z tego samego tematu
-    const other = buildOptions(w, 'pl').find((o) => o.id !== w.id);
+    // pół na pół: prawdziwe tłumaczenie albo podobne słowo z tego samego tematu (nie synonim!)
+    const other = buildOptions(w, 'pl').find((o) => o.id !== w.id && !plOverlap(o.text, w.pl));
     const ok = !other || Math.random() < 0.5;
     S.cur.tf = { text: ok ? w.pl : other.text, ok };
   }
   render();
-  if (db.settings.autoplay && (type === 'intro' || type === 'en2pl' || type === 'truefalse' || type === 'pic4' || SRS.isListening(type))) setTimeout(() => speak(w.en), 250);
+  const sayNow = type === 'intro' || type === 'en2pl' || type === 'truefalse' || type === 'pic4' || SRS.isListening(type) || (type === 'build' && S.cur.build.mode === 'syll');
+  // odtwarzamy tylko, jeśli to słowo nadal jest na ekranie (szybkie „Dalej” / wyjście z sesji)
+  const shown = S.cur;
+  if (db.settings.autoplay && sayNow) setTimeout(() => { if (S && S.cur === shown) speak(w.en); }, 250);
   const input = $('#typed');
   if (input) input.focus();
 }
@@ -786,8 +807,10 @@ const EX_TYPES = [
   ['en2pl', '🔤', 'Co to znaczy?', 'słowo → 4 odpowiedzi po polsku'],
   ['truefalse', '✅', 'Czy to dobre tłumaczenie?', 'tak albo nie'],
   ['pic4', '🖼️', 'Dopasuj kartę', 'słowo → 4 obrazki'],
+  ['pairs', '🔗', 'Dopasuj pary', 'łączysz słowa z tłumaczeniami'],
   ['pl2en', '💬', 'Jak to powiesz po angielsku?', 'polskie słowo → 4 odpowiedzi'],
   ['listen2pl', '👂', 'Posłuchaj i wybierz', 'ze słuchu → 4 odpowiedzi'],
+  ['build', '🧩', 'Utwórz słowo', 'z sylab, potem z liter — wg postępu'],
   ['type', '⌨️', 'Napisz po angielsku', 'wpisujesz z klawiatury'],
   ['dictation', '📝', 'Dyktando', 'napisz, co słyszysz'],
 ];
@@ -798,21 +821,122 @@ function exAllowed(t, w) {
   const o = typeOpts();
   if (SRS.isListening(t) && !o.speak) return false;
   if (SRS.isTyping(t) && (!o.typing || w.en.length > 30)) return false;
-  if (t === 'pic4') return !!picOptions(w);
+  if (t === 'pic4') { picCache = { id: w.id, opts: picOptions(w) }; return !!picCache.opts; }
+  if (t === 'build') { const tg = Builder.target(w.en); return tg.replace(/[^a-z]/gi, '').length >= 2 && tg.length <= 40 && tg.split(' ').length <= 7; }
+  if (t === 'pairs') return words.filter((x) => x.id !== w.id && db.cards[x.id]).length >= 2;
   return true;
 }
 
 // Typ z drabiny SRS → czasem odmiana (tak/nie, obrazki); wyłączony typ → najbliższy włączony.
 function exerciseType(type, w, forced) {
-  if (!forced && S.mode !== 'exam') {
-    if ((type === 'en2pl' || type === 'pl2en') && Math.random() < 0.33 && exAllowed('truefalse', w)) type = 'truefalse';
-    else if ((type === 'en2pl' || type === 'listen2pl') && Math.random() < 0.3 && exAllowed('pic4', w)) type = 'pic4';
+  // egzamin i trening słuchu mają stały zestaw — bez odmian i bez listy wyłączonych
+  if (S.mode === 'exam' || S.mode === 'listen') return type;
+  if (!forced) {
+    const lvl = card(w.id).level, r = Math.random();
+    // nowe ćwiczenia ≈ co 3.–4. pytanie: pary przy powtórkach, układanie zamiast pisania / na start
+    if (lvl >= 2 && r < 0.12 && exAllowed('pairs', w)) type = 'pairs';
+    else if ((type === 'pl2en' || type === 'type' || type === 'dictation') && r < 0.42 && exAllowed('build', w)) type = 'build';
+    else if (lvl <= 2 && type === 'en2pl' && r < 0.3 && exAllowed('build', w)) type = 'build';
+    else if ((type === 'en2pl' || type === 'pl2en') && Math.random() < 0.33 && exAllowed('truefalse', w)) type = 'truefalse';
+    else if (type === 'en2pl' && Math.random() < 0.3 && exAllowed('pic4', w)) type = 'pic4'; // słuchu nie zastępujemy obrazkami
   }
   if (exAllowed(type, w)) return type;
   const i = Math.max(0, EX_ORDER.indexOf(type));
   const alt = EX_ORDER.filter((t) => exAllowed(t, w)).sort((a, b) => Math.abs(EX_ORDER.indexOf(a) - i) - Math.abs(EX_ORDER.indexOf(b) - i))[0];
   return alt || 'en2pl';
 }
+
+// „Utwórz słowo”: trudność wg postępu — sylaby przy obrazku na start, potem litery, na końcu litery z pułapkami
+function buildMode(w) {
+  const lvl = card(w.id).level;
+  const letters = Builder.target(w.en).replace(/[^a-z]/gi, '').length;
+  if (lvl <= 2 || letters > 14) return 'syll';
+  return lvl === 3 ? 'letters' : 'letters+';
+}
+// wyrazy-pułapki dla zwrotów: z innych zwrotów tego samego tematu
+function buildDecoys(w) {
+  return shuffle(words.filter((x) => x.id !== w.id && x.topic === w.topic)).flatMap((x) => Builder.target(x.en).split(' ')).slice(0, 12);
+}
+
+function buildTap(id) {
+  const cur = S.cur, B = cur.build;
+  if (!B || cur.answered || B.placed.includes(id)) return;
+  B.placed.push(id);
+  const texts = B.placed.map((i) => B.task.tiles.find((t) => t.id === i).text);
+  if (Builder.filled(B.task, texts) >= Builder.total(B.task)) {
+    cur.typed = texts.join(B.task.kind === 'words' ? ' ' : '');
+    answer(Builder.check(B.task, texts), B.backs > 0, cur.typed);
+  } else render();
+}
+function buildBack() {
+  const cur = S.cur, B = cur.build;
+  if (!B || cur.answered || !B.placed.length) return;
+  B.placed.pop();
+  B.backs++;
+  render();
+}
+// klawiatura: litera wybiera pierwszy wolny kafelek, który się nią zaczyna
+function buildKey(key) {
+  const B = S.cur.build;
+  const t = B && B.task.tiles.find((x) => !B.placed.includes(x.id) && x.text[0].toLowerCase() === key.toLowerCase());
+  if (t) buildTap(t.id);
+}
+
+// Polskie tłumaczenia z częścią wspólną (synonimy) — nie mogą udawać „złej” odpowiedzi
+function plOverlap(a, b) {
+  const parts = (x) => String(x).toLowerCase().replace(/\([^)]*\)/g, '').split(/[\/,;]/).map((p) => p.trim()).filter(Boolean);
+  const pb = new Set(parts(b));
+  return parts(a).some((p) => pb.has(p));
+}
+
+// „Dopasuj pary”: bieżące słowo + 2 (świeże słowo) albo 3 (dalszy etap) inne, już poznane słowa
+function makePairs(w) {
+  const n = card(w.id).level >= 3 ? 3 : 2;
+  const usedEn = new Set([Answer.norm(w.en)]), out = [w];
+  const take = (pool) => {
+    for (const x of shuffle(pool)) {
+      if (out.length > n) break;
+      const e = Answer.norm(x.en);
+      if (!db.cards[x.id] || usedEn.has(e) || out.some((o) => plOverlap(o.pl, x.pl))) continue;
+      usedEn.add(e);
+      out.push(x);
+    }
+  };
+  take(words.filter((x) => x.id !== w.id && x.topic === w.topic));
+  if (out.length <= n) take(words.filter((x) => x.id !== w.id));
+  if (out.length < 3) return null;
+  const ids = out.map((x) => x.id), en = shuffle(ids);
+  // polska kolumna zawsze w innej kolejności niż angielska (inaczej pary łączą się „w poziomie”)
+  let pl = shuffle(ids);
+  for (let i = 0; i < 8 && pl.some((id, j) => id === en[j]); i++) pl = shuffle(ids);
+  return { ids, en, pl, sel: null, done: [], miss: 0, missTarget: false, bad: null };
+}
+function pairPick(side, id) {
+  const cur = S.cur, P = cur.pairs;
+  if (!P || cur.answered || P.done.includes(id)) return;
+  P.bad = null;
+  if (!P.sel || P.sel.side === side) {
+    P.sel = P.sel && P.sel.side === side && P.sel.id === id ? null : { side, id };
+    return render();
+  }
+  if (P.sel.id === id) {
+    P.done.push(id);
+    P.sel = null;
+    speak(byId.get(id).en);
+  } else {
+    P.miss++;
+    if (id === cur.w.id || P.sel.id === cur.w.id) P.missTarget = true;
+    P.bad = { [side]: id, [P.sel.side]: P.sel.id };
+    P.sel = null;
+    setTimeout(() => { if (S && S.cur === cur && P.bad) { P.bad = null; render(); } }, 600);
+  }
+  if (P.done.length === P.ids.length) answer(!P.missTarget, P.miss > 0, P.missTarget ? 'pomyłka w parze' : '');
+  else render();
+}
+
+// obrazki wylosowane przy sprawdzaniu, czy ćwiczenie jest możliwe — używamy tych samych
+let picCache = null;
+const takePicOptions = (w) => (picCache && picCache.id === w.id && picCache.opts) || picOptions(w);
 
 // „Dopasuj kartę”: słowo + 4 obrazki — tylko gdy słowo i 3 inne mają różne ikony
 function picOptions(w) {
@@ -887,7 +1011,7 @@ function introSkip(known) {
     undo: () => {
       if (known) { if (before.card) db.cards[w.id] = before.card; else delete db.cards[w.id]; save(); }
       // wracamy do tego słowa, jeśli sesja jeszcze trwa
-      if (S === ref && view === 'session') {
+      if (S === ref && view === 'session' && S.pos === before.pos + 1 && !S.cur.answered) {
         clearTimeout(S.timer);
         Object.assign(S, { queue: before.queue, pos: before.pos, cur: before.cur });
         render();
@@ -907,8 +1031,13 @@ function answer(correct, struggled = false, given = '') {
   const { w, type } = cur;
   const exam = S.mode === 'exam';
   const now = Date.now();
-  const ms = Math.max(300, now - cur.shownAt - (SRS.isListening(type) ? 1200 : 0));
-  const g = SRS.grade(correct, ms, type, w.en.length, struggled || cur.hints > 0);
+  // czas na przeczytanie odpowiedzi do wyboru nie liczy się jako namysł
+  const readMs = cur.options ? cur.options.reduce((a, o) => a + (o.text || '').length, 0) * 25 : 0;
+  const ms = Math.max(300, now - cur.shownAt - (SRS.isListening(type) ? 1200 : 0) - readMs);
+  // układanie i pary oceniamy czasowo jak pisanie; tak/nie i obrazki to lżejsze sprawdzenie — bez oceny „błyskawicznie”
+  const gType = type === 'build' || type === 'pairs' ? 'type' : type;
+  let g = SRS.grade(correct, ms, gType, type === 'pairs' ? 12 : w.en.length, struggled || cur.hints > 0);
+  if ((type === 'truefalse' || type === 'pic4') && g > 2) g = 2;
   const prev = db.cards[w.id];
   const d = today();
   if (prev && prev.due <= now && !S.newIds.has(w.id)) d.rv = (d.rv || 0) + 1; // zadanie „powtórki” w planie dnia
@@ -938,7 +1067,7 @@ function answer(correct, struggled = false, given = '') {
   render();
 
   if (exam) { S.timer = setTimeout(advance, 450); return; }
-  if (db.settings.autoplay && (type === 'pl2en' || SRS.isTyping(type) || !correct)) speak(w.en);
+  if (db.settings.autoplay && (type === 'pl2en' || type === 'build' || SRS.isTyping(type) || !correct)) speak(w.en);
   if (correct && !struggled && db.settings.autoNext) S.timer = setTimeout(advance, 1300);
 }
 
@@ -1646,11 +1775,51 @@ function viewPlayer() {
 
 function wordInfo(w, { full = true } = {}) {
   return `
-    <div class="word-en">${esc(w.en)} <button class="icon-btn" data-say="${esc(w.en)}" aria-label="Posłuchaj">🔊</button><button class="icon-btn slow-btn" data-slow="${esc(w.en)}" aria-label="Posłuchaj wolniej" title="Wolniej">🐢</button></div>
+    <div class="word-en">${esc(w.en)} <button class="icon-btn" data-say="${esc(w.en)}" aria-label="Posłuchaj">${SPEAKER}</button><button class="icon-btn slow-btn" data-slow="${esc(w.en)}" aria-label="Posłuchaj wolniej" title="Wolniej">${TURTLE}</button></div>
     ${w.pron ? `<div class="pron">${esc(w.pron)}</div>` : ''}
     <div class="word-pl">${esc(w.pl)}</div>
     ${full && w.mnemo ? `<div class="mnemo">🧠 ${esc(w.mnemo)}</div>` : ''}
-    ${full && w.example ? `<div class="example"><button class="icon-btn" data-say="${esc(w.example)}" aria-label="Posłuchaj zdania">🔊</button> <i>${esc(w.example)}</i></div>` : ''}`;
+    ${full && w.example ? `<div class="example"><button class="icon-btn" data-say="${esc(w.example)}" aria-label="Posłuchaj zdania">${SPEAKER}</button> <i>${esc(w.example)}</i></div>` : ''}`;
+}
+
+// „Utwórz słowo”: co widać nad polami — im dalszy etap, tym mniej podpowiedzi
+function buildPrompt(w, mode) {
+  const say = `<button class="icon-btn" data-say="${esc(w.en)}" aria-label="Posłuchaj">${SPEAKER}</button><button class="icon-btn slow-btn" data-slow="${esc(w.en)}" aria-label="Posłuchaj wolniej" title="Wolniej">${TURTLE}</button>`;
+  if (mode === 'syll') {
+    const pic = !isPhrase(w) && WORD_IMG[w.id];
+    return pic
+      ? `<div class="pick-tile bw-pic" style="--tint:${wordTint(w)}">${wordArt(w)}</div><div class="bw-say">${say}</div>`
+      : `<div class="prompt-pl">${esc(w.pl)}</div><div class="bw-say">${say}</div>`;
+  }
+  return `<div class="prompt-pl">${esc(w.pl)}</div>${mode === 'letters' ? `<div class="bw-say">${say}</div>` : '<p class="bw-level">Bez podpowiedzi — umiesz już to słowo</p>'}`;
+}
+
+function buildBody(B, answered, result) {
+  const T = B.task;
+  const texts = B.placed.map((i) => T.tiles.find((t) => t.id === i).text);
+  const state = answered ? (S.answers[S.answers.length - 1]?.correct ? ' ok' : ' bad') : '';
+  let slots;
+  if (T.kind === 'words') {
+    slots = T.template.map((word, i) => (texts[i]
+      ? `<span class="bw-word on">${esc(texts[i])}</span>`
+      : `<span class="bw-word" style="min-width:${Math.max(3, word.length) * 0.62}em"></span>`)).join('');
+  } else {
+    const letters = texts.join('');
+    let k = 0;
+    slots = T.template.map((ch) => {
+      if (Builder.isLetter(ch)) {
+        const got = letters[k++] || '';
+        return `<span class="bw-slot ${got ? 'on' : ''}">${esc(ch === ch.toUpperCase() ? got.toUpperCase() : got)}</span>`;
+      }
+      return ch === ' ' ? '<span class="bw-sp"></span>' : `<span class="bw-fix">${esc(ch)}</span>`;
+    }).join('');
+  }
+  return `
+    <div class="bw-slots${state}">${slots}</div>
+    <div class="bw-tiles">
+      ${T.tiles.map((t) => `<button class="bw-tile ${B.placed.includes(t.id) ? 'used' : ''}" data-act="b-tile" data-i="${t.id}" ${answered || B.placed.includes(t.id) ? 'disabled' : ''}>${esc(t.text)}</button>`).join('')}
+      <button class="bw-back" data-act="b-back" aria-label="Cofnij ostatni kafelek" title="Cofnij (Backspace)" ${answered || !B.placed.length ? 'disabled' : ''}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6-7z"/><path d="m12.5 9.5 5 5m0-5-5 5"/></svg></button>
+    </div>`;
 }
 
 function viewSession() {
@@ -1678,23 +1847,35 @@ function viewSession() {
   }
 
   const prompts = {
-    en2pl: ['Co to znaczy?', `<div class="prompt-en">${esc(w.en)} <button class="icon-btn" data-say="${esc(w.en)}">🔊</button><button class="icon-btn slow-btn" data-slow="${esc(w.en)}" aria-label="Posłuchaj wolniej" title="Wolniej">🐢</button></div>`],
-    listen2pl: ['Posłuchaj i wybierz znaczenie', `<div class="listen-row"><button class="listen" data-say="${esc(w.en)}" aria-label="Odtwórz">🔊</button><button class="listen-slow" data-slow="${esc(w.en)}" aria-label="Odtwórz wolniej" title="Wolniej">🐢<span>wolniej</span></button></div>`],
+    en2pl: ['Co to znaczy?', `<div class="prompt-en">${esc(w.en)} <button class="icon-btn" data-say="${esc(w.en)}" aria-label="Posłuchaj">${SPEAKER}</button><button class="icon-btn slow-btn" data-slow="${esc(w.en)}" aria-label="Posłuchaj wolniej" title="Wolniej">${TURTLE}</button></div>`],
+    listen2pl: ['Posłuchaj i wybierz znaczenie', `<div class="listen-row"><button class="listen" data-say="${esc(w.en)}" aria-label="Odtwórz">🔊</button><button class="listen-slow" data-slow="${esc(w.en)}" aria-label="Odtwórz wolniej" title="Wolniej">${TURTLE}<span>wolniej</span></button></div>`],
     pl2en: ['Jak to powiesz po angielsku?', `<div class="prompt-pl">${esc(w.pl)}</div>`],
     type: ['Napisz po angielsku', `<div class="prompt-pl">${esc(w.pl)}</div>`],
     truefalse: ['Czy to jest prawidłowe tłumaczenie?', S.cur.tf ? `
       <div class="tf-tile">
         <svg class="tf-art" viewBox="0 0 64 64" aria-hidden="true"><rect x="10" y="8" width="44" height="12" rx="6" fill="#cbc6f5"/><rect x="10" y="26" width="44" height="12" rx="6" fill="#6cb944"/><circle cx="17" cy="32" r="4.4" fill="#fff"/><path d="m14.8 32 1.6 1.6 3-3.2" fill="none" stroke="#6cb944" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><rect x="10" y="44" width="44" height="12" rx="6" fill="#cbc6f5"/></svg>
         <div class="tf-pl">${esc(S.cur.tf.text)}</div>
-        <div class="tf-en">${esc(w.en)} <button class="icon-btn" data-say="${esc(w.en)}" aria-label="Posłuchaj">🔊</button><button class="icon-btn slow-btn" data-slow="${esc(w.en)}" aria-label="Posłuchaj wolniej" title="Wolniej">🐢</button></div>
+        <div class="tf-en">${esc(w.en)} <button class="icon-btn" data-say="${esc(w.en)}" aria-label="Posłuchaj">${SPEAKER}</button><button class="icon-btn slow-btn" data-slow="${esc(w.en)}" aria-label="Posłuchaj wolniej" title="Wolniej">${TURTLE}</button></div>
       </div>` : ''],
-    pic4: ['Dopasuj znaczenie z odpowiednią kartą', `<div class="prompt-en">${esc(w.en)} <button class="icon-btn" data-say="${esc(w.en)}">🔊</button><button class="icon-btn slow-btn" data-slow="${esc(w.en)}" aria-label="Posłuchaj wolniej" title="Wolniej">🐢</button></div>`],
-    dictation: ['Napisz, co słyszysz', `<div class="listen-row"><button class="listen" data-say="${esc(w.en)}" aria-label="Odtwórz">🔊</button><button class="listen-slow" data-slow="${esc(w.en)}" aria-label="Odtwórz wolniej" title="Wolniej">🐢<span>wolniej</span></button></div>`],
+    pic4: ['Dopasuj znaczenie z odpowiednią kartą', `<div class="prompt-en">${esc(w.en)} <button class="icon-btn" data-say="${esc(w.en)}" aria-label="Posłuchaj">${SPEAKER}</button><button class="icon-btn slow-btn" data-slow="${esc(w.en)}" aria-label="Posłuchaj wolniej" title="Wolniej">${TURTLE}</button></div>`],
+    build: ['Utwórz prawidłowe słowo', S.cur.build ? buildPrompt(w, S.cur.build.mode) : ''],
+    pairs: ['Dopasuj dwa słowa o tym samym znaczeniu', '<p class="pr-hint">Dotknij słowa, a potem jego tłumaczenia</p>'],
+    dictation: ['Napisz, co słyszysz', `<div class="listen-row"><button class="listen" data-say="${esc(w.en)}" aria-label="Odtwórz">🔊</button><button class="listen-slow" data-slow="${esc(w.en)}" aria-label="Odtwórz wolniej" title="Wolniej">${TURTLE}<span>wolniej</span></button></div>`],
   };
   const [question, prompt] = prompts[type];
 
   let body = '';
-  if (type === 'truefalse') {
+  if (type === 'build' && S.cur.build) {
+    body = buildBody(S.cur.build, answered, result);
+  } else if (type === 'pairs' && S.cur.pairs) {
+    const P = S.cur.pairs;
+    const btn = (side, id) => {
+      const x = byId.get(id), done = P.done.includes(id);
+      const cls = done ? 'done' : P.sel && P.sel.side === side && P.sel.id === id ? 'sel' : P.bad && P.bad[side] === id ? 'bad' : '';
+      return `<button class="pr-btn ${cls}" data-act="p-pick" data-side="${side}" data-id="${esc(id)}" ${done || answered ? 'disabled' : ''}>${esc(side === 'en' ? x.en : x.pl)}</button>`;
+    };
+    body = `<div class="pr-wrap"><div class="pr-col">${P.en.map((id) => btn('en', id)).join('')}</div><div class="pr-col">${P.pl.map((id) => btn('pl', id)).join('')}</div></div>`;
+  } else if (type === 'truefalse') {
     const cls = (yes) => (!answered ? '' : exam ? (chosen === yes ? 'picked' : 'dim') : yes === S.cur.tf.ok ? 'ok' : chosen === yes ? 'bad' : 'dim');
     body = `<div class="tf-btns">
       <button class="tf-btn no ${cls(false)}" data-act="tf-no" ${answered ? 'disabled' : ''} aria-label="Nie, to złe tłumaczenie" title="Nie (1 lub ←)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
@@ -1845,8 +2026,9 @@ function viewExamResult() {
       <h2 class="card-title small">Błędy (${wrong.length})</h2>
       ${wrong.map((x) => {
         const w = byId.get(x.id);
+        if (!w) return '';
         return `<div class="mistake">
-          <div><button class="icon-btn" data-say="${esc(w.en)}">🔊</button><b>${esc(w.en)}</b> — ${esc(w.pl)}</div>
+          <div><button class="icon-btn" data-say="${esc(w.en)}" aria-label="Posłuchaj">${SPEAKER}</button><b>${esc(w.en)}</b> — ${esc(w.pl)}</div>
           <div class="muted small">Twoja odpowiedź: <s>${esc(x.given || '(brak)')}</s></div>
         </div>`;
       }).join('')}
@@ -1882,7 +2064,7 @@ function viewSummary() {
     ${wrong.length ? `
     <section class="card">
       <h2 class="card-title small">Do przećwiczenia</h2>
-      ${wrong.map((w) => `<div class="mini-word"><button class="icon-btn" data-say="${esc(w.en)}">🔊</button><b>${esc(w.en)}</b><span class="muted">${esc(w.pl)}</span></div>`).join('')}
+      ${wrong.map((w) => `<div class="mini-word"><button class="icon-btn" data-say="${esc(w.en)}" aria-label="Posłuchaj">${SPEAKER}</button><b>${esc(w.en)}</b><span class="muted">${esc(w.pl)}</span></div>`).join('')}
     </section>` : ''}
     ${collSummaryButtons() || `
     ${c.dueLeft + c.newLeft ? `<button class="btn pill wide" data-act="start">Jeszcze jedna sesja</button>` : ''}
@@ -1928,6 +2110,8 @@ function listTags(w) {
 
 // Ikona słówka: obrazek z assets/words albo emoji tematu na pastelowym tle.
 const SPEAKER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>';
+// żółw „wolniej” — SVG zamiast emoji, żeby 🔊 i 🐢 miały ten sam rozmiar i linię na każdym systemie
+const TURTLE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 16.5a7.5 6.5 0 0 1 15 0z" fill="currentColor"/><path d="M7 16.2 9.2 11.6h3.6l2.2 4.6M9.2 11.6 11 9.9l1.8 1.7" fill="none" stroke="#fff" stroke-width="1.1" stroke-linejoin="round" opacity=".55"/><circle cx="20.3" cy="13.6" r="2.3" fill="currentColor"/><path d="M5.2 16.5v2.3M9 16.5v2.3M13 16.5v2.3M16.8 16.5v2.3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="20.9" cy="13.1" r=".55" fill="#fff"/></svg>';
 
 // Ikony tylko przy słówkach — zwroty (wyrażenia) są bez ikony.
 function wordIcon(w) {
@@ -2128,11 +2312,11 @@ function viewWord() {
     ${w.mnemo ? `<div class="wd-block"><h3>Skojarzenie</h3><p>🧠 ${esc(w.mnemo)}</p></div>` : ''}
     <div class="wd-block">
       <h3>Twój postęp</h3>
-      <div class="wd-progress">
-        <span class="dots">${[1, 2, 3, 4, 5].map((i) => `<i class="${i <= lvl ? 'on' : ''}"></i>`).join('')}</span>
-        <b>${LEVEL_NAMES[lvl]}</b>
-        <span>${c ? `powtórka ${dueLabel(c)} · powtórzeń ${c.reps} · pomyłek ${c.lapses}` : 'jeszcze nie ćwiczone'}</span>
+      <div class="wd-track" role="list" aria-label="Etapy nauki">
+        ${LEVEL_NAMES.map((n, i) => `<span role="listitem" class="wd-step ${i < lvl ? 'done' : i === lvl ? 'cur' : ''}" ${i === lvl ? 'aria-current="step"' : ''}><i></i><small>${n}</small></span>`).join('')}
       </div>
+      <p class="wd-level"><b>${LEVEL_NAMES[lvl]}${isKnown(c) ? ' · wyuczone ✓' : ''}</b> — ${LEVEL_HINTS[lvl]}</p>
+      ${c ? `<p class="wd-meta">powtórka ${dueLabel(c)} · powtórzeń ${c.reps} · pomyłek ${c.lapses}</p>` : ''}
     </div>
     <div class="wd-block"><h3>Moje listy</h3>${listTags(w)}</div>
   </section>
@@ -3222,6 +3406,9 @@ document.addEventListener('click', (e) => {
     case 'start-coll': if (coll) startPick(coll.ref); break;
     case 'resume': collFrom = 'packs'; wordsFilter = { q: '', coll: ds.ref, status: '', kind: '' }; view = 'words'; startPick(ds.ref); break;
     case 'pick-learn': pickWord('learn'); break;
+    case 'b-tile': buildTap(+ds.i); break;
+    case 'b-back': buildBack(); break;
+    case 'p-pick': pairPick(ds.side, ds.id); break;
     case 'tf-no': chooseTf(false); break;
     case 'tf-yes': chooseTf(true); break;
     case 'intro-later': introSkip(false); break;
@@ -3438,6 +3625,10 @@ document.addEventListener('keydown', (e) => {
     if (act) { e.preventDefault(); pickWord(act); return; }
   }
   if (view !== 'session' || !S) return;
+  // przytrzymany klawisz nie przewija wielu kroków; skróty z Ctrl/Alt zostają przeglądarce
+  if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+  // Enter / spacja na przycisku (Później, Wiem, Cofnij…) klikają ten przycisk — nie „Dalej”
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.tagName === 'BUTTON') return;
   const inInput = e.target.tagName === 'INPUT';
   if (e.key === 'Enter' && e.target.id === 'typed') {
     e.preventDefault();
@@ -3448,6 +3639,9 @@ document.addEventListener('keydown', (e) => {
     else if (S.cur.answered) advance();
   } else if (!inInput && S.cur.type === 'truefalse' && ['1', '2', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
     chooseTf(e.key === '2' || e.key === 'ArrowRight');
+  } else if (!inInput && S.cur.type === 'build' && !S.cur.answered && (e.key === 'Backspace' || /^[a-z]$/i.test(e.key))) {
+    e.preventDefault();
+    if (e.key === 'Backspace') buildBack(); else buildKey(e.key);
   } else if (!inInput && /^[1-4]$/.test(e.key) && S.cur.options) {
     choose(+e.key - 1);
   } else if (e.key === ' ' && (!inInput || (e.target.id === 'typed' && S.cur.answered))) {
@@ -3455,7 +3649,8 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     if (S.cur.type === 'intro') introDone();
     else if (S.cur.answered) advance();
-    else speak(S.cur.w.en);
+    // przed odpowiedzią — posłuchaj, ale tylko gdy angielskie słowo nie jest tym, o co pytamy
+    else if (['en2pl', 'truefalse', 'pic4', 'listen2pl', 'dictation'].includes(S.cur.type) || (S.cur.type === 'build' && S.cur.build.mode !== 'letters+')) speak(S.cur.w.en);
   } else if (e.key === 'Escape') {
     // okienko otwieramy po zakończeniu tego Esc — inaczej przeglądarka od razu by je zamknęła
     e.preventDefault();
