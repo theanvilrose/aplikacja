@@ -146,6 +146,7 @@ function startSession(opts = {}) {
     gems: 0, streakUp: 0, chestOpened: false, badge: null, pathAdvanced: false,
     coll: opts.coll || null, // pakiet / temat, z którego ruszyła lekcja (powrót po podsumowaniu)
     pick: !!opts.pick, // jedno pytanie z karuzeli „Nowe słówka” — potem powrót do karuzeli
+    retry: [], // utrwalenie: pytania z pomyłką — wracają na końcu, aż wszystkie będą dobrze
   };
   view = 'session';
   window.scrollTo(0, 0);
@@ -161,6 +162,13 @@ function nextStep() {
     S.queue = S.queue.slice(0, S.pos).concat(S.queue.slice(S.pos).filter((q) => q.follow));
   }
   if (S.pick && S.pos >= 1) return backToPick(); // bez dodatkowych powtórek w tej samej chwili — wrócą w nauce
+  if (S.pos >= S.queue.length && S.retry.length) {
+    // utrwalenie: na końcu jeszcze raz to, co było źle (ten sam rodzaj ćwiczenia) — do skutku
+    const again = noRepeat(shuffle(S.retry), S.queue[S.queue.length - 1]?.id);
+    S.retry = [];
+    S.queue.push(...again);
+    toast(`Poprawka: ${again.length} ${plural(again.length, 'pytanie', 'pytania', 'pytań')} z pomyłką`);
+  }
   if (S.pos >= S.queue.length) return finish();
   const item = S.queue[S.pos];
   const w = byId.get(item.id);
@@ -457,7 +465,9 @@ function answer(correct, struggled = false, given = '') {
   S.answers.push({ id: w.id, correct, g, ms, type, given });
   if (!correct) S.wrong.add(w.id);
 
-  if (!exam) {
+  if (S.mode === 'mix') {
+    if (!correct) S.retry.push({ id: w.id, force: cur.item.force || type }); // bez powtórki od razu — na końcu utrwalenia
+  } else if (!exam) {
     const steps = (S.extraSteps[w.id] = S.extraSteps[w.id] || 0);
     if (!correct) {
       if (steps < 3) { S.extraSteps[w.id]++; insertLater({ id: w.id, follow: true }, 3); }

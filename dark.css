@@ -230,6 +230,20 @@
 :root[data-theme="dark"] .pc-dots i { background: #2b2e39; }
 :root[data-theme="dark"] .pick-q { background: #1d123f; }
 :root[data-theme="dark"] .pick-q:hover, :root[data-theme="dark"] .pick-q:focus { background: #201446; }
+:root[data-theme="dark"] .sm-title { color: #d4d7e5; }
+:root[data-theme="dark"] .sm-legend { color: #bfc2cf; }
+:root[data-theme="dark"] .sm-block h3 { color: #d4d7e5; }
+:root[data-theme="dark"] .sm-trio span { color: #bfc2cf; }
+:root[data-theme="dark"] .sm-lang { background: #2e411f; }
+:root[data-theme="dark"] .sm-flag svg { border: 3px solid #201d2a; }
+:root[data-theme="dark"] .sm-lang b { color: #d8dae3; }
+:root[data-theme="dark"] .sm-pct { color: #d8dae3; }
+:root[data-theme="dark"] .sm-day i { background: #232731; }
+:root[data-theme="dark"] .sm-day.now i { box-shadow: 0 0 0 3px #314a23; }
+:root[data-theme="dark"] .sm-day small { color: #bfc2cf; }
+:root[data-theme="dark"] .sm-note { background: #412e13; }
+:root[data-theme="dark"] .sm-more:hover { background: #19123e; }
+:root[data-theme="dark"] .sm-prize { color: #a5aabc; }
 
 /* tasks.css */
 :root[data-theme="dark"] .tk-part-icon { background: #1d123f; }

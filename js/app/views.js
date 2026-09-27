@@ -8,7 +8,7 @@ function render() {
   applyTheme();
   const views = { lists: viewLists, home: viewHome, listen: viewListen, words: viewWords, profile: viewProfile, session: viewSession, summary: viewSummary, player: viewPlayer, 'plan-settings': viewPlanSettings, packs: viewPacks, word: viewWord, pick: viewPick, tasks: viewTasks, 'task-settings': viewTaskSettings, dev: viewDev };
   $('#app').innerHTML = views[view]();
-  const navHidden = view === 'session' || view === 'player' || view === 'pick' || view === 'word' || view === 'tasks' || (view === 'summary' && !!S?.chestOpened);
+  const navHidden = view === 'session' || view === 'player' || view === 'pick' || view === 'word' || view === 'tasks' || view === 'summary';
   $('#nav').hidden = navHidden;
   document.body.classList.toggle('no-nav', navHidden);
   const tab = view === 'words' && wordsFilter.coll && collFrom !== 'words' ? 'home' : view === 'summary' || view === 'plan-settings' || view === 'task-settings' || view === 'packs' ? 'home' : view === 'dev' ? 'profile' : view;
@@ -975,39 +975,105 @@ function viewExamResult() {
     <button class="btn wide" data-act="home">Wróć</button>`;
 }
 
+// Podsumowanie sesji (jak „Dobra robota!” w WRD): pierścienie dnia, Dzisiaj / Wczoraj / Ostatnie 7 dni,
+// ile słownika rozumiesz, dni z rzędu do następnej odznaki, „Kontynuuj” i nagroda z tej sesji.
+function dayStats(keys) {
+  const s = { nw: 0, n: 0, ok: 0 };
+  for (const k of keys) { const d = db.days[k]; if (d) { s.nw += d.nw || 0; s.n += d.n || 0; s.ok += d.ok || 0; } }
+  s.acc = s.n ? Math.round((s.ok / s.n) * 100) : 0;
+  return s;
+}
+const daysBack = (n, from = 0) => Array.from({ length: n }, (_, i) => dayKey(new Date(Date.now() - (i + from) * DAY)));
+
+function statTrio(title, s) {
+  return `
+    <section class="sm-block">
+      <h3>${title}</h3>
+      <div class="sm-trio">
+        <span class="g"><b>${s.nw}</b>${plural(s.nw, 'słówko', 'słówka', 'słówek')}</span>
+        <span class="b"><b>${s.n}</b>${plural(s.n, 'ćwiczenie', 'ćwiczenia', 'ćwiczeń')}</span>
+        <span class="p"><b>${s.acc}%</b>dokładność</span>
+      </div>
+    </section>`;
+}
+
+function summaryRings(s) {
+  const d = db.days[dayKey()] || {};
+  const vals = [
+    ['#5fd61c', '#3fc40f', Math.min(1, s.nw / Math.max(1, db.settings.newPerDay))], // nowe słowa z celu dnia
+    ['#38a5f1', '#5981f3', Math.min(1, (d.ms || 0) / goalMs())], // minuty nauki
+    ['#a36bff', '#7c3aed', s.acc / 100], // dokładność
+  ];
+  const ring = ([c1, c2, v], i) => {
+    const r = 92 - i * 26, len = 2 * Math.PI * r;
+    return `
+      <defs><linearGradient id="smg${i}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>
+      <circle cx="110" cy="110" r="${r}" fill="none" stroke="${c1}" stroke-opacity=".16" stroke-width="20"/>
+      <circle class="sm-arc" cx="110" cy="110" r="${r}" fill="none" stroke="url(#smg${i})" stroke-width="20" stroke-linecap="round"
+        style="--len:${len.toFixed(1)};--off:${(len * (1 - Math.max(0.02, v))).toFixed(1)};--i:${i}" transform="rotate(-90 110 110)"/>`;
+  };
+  return `<svg class="sm-rings" viewBox="0 0 220 220" role="img" aria-label="Nowe słowa, czas nauki i dokładność dzisiaj">${vals.map(ring).join('')}</svg>`;
+}
+
+function streakRow() {
+  const st = streak();
+  const today = counted(dayKey());
+  const first = today ? st : st + 1; // który to dzień serii (dzisiaj)
+  const next = BADGES.find((b) => b.days >= first) || BADGES[BADGES.length - 1];
+  const dots = [];
+  for (let k = 0; k < 5 && first + k <= next.days; k++) {
+    const day = new Date(Date.now() + k * DAY);
+    dots.push(`<span class="sm-day ${k === 0 && today ? 'done' : ''} ${k === 0 ? 'now' : ''}"><i>${first + k}</i><small>${k === 0 ? 'Dzisiaj' : WEEKDAYS[day.getDay()]}</small></span>`);
+  }
+  const left = next.days - first;
+  return `
+    <section class="sm-block">
+      <h3>Dni z rzędu</h3>
+      <div class="sm-days">
+        ${dots.join('')}
+        <span class="sm-day prize">${IMG('stat-gem.png', 'sm-gem')}<small>${left >= 5 ? `za ${daysLabel(left)}` : `„${esc(next.name)}”`}<br>+${5 * next.days} 💎</small></span>
+      </div>
+    </section>`;
+}
+
 function viewSummary() {
   if (S.mode === 'exam') return viewExamResult();
   if (S.chestOpened) return viewCelebration();
-  const a = S.answers;
-  const ok = a.filter((x) => x.correct).length;
-  const mins = Math.max(1, Math.round((Date.now() - S.start) / 60000));
-  const avg = ok ? (a.filter((x) => x.correct).reduce((s, x) => s + x.ms, 0) / ok / 1000).toFixed(1) : '–';
-  const wrong = [...S.wrong].map((id) => byId.get(id)).filter(Boolean);
   const c = counts();
+  const todayS = dayStats([dayKey()]);
+  const understood = words.length ? (c.known / words.length) * 100 : 0;
   const left = STREAK_MIN - (db.days[dayKey()]?.n || 0);
+  const wrong = S.mode === 'mix' ? [] : [...S.wrong].map((id) => byId.get(id)).filter(Boolean);
+  const coll = S.coll && collection(S.coll);
+  const more = againButton(c).replace('btn pill wide', 'sm-more');
   return `
-    ${(() => {
-      const rate = a.length ? ok / a.length : 0;
-      return subHero({
-        title: 'Koniec sesji',
-        sub: `${mins} min · średni czas reakcji ${avg} s`,
-        art: `<div class="ph-art launched">${IMG('plan-rocket.webp', '', '')}</div>`,
-        rows: `
-          ${heroRow({ icon: IMG('task-star.png', 'ph-icon'), label: 'Odpowiedzi', right: heroNum(a.length), tint: '255, 194, 26', ink: '#e09a00', i: 0 })}
-          ${heroRow({ icon: IMG('stat-check.png', 'ph-icon'), label: 'Poprawne', fill: rate, right: `<span class="ph-num"><b>${Math.round(rate * 100)}</b>%</span>`, tint: '34, 197, 94', ink: '#1fa45a', i: 1 })}
-          ${heroRow({ icon: IMG('stat-gem.png', 'ph-icon'), label: 'Diamenty', right: `<span class="ph-gems">+${S.gems}${IMG('gem-small.png', 'ph-gem')}</span>`, tint: '144, 97, 227', ink: '#9061e3', i: 2 })}`,
-      });
-    })()}
-    ${S.streakUp ? streakCard() : ''}
-    ${!counted(dayKey()) ? `<section class="banner">${ICON.flame}<div><b>Jeszcze ${left} ${plural(left, 'odpowiedź', 'odpowiedzi', 'odpowiedzi')}</b><span>i dzisiejszy dzień zaliczy się do serii</span></div></section>` : ''}
+  <section class="summary-wrd">
+    <h1 class="sm-title">${todayS.acc >= 60 || !todayS.n ? 'Dobra robota!' : 'Tak trzymaj!'}</h1>
+    ${summaryRings(todayS)}
+    <p class="sm-legend"><span class="g">nowe słowa</span><span class="b">czas nauki</span><span class="p">dokładność</span></p>
+    ${statTrio('Dzisiaj', todayS)}
+    <section class="sm-block">
+      <div class="sm-head"><h3>Rozumiesz</h3><button class="pick-q sm-q" type="button" aria-label="Co to znaczy?">?</button>
+        <div class="pick-info sm-info" role="tooltip">Jaką część słownika (${words.length} słów i zwrotów) już umiesz — słowa wyuczone, czyli zapamiętane co najmniej na 2 dni. Umiesz ${c.known}.</div></div>
+      <div class="sm-lang" style="--p:${Math.max(understood, 0.5).toFixed(1)}%">
+        <span class="sm-flag">${ICON.uk}</span><b>Angielski</b><span class="sm-pct">${understood.toFixed(1)}%</span>
+      </div>
+    </section>
+    ${streakRow()}
+    ${!counted(dayKey()) ? `<p class="sm-note">Jeszcze ${left} ${plural(left, 'odpowiedź', 'odpowiedzi', 'odpowiedzi')} i dzisiejszy dzień zaliczy się do serii</p>` : ''}
+    ${statTrio('Wczoraj', dayStats(daysBack(1, 1)))}
+    ${statTrio('Ostatnie 7 dni', dayStats(daysBack(7)))}
     ${wrong.length ? `
-    <section class="card">
-      <h2 class="card-title small">Do przećwiczenia</h2>
+    <section class="sm-block">
+      <h3>Do przećwiczenia</h3>
       ${wrong.map((w) => `<div class="mini-word"><button class="icon-btn" data-say="${esc(w.en)}" aria-label="Posłuchaj">${SPEAKER}</button><b>${esc(w.en)}</b><span class="muted">${esc(w.pl)}</span></div>`).join('')}
     </section>` : ''}
-    ${collSummaryButtons() || `
-    ${againButton(c)}
-    <button class="btn wide" data-act="home">Wróć</button>`}`;
+    <div class="sm-cta">
+      <button class="pick-go sm-go" data-act="${coll ? 'coll-return' : 'home'}"><span>Kontynuuj</span></button>
+      ${coll ? '' : more}
+      <p class="sm-prize">Twoja nagroda: ${IMG('gem-small.png', 'sm-prize-gem')} <b>+${S.gems}</b></p>
+    </div>
+  </section>`;
 }
 
 // „jeszcze raz” w tym samym trybie: po Nauce kolejne nowe słowa, po Powtórce kolejne powtórki
