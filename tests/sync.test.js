@@ -44,3 +44,19 @@ test('pusty zapis nowego urządzenia przejmuje postęp; same() ignoruje znacznik
   assert.ok(Sync.same({ ...m, stamp: { x: 1 } }, { ...m, stamp: { y: 2 } }));
   assert.ok(!Sync.same(m, base()));
 });
+
+test('wyzerowanie: stary postęp nie wraca z drugiego urządzenia, nauka po wyzerowaniu zostaje', () => {
+  const old = { ...base(), best: 9, exams: [{ kind: 'a1', date: 1, pct: 80 }], days: { '2026-09-27': { rv: 5 } },
+    cards: { cat: { level: 3, last: 100, reps: 4 }, dog: { level: 1, last: 300, reps: 1 } } };
+  const reset = { ...base(), resetAt: 200, gems: 0, stamp: { gems: 200 } };
+  for (const m of [Sync.merge(reset, old), Sync.merge(old, reset)]) {
+    assert.deepStrictEqual(Object.keys(m.cards), ['dog']); // cat sprzed wyzerowania znika, dog (po) zostaje
+    assert.deepStrictEqual(m.days, {});
+    assert.strictEqual(m.best, 0);
+    assert.deepStrictEqual(m.exams, []);
+    assert.strictEqual(m.resetAt, 200);
+  }
+  // po wyzerowaniu oba zapisy znają resetAt — dalej łączą się normalnie
+  const later = Sync.merge({ ...reset, cards: { fox: { level: 2, last: 400, reps: 2 } } }, Sync.merge(reset, old));
+  assert.deepStrictEqual(Object.keys(later.cards).sort(), ['dog', 'fox']);
+});

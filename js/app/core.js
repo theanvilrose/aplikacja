@@ -138,7 +138,7 @@ let collFrom = 'home'; // skąd wszedłeś do pakietu (strzałka wstecz)
 
 function normalize(d) {
   return {
-    cards: d.cards || {}, days: d.days || {}, extra: d.extra || [], seedVer: d.seedVer || 0,
+    cards: d.cards || {}, days: d.days || {}, extra: d.extra || [], seedVer: d.seedVer || 0, resetAt: d.resetAt || 0,
     gems: d.gems || 0, freezes: d.freezes || 0, best: d.best || 0,
     lists: d.lists || [], exams: d.exams || [], path: d.path || [], mistakes: d.mistakes || [], badges: d.badges || {}, lastColl: d.lastColl || null, tasks: d.tasks || {}, lastBackup: d.lastBackup || 0, backupSnooze: d.backupSnooze || 0,
     stamp: d.stamp || {}, // kiedy zmieniło się każde pole (synchronizacja: wygrywa nowsza wersja)

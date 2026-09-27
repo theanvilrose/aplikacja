@@ -3,7 +3,9 @@
 //  - cards: każde słowo osobno — wygrywa nowsza nauka (pole last), przy remisie więcej powtórzeń,
 //  - days: każdy dzień osobno — liczniki (powtórki, nowe, minuty…) biorą większą wartość,
 //  - best: większa seria, exams: suma wyników z obu urządzeń (bez duplikatów),
-//  - reszta (diamenty, ustawienia, listy, odznaki…): wygrywa wersja zmieniona później (db.stamp[pole]).
+//  - reszta (diamenty, ustawienia, listy, odznaki…): wygrywa wersja zmieniona później (db.stamp[pole]),
+//  - resetAt: „Wyzeruj postępy” — zapis sprzed wyzerowania traci nauczone słowa, dni, serię i testy
+//    (zostaje tylko nauka zrobiona już po wyzerowaniu), więc stary postęp nie wraca z drugiego urządzenia.
 (function (root) {
   'use strict';
 
@@ -38,12 +40,23 @@
     return out.sort((x, y) => (x.date > y.date ? 1 : x.date < y.date ? -1 : 0));
   }
 
-  const SPECIAL = new Set(['cards', 'days', 'best', 'exams', 'stamp']);
+  const SPECIAL = new Set(['cards', 'days', 'best', 'exams', 'stamp', 'resetAt']);
+
+  // zapis sprzed wyzerowania: zostaje tylko nauka po chwili wyzerowania
+  function afterReset(d, at) {
+    if (!at || (d.resetAt || 0) >= at) return d;
+    const cards = {};
+    for (const [id, c] of Object.entries(d.cards || {})) if ((c.last || 0) > at) cards[id] = c;
+    return { ...d, cards, days: {}, best: 0, exams: [] };
+  }
 
   // a = ten zapis, b = drugi zapis; wynik = połączony zapis (nowy obiekt)
   function merge(a, b) {
     if (!b) return a;
     if (!a) return b;
+    const resetAt = Math.max(a.resetAt || 0, b.resetAt || 0);
+    a = afterReset(a, resetAt);
+    b = afterReset(b, resetAt);
     const sa = a.stamp || {}, sb = b.stamp || {};
     const out = { ...b, ...a };
     const stamp = { ...sb };
@@ -60,6 +73,7 @@
     out.best = Math.max(a.best || 0, b.best || 0);
     out.exams = mergeExams(a.exams, b.exams);
     for (const k of ['cards', 'days', 'best', 'exams']) stamp[k] = Math.max(sa[k] || 0, sb[k] || 0);
+    if (resetAt) out.resetAt = resetAt;
     out.stamp = stamp;
     return out;
   }

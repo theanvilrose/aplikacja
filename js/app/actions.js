@@ -240,7 +240,10 @@ document.addEventListener('click', (e) => {
     case 'reset':
       ask({ title: 'Wyzerować wszystko?', text: 'Cały postęp nauki, diamenty, seria, odznaki i listy znikną. Tego nie da się cofnąć.', ok: 'Wyzeruj', danger: true }).then((yes) => {
         if (!yes) return;
-        db = normalize({ extra: db.extra, settings: db.settings });
+        // resetAt: synchronizacja nie przywróci starego postępu z komputera / telefonu; wszystkie pola z nową datą zmiany
+        const now = Date.now();
+        db = normalize({ extra: db.extra, settings: db.settings, seedVer: db.seedVer, resetAt: now });
+        db.stamp = Object.fromEntries(Object.keys(db).filter((k) => k !== 'stamp').map((k) => [k, now]));
         save(); toast('Postępy wyzerowane'); render();
       });
       break;
