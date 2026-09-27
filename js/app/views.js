@@ -547,7 +547,7 @@ function viewPlanSettings() {
         const on = !(s.exOff || []).includes(t);
         const blocked = (SRS.isListening(t) && !s.listening) || (SRS.isTyping(t) && !s.typing);
         return `<button class="ex-chip ${on && !blocked ? 'on' : ''}" data-act="ex-toggle" data-t="${t}" aria-pressed="${on}" ${blocked ? 'title="Wyłączone przełącznikiem powyżej"' : ''}>
-          <span class="ex-ic">${icon}</span><span class="ex-tx"><b>${name}</b><small>${blocked ? 'wyłączone wyżej' : desc}</small></span><i class="ex-check" aria-hidden="true"></i></button>`;
+          <span class="ex-ic">${IMG(`ui/ex-${t}.png`, "ex-img")}</span><span class="ex-tx"><b>${name}</b><small>${blocked ? 'wyłączone wyżej' : desc}</small></span><i class="ex-check" aria-hidden="true"></i></button>`;
       }).join('')}
     </div>
   </section>
@@ -697,7 +697,7 @@ function viewSession() {
 
   const prompts = {
     en2pl: ['Co to znaczy?', `<div class="prompt-en">${esc(w.en)} <button class="icon-btn" data-say="${esc(w.en)}" aria-label="Posłuchaj">${SPEAKER}</button><button class="icon-btn slow-btn" data-slow="${esc(w.en)}" aria-label="Posłuchaj wolniej" title="Wolniej">${TURTLE}</button></div>`],
-    listen2pl: ['Posłuchaj i wybierz znaczenie', `<div class="listen-row"><button class="listen" data-say="${esc(w.en)}" aria-label="Odtwórz">🔊</button><button class="listen-slow" data-slow="${esc(w.en)}" aria-label="Odtwórz wolniej" title="Wolniej">${TURTLE}<span>wolniej</span></button></div>`],
+    listen2pl: ['Posłuchaj i wybierz znaczenie', `<div class="listen-row"><button class="listen" data-say="${esc(w.en)}" aria-label="Odtwórz"><img class="listen-img" src="assets/ui/speaker.png" alt="" draggable="false"></button><button class="listen-slow" data-slow="${esc(w.en)}" aria-label="Odtwórz wolniej" title="Wolniej">${TURTLE}<span>wolniej</span></button></div>`],
     pl2en: ['Jak to powiesz po angielsku?', `<div class="prompt-pl">${esc(w.pl)}</div>`],
     type: ['Napisz po angielsku', `<div class="prompt-pl">${esc(w.pl)}</div>`],
     truefalse: ['Czy to jest prawidłowe tłumaczenie?', S.cur.tf ? `
@@ -709,7 +709,7 @@ function viewSession() {
     pic4: ['Dopasuj znaczenie z odpowiednią kartą', `<div class="prompt-en">${esc(w.en)} <button class="icon-btn" data-say="${esc(w.en)}" aria-label="Posłuchaj">${SPEAKER}</button><button class="icon-btn slow-btn" data-slow="${esc(w.en)}" aria-label="Posłuchaj wolniej" title="Wolniej">${TURTLE}</button></div>`],
     build: ['Utwórz prawidłowe słowo', S.cur.build ? buildPrompt(w, S.cur.build.mode) : ''],
     pairs: ['Dopasuj dwa słowa o tym samym znaczeniu', '<p class="pr-hint">Dotknij słowa, a potem jego tłumaczenia</p>'],
-    dictation: ['Napisz, co słyszysz', `<div class="listen-row"><button class="listen" data-say="${esc(w.en)}" aria-label="Odtwórz">🔊</button><button class="listen-slow" data-slow="${esc(w.en)}" aria-label="Odtwórz wolniej" title="Wolniej">${TURTLE}<span>wolniej</span></button></div>`],
+    dictation: ['Napisz, co słyszysz', `<div class="listen-row"><button class="listen" data-say="${esc(w.en)}" aria-label="Odtwórz"><img class="listen-img" src="assets/ui/speaker.png" alt="" draggable="false"></button><button class="listen-slow" data-slow="${esc(w.en)}" aria-label="Odtwórz wolniej" title="Wolniej">${TURTLE}<span>wolniej</span></button></div>`],
   };
   const [question, prompt] = prompts[type];
 
@@ -961,7 +961,7 @@ function listTags(w) {
 // Ikona słówka: obrazek z assets/words albo emoji tematu na pastelowym tle.
 const SPEAKER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>';
 // żółw „wolniej” — SVG zamiast emoji, żeby 🔊 i 🐢 miały ten sam rozmiar i linię na każdym systemie
-const TURTLE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.2 15.2c0-4.6 3.5-8 7.9-8s7.9 3.4 7.9 8z" fill="currentColor"/><path d="M7.2 15 8.9 11h4.4l1.7 4M8.9 11l2.2-3.2 2.2 3.2" fill="none" stroke="#fff" stroke-width="1.2" stroke-linejoin="round" opacity=".6"/><rect x="2.2" y="14.6" width="17.8" height="2.4" rx="1.2" fill="currentColor"/><path d="M18.6 13.4c.9-.3 1.4-1.1 1.4-2" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/><circle cx="21" cy="10.8" r="2.3" fill="currentColor"/><circle cx="21.6" cy="10.3" r=".6" fill="#fff"/><path d="M6.2 17v2.6M15.8 17v2.6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
+const TURTLE = '<img class="turtle-img" src="assets/ui/turtle.png" alt="" draggable="false">'; // żółw 3D (Muse)
 
 // Ikony tylko przy słówkach — zwroty (wyrażenia) są bez ikony.
 function wordIcon(w) {
