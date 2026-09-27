@@ -47,6 +47,7 @@ function buildQueue({ ids = null, mode = 'learn', intro = false } = {}) {
   let fresh = pool.filter((w) => !db.cards[w.id]);
   if (s.newOrder === 'recent') fresh = fresh.map((w, i) => [w, i]).sort((a, b) => (b[0].added || '').localeCompare(a[0].added || '') || a[1] - b[1]).map(([w]) => w);
   else if (s.newOrder === 'random') fresh = shuffle(fresh);
+  else fresh = fresh.map((w, i) => [w, i]).sort((a, b) => cefr(a[0]) - cefr(b[0]) || a[1] - b[1]).map(([w]) => w); // od A1 do C1
   fresh = fresh.slice(0, only ? 8 : c.newLeft);
 
   const queue = [];
@@ -488,7 +489,7 @@ function startPlayer(source = listenSource) {
   let list = Array.isArray(source) ? source.map((id) => byId.get(id)).filter(Boolean)
     : source === '__all' ? words
     : source === '__seen' ? words.filter((w) => db.cards[w.id])
-    : words.filter((w) => w.topic === source);
+    : words.filter((w) => inTopic(w, source));
   if (!list.length && source === '__seen') list = words;
   if (!list.length) return toast('Brak słówek do odtworzenia');
   P = { ids: shuffle(list.map((w) => w.id)), i: 0, playing: true, phase: 0, token: 0, done: false, from: view };

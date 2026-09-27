@@ -399,7 +399,7 @@ function viewPacks() {
 const PLAN_KEYS = ['content', 'newOrder', 'warmup', 'reviewsFirst', 'listening', 'typing', 'autoNext', 'exOff', 'newPerDay', 'reviewCap', 'minutes'];
 
 const PLAN_ORDERS = [
-  ['lesson', 'Jak w lekcjach', 'W kolejności z Twoich notatek — temat po temacie.'],
+  ['lesson', 'Od najłatwiejszych', 'Najpierw poziom A1, potem A2, B1… — w każdym poziomie temat po temacie.'],
   ['recent', 'Najnowsze', 'Najpierw słowa z ostatniej lekcji — świeży materiał od razu trafia do nauki.'],
   ['random', 'Losowo', 'Każda sesja przynosi inną mieszankę słów.'],
 ];
@@ -564,7 +564,7 @@ function viewListen() {
   const seen = words.filter((w) => db.cards[w.id]).length;
   const topics = topicsList();
   const plMissing = canSpeak && !plVoice();
-  const srcN = listenSource === '__seen' ? seen : listenSource === '__all' ? words.length : words.filter((w) => w.topic === listenSource).length;
+  const srcN = listenSource === '__seen' ? seen : listenSource === '__all' ? words.length : words.filter((w) => inTopic(w, listenSource)).length;
   const A = window.WORD_AUDIO || {}, acc = db.settings.accent === 'en-US' ? 'en-US' : 'en-GB', other = acc === 'en-US' ? 'en-GB' : 'en-US';
   const recN = (l) => words.filter((w) => (A[l] || {})[audioKey(w.en)]).length;
   const quiz = seen >= 4 && canSpeak;
@@ -1061,6 +1061,8 @@ function viewLists() {
     })}`;
 }
 
+const WORDS_PAGE = 150;
+
 function viewWords() {
   const q = Answer.norm(wordsFilter.q);
   const coll = collection(wordsFilter.coll);
@@ -1086,7 +1088,9 @@ function viewWords() {
     <div class="chips">
       ${chips.map(([k, label, n]) => `<button class="chip ${wordsFilter.status === k ? 'on' : ''}" data-status="${k}">${label} <span>${n}</span></button>`).join('')}
     </div>`;
-  const rows = list.length ? list.map(wordRow).join('') : '<p class="muted center empty">Brak słówek w tym widoku</p>';
+  // długie zestawy (np. Wszystkie słówka — kilka tysięcy) rysujemy partiami, żeby lista i szukanie działały płynnie
+  const shown = wordsFilter.more ? list : list.slice(0, WORDS_PAGE);
+  const rows = list.length ? shown.map(wordRow).join('') + (shown.length < list.length ? `<button class="btn ghost words-more" data-act="words-more">Pokaż wszystkie (${list.length})</button>` : '') : '<p class="muted center empty">Brak słówek w tym widoku</p>';
 
   // Zakładka Słownictwo: postęp, karty podpowiedzi i działy (jak w WRD, w stylu aplikacji)
   if (!coll) return viewVocab();
@@ -1243,7 +1247,7 @@ function viewProfile() {
     <section class="card form">
       <h3>Słówka i kopia zapasowa</h3>
       <p class="muted small">Słówka aktualizują się same przy każdym uruchomieniu <b>start.bat</b> (z pliku slowka.md). Import ręczny przydaje się np. na telefonie.</p>
-      <label class="btn file">📥 Importuj slowka.md<input type="file" accept=".md,.txt,text/markdown" data-file="md" hidden></label>
+      <label class="btn file">📥 Importuj słownik (.md)<input type="file" accept=".md,.txt,text/markdown" data-file="md" hidden></label>
       <button class="btn" data-act="export">💾 Eksportuj postępy</button>
       <p class="muted small">${db.lastBackup ? `Ostatnia kopia: ${formatDate(dayKey(new Date(db.lastBackup)))}` : 'Nie masz jeszcze kopii — zrób ją raz w tygodniu.'}</p>
       <label class="btn file">📂 Wczytaj kopię<input type="file" accept=".json,application/json" data-file="backup" hidden></label>

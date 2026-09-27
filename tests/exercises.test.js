@@ -7,8 +7,9 @@ const E = require('../js/exercises.js');
 const { parseMarkdown } = require('../js/parser.js');
 
 // prawdziwe słówka, jeśli są obok (bez nich generator układa tylko zadania niepotrzebujące słówek)
-const md = path.join(__dirname, '..', '..', 'Angielski', 'slowka.md');
-const WORDS = fs.existsSync(md) ? parseMarkdown(fs.readFileSync(md, 'utf8')) : [];
+const dir = path.join(__dirname, '..', '..', 'Angielski');
+const files = ['slownik.md', 'zwroty.md', 'czesci_mowy.md', 'slowka.md'].map((f) => path.join(dir, f)).filter((f) => fs.existsSync(f));
+const WORDS = files.length ? parseMarkdown(files.map((f) => fs.readFileSync(f, 'utf8'))) : [];
 
 function seeded(seed) {
   return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };

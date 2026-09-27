@@ -24,7 +24,7 @@ Zakładka **Nauka**:
    **Powtórka błędów** zbiera słowa, w których pomyliłeś się w testach; słowo znika po poprawnej odpowiedzi.
 4. **Moje listy** — automatyczne („Z ostatniej lekcji”, „Trudne słowa”) i własne. Słówko dodajesz do listy, rozwijając je na liście słówek.
 5. **Audio** — „Słuchaj w drodze” i trening słuchu.
-6. **Tematy** — według działów z slowka.md.
+6. **Tematy** — 200 działów ze `slownik.md` + działy zwrotów i zaimki; słowo z kilku działów jest w każdym z nich.
 
 Projekt graficzny: płótno „Słowik — sekcja Nauka” (https://claude.ai/artifact/Y53n5dcscAiE4qhAjsv5Sj).
 
@@ -68,9 +68,15 @@ Skróty klawiszowe: `1–4` wybór odpowiedzi (w „Czy to prawidłowe tłumacze
 
 ## Słówka
 
-Słówka pochodzą z `../Angielski/slowka.md` i **aktualizują się same** — `start.bat` przy każdym uruchomieniu wczytuje ten plik (`node tools/import-slowka.js`). Nowe słowa z lekcji trafiają automatycznie do tematów, pakietów, listy „Z ostatniej lekcji” i testów. Postęp nauki zostaje.
+Słówka pochodzą z folderu `../Angielski` i **aktualizują się same** — `start.bat` przy każdym uruchomieniu wczytuje (`node tools/import-slowka.js`):
 
-Ręcznie (np. na telefonie): **Profil → Importuj slowka.md**.
+- `slownik.md` — słowa w 200 działach (poziom CEFR, przedimek a/an, część mowy, wymowa, tłumaczenie, uwagi, skojarzenie, przykład),
+- `zwroty.md` — zwroty, idiomy i phrasal verbs,
+- `czesci_mowy.md` — zaimki i słowa spoza działów słownika.
+
+Gdy tych plików nie ma, importer czyta dawny `slowka.md`. Nowe słowa trafiają automatycznie do tematów, pakietów i testów; postęp nauki zostaje. Nowe słówka w nauce idą od najłatwiejszych (A1 → C1), w każdym poziomie temat po temacie.
+
+Ręcznie (np. na telefonie): **Profil → Importuj słownik (.md)**.
 
 ## Pliki
 
@@ -97,7 +103,7 @@ tools/cut-packs.html wycina ikony pakietów z design/pack-icons.jpg → assets/p
 js/icons.js         ikony i ilustracje (SVG)
 js/srs.js           algorytm powtórek
 js/answer.js        sprawdzanie wpisanych odpowiedzi
-js/parser.js        wczytywanie tabel z slowka.md i planu lekcji z program_A1.md
+js/parser.js        wczytywanie tabel ze slownik.md / zwroty.md / czesci_mowy.md (i dawnego slowka.md) oraz planu lekcji z program_A1.md
 js/exercises.js     generator zadań z lekcji (szablony gramatyki L1–L4) i sprawdzanie odpowiedzi
 js/seed-lessons.js  plan lekcji (generowany przez start.bat z program_A1.md)
 tasks.css           karta i arkusz zadań z lekcji

@@ -61,6 +61,8 @@ const COLL_ART = {
   'pack:podroze': 'podroze', 'pack:biznes': 'biznes', 'pack:phrases': 'rozmowki', 'pack:nouns': 'rzeczowniki',
   'pack:verbs': 'czasowniki', 'pack:adj': 'przymiotniki', 'pack:all': 'wszystkie',
   'topic:Powitania': 'powitania', 'topic:Przedstawianie się': 'przedstawianie', 'topic:Samopoczucie': 'samopoczucie',
+  'topic:Przedstawianie się, Powitania i Pożegnania': 'pozegnania', 'topic:Kraje': 'kraje', 'topic:Narodowości': 'swiat', 'topic:Podróże': 'podroze', 'topic:Biznes': 'biznes',
+  'topic:Small Talk i Reakcje Konwersacyjne': 'reagowanie', 'topic:Nastroje': 'samopoczucie',
   'topic:Grzeczności': 'grzecznosci', 'topic:Pożegnania': 'pozegnania', 'topic:Kraje i narodowości': 'kraje', 'topic:Kraje i narodowości — Europa': 'kraje', 'topic:Kraje i narodowości — świat i kontynenty': 'swiat',
   'topic:Pochodzenie i miejsce zamieszkania': 'pochodzenie', 'topic:Reagowanie w rozmowie': 'reagowanie', 'topic:Ludzie i rzeczy': 'biznes',
   'auto:last': 'ostatnia-lekcja', 'auto:hard': 'trudne', 'auto:mistakes': 'bledy',
@@ -136,7 +138,7 @@ let collFrom = 'home'; // skąd wszedłeś do pakietu (strzałka wstecz)
 
 function normalize(d) {
   return {
-    cards: d.cards || {}, days: d.days || {}, extra: d.extra || [],
+    cards: d.cards || {}, days: d.days || {}, extra: d.extra || [], seedVer: d.seedVer || 0,
     gems: d.gems || 0, freezes: d.freezes || 0, best: d.best || 0,
     lists: d.lists || [], exams: d.exams || [], path: d.path || [], mistakes: d.mistakes || [], badges: d.badges || {}, lastColl: d.lastColl || null, tasks: d.tasks || {}, lastBackup: d.lastBackup || 0, backupSnooze: d.backupSnooze || 0,
     stamp: d.stamp || {}, // kiedy zmieniło się każde pole (synchronizacja: wygrywa nowsza wersja)
@@ -297,6 +299,9 @@ const goalMin = () => db.settings.minutes || 5;
 const goalMs = () => goalMin() * 60000;
 const wordStatus = (w) => { const c = db.cards[w.id]; return !c ? 'new' : isKnown(c) ? 'known' : 'learning'; };
 const isPhrase = (w) => /zwrot/i.test(w.pos || '');
+// słowo bywa w kilku działach słownika (topics); topic = dział główny
+const cefr = (w) => ({ A1: 1, A2: 2, B1: 3, B2: 4, C1: 5, C2: 6 })[w.level] || 3; // poziom CEFR jako liczba (bez poziomu → środek)
+const inTopic = (w, t) => w.topic === t || (!!w.topics && w.topics.includes(t));
 // filtr „Słówka / Zwroty” z listy słówek (działa tylko, gdy zestaw ma jedno i drugie)
 const byKind = (ws) => { const n = ws.filter(isPhrase).length; const k = n > 0 && n < ws.length ? wordsFilter.kind : ''; return k ? ws.filter((w) => (k === 'phrases') === isPhrase(w)) : ws; };
 // czy słowo należy do planu dnia (ustawienie „Co ćwiczyć”)
@@ -305,7 +310,8 @@ const packOf = (w) => (PACKS.find((p) => p.key !== 'all' && p.test(w, w.pos || '
 
 function topicsList() {
   const list = [];
-  for (const w of words) if (!list.find((x) => x.name === w.topic)) list.push({ name: w.topic, icon: w.icon });
+  const seen = new Set();
+  for (const w of words) if (!seen.has(w.topic)) { seen.add(w.topic); list.push({ name: w.topic, icon: w.icon }); }
   return list;
 }
 
@@ -327,7 +333,7 @@ function collection(ref) {
   if (kind === 'topic') {
     const topics = topicsList();
     const t = topics.find((x) => x.name === key);
-    if (t) c = { name: t.name, ws: words.filter((w) => w.topic === key), bg: TINTS[topics.indexOf(t) % TINTS.length], art: topicArt(t.name) };
+    if (t) c = { name: t.name, ws: words.filter((w) => inTopic(w, key)), bg: TINTS[topics.indexOf(t) % TINTS.length], art: `<span class="pk-emoji">${esc(t.icon)}</span>` };
   } else if (kind === 'pack') {
     const p = PACKS.find((x) => x.key === key);
     if (p) c = { name: p.name, ws: words.filter((w) => key === 'all' || (p.test ? p.test(w, w.pos || '') : packOf(w) === key)), bg: p.color, textColor: p.textColor, art: packArt(p.key) };
@@ -352,7 +358,7 @@ function collection(ref) {
   }
   if (!c) return null;
   c.ref = ref;
-  const art = COLL_ART[ref] || (kind === 'topic' ? 'swiat' : kind === 'list' ? 'listy' : null); // nowy temat → globus
+  const art = COLL_ART[ref] || (kind === 'list' ? 'listy' : null); // temat bez własnej grafiki → jego emoji ze słownika
   c.img = art ? `pk-${art}.png` : null;
   [c.tint, c.pill] = ART_TINT[art] || [c.bg, '#8C95B6'];
   c.total = c.ws.length;
@@ -491,7 +497,7 @@ function forecast() {
   for (let i = 0; i < 7; i++) {
     const from = start.getTime() + i * DAY, to = from + DAY;
     let n = 0;
-    for (const c of Object.values(db.cards)) if (i === 0 ? c.due < to : c.due >= from && c.due < to) n++;
+    for (const w of words) { const c = db.cards[w.id]; if (c && (i === 0 ? c.due < to : c.due >= from && c.due < to)) n++; } // tylko słowa ze słownika (bez usuniętych)
     out.push({ label: i === 0 ? 'dziś' : WEEKDAYS[new Date(from).getDay()], n });
   }
   return out;

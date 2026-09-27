@@ -164,6 +164,7 @@ document.addEventListener('click', (e) => {
     case 'coll-review': if (coll) startSession({ ids: byKind(coll.ws).filter((w) => db.cards[w.id]).map((w) => w.id), mode: 'extra' }); break;
     case 'all-words': go('packs'); break;
     case 'promo': promoGo(ds.p); break;
+    case 'words-more': wordsFilter.more = true; render(); break;
     case 'promo-off': db.settings.promoOff = [...new Set([...(db.settings.promoOff || []), ds.p])]; save(); render(); break;
     case 'new-list':
       createList(ds.word).then((l) => { if (l && !ds.word) openCollection('list:' + l.id); else render(); });
@@ -397,6 +398,8 @@ $('#nav').innerHTML = [
   ['words', 'words', 'Słownictwo'],
   ['profile', 'settings', 'Ustawienia'],
 ].map(([v, icon, label]) => `<button data-view="${v}"><span class="nav-ind"></span>${ICON[icon]}<span>${label}</span></button>`).join('');
+// nowy słownik (slownik.md + zwroty.md): stare słówka wczytane ręcznie z dawnego slowka.md znikają
+if (db.seedVer !== 2) { db.extra = []; db.seedVer = 2; save(); }
 buildWords();
 applyFreezes();
 render();

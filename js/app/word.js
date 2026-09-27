@@ -5,12 +5,13 @@
 // ---------- słówko: szczegóły, wybór słów do nauki („Nauka”) i wznawianie ----------
 
 const HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.4C19.5 15.4 12 20 12 20z"/></svg>';
-const POS_NAMES = { 'rz.': 'rzeczownik', 'przym.': 'przymiotnik', 'cz.': 'czasownik', zwrot: 'zwrot', 'zaim.': 'zaimek', 'zaim. + być': 'zaimek + być', 'przyim.': 'przyimek', 'przysł.': 'przysłówek' };
+const POS_NAMES = { 'rz.': 'rzeczownik', 'przym.': 'przymiotnik', 'cz.': 'czasownik', zwrot: 'zwrot', 'zaim.': 'zaimek', 'zaim. + być': 'zaimek + być', 'przyim.': 'przyimek', 'przysł.': 'przysłówek', 'spój.': 'spójnik', 'liczeb.': 'liczebnik' };
 // plakietka części mowy na liście słówek: [ikona, skrót, kolor tła, kolor tekstu]
 const POS_BADGE = {
   'rz.': ['📦', 'rzecz.', '#E4EEFF', '#2B5BD7'], 'przym.': ['🎨', 'przym.', '#FFEBD9', '#B45309'], 'cz.': ['⚡', 'czas.', '#DDF7E6', '#15803D'],
   'zaim.': ['👤', 'zaim.', '#EFE7FF', '#6D28D9'], 'zaim. + być': ['👤', 'zaim.+być', '#EFE7FF', '#6D28D9'], 'przyim.': ['📍', 'przyim.', '#DDF6F6', '#0F766E'],
   'przysł.': ['⏱️', 'przysł.', '#FFE4EF', '#BE185D'], zwrot: ['💬', 'zwrot', '#F1F1F6', '#4B5170'],
+  'spój.': ['🔗', 'spój.', '#E9F5DC', '#4D7C0F'], 'liczeb.': ['🔢', 'liczeb.', '#FFF4CC', '#A16207'],
 };
 function posBadge(w) {
   const b = POS_BADGE[w.pos];
@@ -93,8 +94,9 @@ function viewWord() {
     ${w.pron ? `<p class="wd-pron">${esc(w.pron)}</p>` : ''}
   </section>
   <section class="wd-body">
-    <div class="wd-pl"><b>${esc(w.pl)}</b><span>${esc(POS_NAMES[w.pos] || w.pos || '')}</span></div>
-    <div class="wd-chip-row"><button class="wd-topic" data-coll="topic:${esc(w.topic)}">${esc(w.topic)}</button></div>
+    <div class="wd-pl"><b>${esc(w.pl)}</b><span>${esc([POS_NAMES[w.pos] || w.pos, w.article && `${w.article} ${w.en}`].filter(Boolean).join(' · '))}</span>${w.level ? `<span class="wd-cefr" title="Poziom CEFR">${esc(w.level)}</span>` : ''}</div>
+    <div class="wd-chip-row">${(w.topics || [w.topic]).map((t) => `<button class="wd-topic" data-coll="topic:${esc(t)}">${esc(t)}</button>`).join('')}</div>
+    ${w.notes ? `<div class="wd-block"><h3>Uwagi</h3><p>${esc(w.notes)}</p></div>` : ''}
     ${w.example ? `<div class="wd-block"><h3>Przykład</h3><p class="wd-example"><button class="wr-say" data-say="${esc(w.example)}" aria-label="Posłuchaj zdania">${SPEAKER}</button><i>${esc(w.example)}</i></p></div>` : ''}
     ${w.mnemo ? `<div class="wd-block"><h3>Skojarzenie</h3><p>🧠 ${esc(w.mnemo)}</p></div>` : ''}
     <div class="wd-block">
