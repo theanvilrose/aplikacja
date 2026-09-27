@@ -39,6 +39,41 @@ function statusBar() {
   </header>`;
 }
 
+// ---------- sekcja na gradiencie (jak Plan dnia) — zakładki Audio, Słownictwo, Profil ----------
+
+// ikonka jak assets/task-*.png: błyszczący kolorowy kwadrat z białym symbolem
+const sqIcon = (glyph, from, to) => `<span class="ph-icon ph-sq" style="--g1:${from};--g2:${to}">${glyph}</span>`;
+
+// duża grafika sekcji: kafel z symbolem (wektor — ostry w każdym rozmiarze) i unoszące się ikonki 3D
+function heroTile(glyph, from, to, floats = []) {
+  return `<div class="ph-art tile-art" aria-hidden="true"><span class="ta-glow"></span><span class="ta-tile" style="--g1:${from};--g2:${to}">${glyph}</span>${floats.map((x, i) => `<span class="ta-float f${i}">${x}</span>`).join('')}</div>`;
+}
+
+// wiersz jak zadanie Planu dnia: ikonka, tytuł (+ opis), pasek, liczba po prawej
+function heroRow({ icon, label, sub = '', right = '', fill = null, tint = '97, 67, 255', ink = '#6143ff', attrs = '', i = 0, sel = false }) {
+  const tag = attrs ? 'button' : 'div';
+  return `
+    <${tag} class="ph-task ${attrs ? '' : 'static'} ${fill > 0 ? 'going' : ''} ${sel ? 'sel' : ''}" ${attrs} style="--fill:${pct(fill || 0)};--tint:${tint};--ink:${ink};--i:${i}">
+      ${icon}
+      <span class="ph-body"><span class="ph-label">${label}</span>${sub ? `<span class="ph-sub">${sub}</span>` : ''}${fill !== null ? '<span class="ph-bar"><i></i></span>' : ''}</span>
+      ${right}
+    </${tag}>`;
+}
+
+function pageHero({ title, badge = '', head = '', art, rows }) {
+  return `
+  <section class="hero">
+    <div class="hero-inner">
+      ${statusBar()}
+      <section class="plan-hero page-hero">
+        <div class="ph-head"><h2 class="ph-title">${title}${badge}</h2>${head}</div>
+        <div class="ph-grid">${art}<div class="ph-tasks">${rows}</div></div>
+      </section>
+    </div>
+  </section>`;
+}
+const heroNum = (n, of) => `<span class="ph-num"><b>${n}</b>${of !== undefined ? '/' + of : ''}</span>`;
+
 function sectionHead(title, action = '') {
   return `<div class="section-head"><h2 class="section-title">${title}</h2>${action}</div>`;
 }
@@ -516,32 +551,34 @@ function viewListen() {
   const seen = words.filter((w) => db.cards[w.id]).length;
   const topics = topicsList();
   const plMissing = canSpeak && !plVoice();
+  const srcN = listenSource === '__seen' ? seen : listenSource === '__all' ? words.length : words.filter((w) => w.topic === listenSource).length;
+  const A = window.WORD_AUDIO || {}, acc = db.settings.accent === 'en-US' ? 'en-US' : 'en-GB', other = acc === 'en-US' ? 'en-GB' : 'en-US';
+  const recN = (l) => words.filter((w) => (A[l] || {})[audioKey(w.en)]).length;
+  const quiz = seen >= 4 && canSpeak;
   return `
-  ${statusBar()}
-  <h2 class="section-title">Słuchanie</h2>
+  ${pageHero({
+    title: 'Słuchanie',
+    art: heroTile(ICON.listen, '#9a86ff', '#5b43f0', [IMG('task-star.png'), '<span class="ta-bubble">♪</span>', IMG('stat-gem.png')]),
+    rows: `
+      ${heroRow({ icon: sqIcon(ICON.play, '#8aa2ff', '#4f63f0'), label: 'Słuchaj w drodze', sub: 'słowo, tłumaczenie i przykład — bez patrzenia', right: heroNum(srcN), attrs: `data-act="player" ${canSpeak ? '' : 'disabled'}`, tint: '79, 99, 240', ink: '#4f63f0', i: 0 })}
+      <label class="hero-select"><span>Co odtwarzać</span>
+        <select id="listen-source" aria-label="Co odtwarzać">
+          <option value="__seen" ${listenSource === '__seen' ? 'selected' : ''}>Poznane słówka (${seen})</option>
+          <option value="__all" ${listenSource === '__all' ? 'selected' : ''}>Wszystkie słówka (${words.length})</option>
+          ${topics.map((t) => `<option value="${esc(t.name)}" ${listenSource === t.name ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}
+        </select>
+      </label>
+      ${heroRow({ icon: sqIcon(ICON.listen, '#4fd8cf', '#12a39c'), label: 'Trening słuchu', sub: quiz ? 'rozpoznaj ze słuchu i zapisz, co słyszysz' : 'najpierw poznaj 4 słówka w zakładce Nauka', right: heroNum(Math.min(seen, 15)), attrs: quiz ? 'data-act="listen-quiz"' : 'disabled', tint: '18, 163, 156', ink: '#12a39c', i: 1 })}
+      <button class="ph-cta" data-act="player" ${canSpeak ? '' : 'disabled'}><span>Odtwarzaj</span></button>`,
+  })}
   ${canSpeak ? '' : '<p class="card bad-text small">Ta przeglądarka nie obsługuje czytania na głos.</p>'}
-  <section class="audio-card wide yellow">
-    <div class="acw-art">${ART.listenGirl}</div>
-    <div class="acw-text">
-      <h3>Słuchaj w drodze</h3>
-      <p>Aplikacja czyta słowo, jego tłumaczenie i przykład — bez patrzenia w ekran.</p>
+  <section class="card set-card">
+    <div class="set-head">${setIcon('listen', ['#E7E0FF', '#5A3FE0'])}<b>Głos lektora</b></div>
+    <div class="segmented two" role="radiogroup" aria-label="Akcent">
+      <button class="seg ${acc === 'en-US' ? 'on' : ''}" role="radio" aria-checked="${acc === 'en-US'}" data-setval="accent:en-US">Amerykański</button>
+      <button class="seg ${acc === 'en-GB' ? 'on' : ''}" role="radio" aria-checked="${acc === 'en-GB'}" data-setval="accent:en-GB">Brytyjski</button>
     </div>
-    <select id="listen-source" aria-label="Co odtwarzać">
-      <option value="__seen" ${listenSource === '__seen' ? 'selected' : ''}>Poznane słówka (${seen})</option>
-      <option value="__all" ${listenSource === '__all' ? 'selected' : ''}>Wszystkie słówka (${words.length})</option>
-      ${topics.map((t) => `<option value="${esc(t.name)}" ${listenSource === t.name ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}
-    </select>
-    <button class="btn pill wide" data-act="player" ${canSpeak ? '' : 'disabled'}>Odtwarzaj</button>
-    ${plMissing ? '<p class="small">Brak polskiego głosu w systemie — tłumaczenie pojawi się tylko na ekranie.</p>' : ''}
-  </section>
-  <section class="audio-card wide blue">
-    <div class="acw-art">${ART.ear}</div>
-    <div class="acw-text">
-      <h3>Trening słuchu</h3>
-      <p>Rozpoznawaj poznane słówka ze słuchu i zapisuj, co słyszysz.</p>
-    </div>
-    <button class="btn pill wide" data-act="listen-quiz" ${seen < 4 || !canSpeak ? 'disabled' : ''}>Zacznij</button>
-    ${seen < 4 ? '<p class="small">Najpierw poznaj co najmniej 4 słówka w zakładce Nauka.</p>' : ''}
+    <p class="set-hint">Nagrania lektora w tym akcencie: <b>${recN(acc)} z ${words.length}</b>${recN(acc) < words.length ? ` · brakujące czyta ${recN(other) ? `lektor ${other === 'en-US' ? 'amerykański' : 'brytyjski'} (${recN(other)}) albo ` : ''}głos przeglądarki` : ''}.${plMissing ? ' Brak polskiego głosu w systemie — tłumaczenie pojawi się tylko na ekranie.' : ''}</p>
   </section>`;
 }
 
@@ -955,6 +992,10 @@ function viewWords() {
   const chips = [['', 'Wszystkie', base.length], ['known', 'Umiem', statusCount('known')], ['learning', 'Uczę się', statusCount('learning')], ['new', 'Nowe', statusCount('new')]];
   const opt = (ref, label) => `<option value="${esc(ref)}" ${wordsFilter.coll === ref ? 'selected' : ''}>${esc(label)}</option>`;
 
+  const kindSeg = mixed ? `
+    <div class="segmented kind-seg" role="radiogroup" aria-label="Rodzaj">
+      ${kinds.map(([k, label, n]) => `<button class="seg ${kind === k ? 'on' : ''}" role="radio" aria-checked="${kind === k}" data-kind="${k}">${label} <span>${n}</span></button>`).join('')}
+    </div>` : '';
   const options = `
     ${mixed ? `
     <div class="segmented kind-seg" role="radiogroup" aria-label="Rodzaj">
@@ -965,12 +1006,25 @@ function viewWords() {
     </div>`;
   const rows = list.length ? list.map(wordRow).join('') : '<p class="muted center empty">Brak słówek w tym widoku</p>';
 
-  // Zakładka Słówka: wszystkie słowa z wyborem zestawu
+  // Zakładka Słownictwo: sekcja z postępem (jak Plan dnia) + wszystkie słowa z wyborem zestawu
   if (!coll) {
+    const total = base.length || 1, ready = counts().dueLeft + counts().newLeft;
+    const statRow = (key, label, img, tint, ink, i) => heroRow({
+      icon: IMG(img, 'ph-icon'), label, fill: statusCount(key) / total, tint, ink, i,
+      right: heroNum(statusCount(key)), attrs: `data-status="${wordsFilter.status === key ? '' : key}"`, sel: wordsFilter.status === key,
+    });
     return `
-    ${statusBar()}
-    <h2 class="section-title">Słówka</h2>
-    <div class="filters">
+    ${pageHero({
+      title: 'Słownictwo',
+      badge: `<span class="ph-mode static">${itemsLabel(base)}</span>`,
+      art: heroTile(ICON.words, '#5fd99a', '#1f9f5a', [IMG('stat-check.png'), '<span class="ta-bubble">Aa</span>', IMG('task-star.png')]),
+      rows: `
+        ${statRow('known', 'Umiem', 'stat-check.png', '34, 197, 94', '#1fa45a', 0)}
+        ${statRow('learning', 'Uczę się', 'task-refresh.png', '59, 142, 240', '#2f7fe6', 1)}
+        ${statRow('new', 'Nowe', 'task-star.png', '255, 194, 26', '#e09a00', 2)}
+        <button class="ph-cta" data-act="${ready ? 'start' : 'extra'}"><span>${ready ? 'Ucz się' : 'Powtórz więcej'}</span></button>`,
+    })}
+    <div class="filters hero-filters">
       <input type="search" id="q" placeholder="Szukaj…" value="${esc(wordsFilter.q)}">
       <select id="coll" aria-label="Zestaw">
         <option value="">Wszystkie słówka</option>
@@ -979,7 +1033,7 @@ function viewWords() {
         <optgroup label="Moje listy">${opt('auto:last', 'Z ostatniej lekcji')}${opt('auto:hard', 'Trudne słowa')}${opt('auto:mistakes', 'Błędy z testów')}${db.lists.map((l) => opt('list:' + l.id, l.name)).join('')}</optgroup>
       </select>
     </div>
-    ${options}
+    ${kindSeg}
     <div class="word-list">${rows}</div>`;
   }
 
@@ -1023,19 +1077,20 @@ function viewProfile() {
   const fc = forecast();
   const fcMax = Math.max(1, ...fc.map((x) => x.n));
   const lvMax = Math.max(1, ...c.levels);
+  const next = BADGES.find((b) => b.days > st) || BADGES[BADGES.length - 1];
+  const totalW = words.length || 1;
   return `
-    ${statusBar()}
-    <section class="profile-head">
-      <div class="avatar">${ICON.uk}</div>
-      <div><h2>Mój profil</h2><p class="muted small">Uczysz się: angielski</p></div>
-    </section>
-
-    <div class="stat-grid">
-      <div class="stat-tile"><span class="st-icon flame">${ICON.flame}</span><b>${st}</b><span>seria dni</span></div>
-      <div class="stat-tile"><span class="st-icon">${ICON.gem}</span><b>${db.gems}</b><span>diamentów</span></div>
-      <div class="stat-tile"><span class="st-icon">${ICON.check}</span><b>${c.known}</b><span>umiesz słówek</span></div>
-      <div class="stat-tile"><span class="st-icon">${ART.trophy}</span><b>${db.best}</b><span>najdłuższa seria</span></div>
-    </div>
+    ${pageHero({
+      title: 'Mój profil',
+      badge: '<span class="ph-mode static">angielski</span>',
+      head: `<button class="ph-settings" data-view="plan-settings" aria-label="Ustawienia planu dnia" title="Ustawienia planu">${ICON.sliders}</button>`,
+      art: `<div class="ph-art avatar-art" aria-hidden="true"><span class="ta-glow"></span><span class="aa-flag">${ICON.uk}</span><span class="ta-float f0">${IMG('stat-flame.png')}</span><span class="ta-float f1">${IMG('stat-gem.png')}</span><span class="ta-float f2">${IMG('stat-check.png')}</span></div>`,
+      rows: `
+        ${heroRow({ icon: IMG('stat-flame.png', 'ph-icon'), label: 'Seria dni', sub: st >= next.days ? 'wszystkie odznaki zdobyte!' : `do odznaki „${next.name}”: ${daysLabel(next.days - st)}`, fill: Math.min(1, st / next.days), right: heroNum(st), tint: '255, 138, 31', ink: '#ed7a18', i: 0 })}
+        ${heroRow({ icon: IMG('stat-gem.png', 'ph-icon'), label: 'Diamenty', sub: `zamrożenie serii: ${FREEZE_PRICE} 💎 · masz ${db.freezes} z ${MAX_FREEZES}`, right: heroNum(db.gems), tint: '144, 97, 227', ink: '#9061e3', i: 1 })}
+        ${heroRow({ icon: IMG('stat-check.png', 'ph-icon'), label: 'Umiesz słówek', fill: c.known / totalW, right: heroNum(c.known, words.length), tint: '39, 173, 179', ink: '#27adb3', i: 2 })}
+        ${heroRow({ icon: `<span class="ph-icon ph-art-icon">${ART.trophy}</span>`, label: 'Najdłuższa seria', right: heroNum(db.best), tint: '255, 194, 26', ink: '#e09a00', i: 3 })}`,
+    })}
 
     ${streakCard()}
 

@@ -68,6 +68,16 @@
 :root[data-theme="dark"] .ripple { background: rgba(32, 29, 42, 0.45); }
 :root[data-theme="dark"] .hero .plan-focus { background: rgba(32, 29, 42, 0.55); }
 :root[data-theme="dark"] .hero .plan-focus .focus-top .card-title { color: #d4d7e5; }
+:root[data-theme="dark"] .ph-sq { box-shadow: inset 0 2px 0 rgba(32, 29, 42, 0.35), inset 0 -3px 0 rgba(0, 0, 0, 0.12), 0 4px 10px rgba(40, 60, 120, 0.18); }
+:root[data-theme="dark"] .ph-art-icon { background: #473a15; }
+:root[data-theme="dark"] .ph-sub { color: #b3b6c2; }
+:root[data-theme="dark"] .ph-mode.static:hover { background: rgba(32, 29, 42, 0.75); }
+:root[data-theme="dark"] .hero-select { background: rgba(32, 29, 42, 0.6); color: #7b82a6; }
+:root[data-theme="dark"] .hero-select select { background: #201d2a; color: #d8dae3; }
+:root[data-theme="dark"] .ta-glow { background: radial-gradient(circle, rgba(32, 29, 42, 0.85) 0%, rgba(32, 29, 42, 0.35) 55%, rgba(32, 29, 42, 0) 72%); }
+:root[data-theme="dark"] .ta-tile { box-shadow: inset 0 5px 0 rgba(32, 29, 42, 0.35), inset 0 -8px 0 rgba(0, 0, 0, 0.12), 0 22px 40px -12px rgba(40, 60, 140, 0.45); }
+:root[data-theme="dark"] .ta-bubble { background: #201d2a; }
+:root[data-theme="dark"] .aa-flag { border: 7px solid #201d2a; }
 
 /* packs.css */
 :root[data-theme="dark"] .pk-top { background: #1b1836; }
