@@ -146,7 +146,7 @@ function startPlanPick(first) {
 }
 
 function openPick({ ref, ids, goal }) {
-  PK = { ref, ids, goal, i: 0, picked: [], known: 0, back: view, hist: [], dir: '' };
+  PK = { ref, ids, goal, i: 0, picked: [], known: 0, back: view === 'summary' ? 'home' : view, hist: [], dir: '' };
   go('pick');
   speakPick();
 }
@@ -158,6 +158,8 @@ function speakPick() {
 
 const pickIcon = (w) => (WORD_IMG[w.id] && !isPhrase(w) ? `<img src="assets/words/${WORD_IMG[w.id]}.png" alt="">` : `<span>${esc(isPhrase(w) ? '💬' : w.icon || '📘')}</span>`);
 
+// Naucz się: od razu wybór prawidłowego tłumaczenia tego słowa, po odpowiedzi powrót do karuzeli (następne słowo).
+// Później: następne słowo. Wiem: zapisane jako wyuczone, następne słowo.
 function pickWord(action) {
   const id = PK.ids[PK.i], w = byId.get(id);
   PK.hist.push({ i: PK.i, picked: PK.picked.slice(), known: PK.known, card: db.cards[id] ? { ...db.cards[id] } : null, action });
@@ -165,7 +167,8 @@ function pickWord(action) {
   else if (action === 'known') { markKnown(id); PK.known++; }
   PK.i++;
   PK.dir = 'next';
-  if (PK.picked.length >= PK.goal || PK.i >= PK.ids.length) return finishPick();
+  if (action === 'learn') return startSession({ mode: 'new', ids: [id], picked: true, pick: true });
+  if (PK.i >= PK.ids.length) return finishPick();
   render();
   speakPick();
   if (action !== 'learn') toast(action === 'known' ? 'Już wyuczone' : 'Przeskoczyłeś słowo', { undo: pickUndo, icon: pickIcon(w) });
@@ -181,20 +184,26 @@ function pickUndo() {
   speakPick();
 }
 
+// koniec karuzeli (przejrzane wszystkie słowa albo „Wróć”)
 function finishPick() {
-  const { picked, known, ref, back } = PK;
+  const { picked, known, back } = PK;
   PK = null;
-  if (picked.length) {
-    if (!ref) return startSession({ mode: 'new', ids: picked, picked: true }); // karta Nauka: same wybrane nowe słowa, od razu wybór tłumaczenia
-    // wybrane nowe słowa + zaległe powtórki z tego pakietu
-    const coll = collection(ref);
-    const now = Date.now();
-    const due = coll ? byKind(coll.ws).filter((w) => db.cards[w.id] && db.cards[w.id].due <= now).map((w) => w.id) : [];
-    return startSession({ ids: [...picked, ...due], coll: ref, picked: true });
-  }
-  view = back;
+  view = back === 'pick' || back === 'session' ? 'home' : back;
   render();
-  toast(known ? `✓ Wyuczone: ${known} — jutro szybkie sprawdzenie` : 'Nie wybrano słówek do nauki');
+  const parts = [picked.length && `poznane: ${picked.length}`, known && `już znane: ${known}`].filter(Boolean);
+  toast(parts.length ? `✓ Nowe słówka — ${parts.join(', ')}` : 'Nie wybrano słówek do nauki');
+}
+
+// po jednym pytaniu z karuzeli: z powrotem do karuzeli, na następne słowo (skrzynia — najpierw ekran nagrody)
+function backToPick() {
+  if (S && S.chestOpened) { view = 'summary'; render(); return; }
+  S = null;
+  if (!PK) { go('home'); return; }
+  if (PK.i >= PK.ids.length) return finishPick();
+  view = 'pick';
+  render();
+  window.scrollTo(0, 0);
+  speakPick();
 }
 
 function viewPick() {
@@ -228,7 +237,6 @@ function viewPick() {
   <div class="pick-actions">
     <button class="pick-go" data-act="pick-learn"><span>Naucz się</span></button>
     <div class="wd-actions"><button class="wd-link" data-act="pick-later">Później</button><span></span><button class="wd-link" data-act="pick-known">Wiem</button></div>
-    ${PK.picked.length ? `<button class="pick-start" data-act="pick-start">Zacznij teraz z ${PK.picked.length} ${plural(PK.picked.length, 'słowem', 'słowami', 'słowami')} ›</button>` : ''}
   </div>`;
 }
 

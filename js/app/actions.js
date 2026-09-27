@@ -175,7 +175,6 @@ document.addEventListener('click', (e) => {
     case 'intro-known': introSkip(true); break;
     case 'pick-later': pickWord('later'); break;
     case 'pick-known': pickWord('known'); break;
-    case 'pick-start': finishPick(); break;
     case 'pick-back': { const back = PK?.back || 'words'; PK = null; view = back; render(); break; }
     case 'word-back': closeWord(); break;
     case 'word-fav': toggleFav(wordView.id); render(); break;

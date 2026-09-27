@@ -112,11 +112,12 @@ function startSession(opts = {}) {
   if (!queue.length) return toast('Najpierw poznaj kilka słówek');
   const mins = db.settings.minutes;
   S = {
-    queue, pos: 0, start: Date.now(), budget: !exam && mins ? mins * 60000 : 0,
+    queue, pos: 0, start: Date.now(), budget: !exam && mins && !opts.pick ? mins * 60000 : 0,
     mode: exam ? 'exam' : opts.mode || 'learn', exam, recorded: false,
     answers: [], wrong: new Set(), newIds: new Set(), extraSteps: {}, cur: null, timer: null,
     gems: 0, streakUp: 0, chestOpened: false, badge: null, pathAdvanced: false,
     coll: opts.coll || null, // pakiet / temat, z którego ruszyła lekcja (powrót po podsumowaniu)
+    pick: !!opts.pick, // jedno pytanie z karuzeli „Nowe słówka” — potem powrót do karuzeli
   };
   view = 'session';
   window.scrollTo(0, 0);
@@ -131,6 +132,7 @@ function nextStep() {
     // po czasie kończymy tylko rozpoczęte słowa (nowe i pomyłki)
     S.queue = S.queue.slice(0, S.pos).concat(S.queue.slice(S.pos).filter((q) => q.follow));
   }
+  if (S.pick && S.pos >= 1) return backToPick(); // bez dodatkowych powtórek w tej samej chwili — wrócą w nauce
   if (S.pos >= S.queue.length) return finish();
   const item = S.queue[S.pos];
   const w = byId.get(item.id);
@@ -516,6 +518,7 @@ function finish() {
 
 async function quitSession() {
   if (!S) return;
+  if (S.pick) return backToPick();
   if (S.mode === 'exam') {
     if (S.pos === 0 || (await ask({ title: 'Przerwać test?', text: 'Wynik nie zostanie zapisany.', ok: 'Przerwij', cancel: 'Wracam do testu', danger: true }))) { S = null; go('home'); }
     return;
