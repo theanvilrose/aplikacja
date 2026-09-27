@@ -339,6 +339,14 @@ function collection(ref) {
   } else if (kind === 'auto' && key === 'last') {
     const d = lastLessonDate();
     c = { name: 'Z ostatniej lekcji', ws: d ? words.filter((w) => w.added === d) : [], bg: '#DDF6E8', art: ART.book, desc: d ? `dodane ${formatDate(d, false)}` : '' };
+  } else if (kind === 'auto' && ['new', 'seen', 'known', 'learning'].includes(key)) {
+    const AUTO = {
+      new: ['Słówka do nauczenia', (w) => !db.cards[w.id], 'jeszcze nie ćwiczone'],
+      seen: ['Moje słówka', (w) => !!db.cards[w.id], 'wszystkie, które już poznałeś'],
+      known: ['Umiem', (w) => wordStatus(w) === 'known', 'wyuczone'],
+      learning: ['Uczę się', (w) => wordStatus(w) === 'learning', 'w trakcie nauki'],
+    }[key];
+    c = { name: AUTO[0], ws: words.filter(AUTO[1]), bg: '#EFEAFF', art: ART.cardStack, desc: AUTO[2] };
   } else if (kind === 'auto' && key === 'mistakes') {
     c = { name: 'Błędy z testów', ws: db.mistakes.map((id) => byId.get(id)).filter(Boolean), bg: '#FFE6DF', art: ART.cardStack, desc: 'znikają po poprawnej odpowiedzi' };
   }
@@ -514,7 +522,7 @@ function ask({ title, text = '', input = false, value = '', ok = 'OK', cancel = 
         ${text ? `<p>${esc(text)}</p>` : ''}
         ${input ? `<input class="ask-input" value="${esc(value)}" maxlength="40" autocomplete="off" required>` : ''}
         <div class="ask-actions">
-          <button type="button" class="ask-btn ghost" value="cancel">${esc(cancel)}</button>
+          ${cancel === false ? '' : `<button type="button" class="ask-btn ghost" value="cancel">${esc(cancel)}</button>`}
           <button type="submit" class="ask-btn ${danger ? 'danger' : ''}" value="ok">${esc(ok)}</button>
         </div>
       </form>`;

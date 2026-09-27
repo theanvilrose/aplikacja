@@ -6,7 +6,7 @@
 
 function render() {
   applyTheme();
-  const views = { home: viewHome, listen: viewListen, words: viewWords, profile: viewProfile, session: viewSession, summary: viewSummary, player: viewPlayer, 'plan-settings': viewPlanSettings, packs: viewPacks, word: viewWord, pick: viewPick, tasks: viewTasks, 'task-settings': viewTaskSettings, dev: viewDev };
+  const views = { lists: viewLists, home: viewHome, listen: viewListen, words: viewWords, profile: viewProfile, session: viewSession, summary: viewSummary, player: viewPlayer, 'plan-settings': viewPlanSettings, packs: viewPacks, word: viewWord, pick: viewPick, tasks: viewTasks, 'task-settings': viewTaskSettings, dev: viewDev };
   $('#app').innerHTML = views[view]();
   const navHidden = view === 'session' || view === 'player' || view === 'pick' || view === 'word' || view === 'tasks' || (view === 'summary' && !!S?.chestOpened);
   $('#nav').hidden = navHidden;
@@ -989,6 +989,78 @@ function wordRow(w) {
     </div>`;
 }
 
+const PROMOS = [
+  ['install', 'Dodaj na ekran główny', 'Słowik jak zwykła aplikacja — jedno dotknięcie', 'Jak dodać', '#efeaff', '#6a4cff'],
+  ['listen', 'Słuchaj w drodze', 'Słówka czytane na głos — w autobusie, w aucie', 'Jak używać', '#e3f1ff', '#2f7fe6'],
+  ['sync', 'Telefon i komputer', 'Wspólny postęp przez domowe Wi‑Fi', 'Jak połączyć', '#dcf6ee', '#0f9a8c'],
+  ['backup', 'Kopia zapasowa', 'Zapisz postęp w pliku na wszelki wypadek', 'Zrób kopię', '#fff3d6', '#d98a00'],
+];
+
+function viewVocab() {
+  const seen = words.filter((w) => db.cards[w.id]).length;
+  const st = (k) => words.filter((w) => wordStatus(w) === k).length;
+  const total = words.length || 1, ready = counts().dueLeft + counts().newLeft;
+  const fav = db.lists.find((l) => l.id === FAV_ID);
+  const hard = collection('auto:hard');
+  const promos = PROMOS.filter(([k]) => !(db.settings.promoOff || []).includes(k));
+  const menu = [
+    ['auto:new', 'Słówka do nauczenia', 'voc-learn', total - seen],
+    ['auto:hard', 'Pomyłki', 'voc-mistakes', hard ? hard.total : 0, true],
+    ['auto:seen', 'Moje słówka', 'voc-mine', seen],
+    ['pack:all', 'Wszystkie słówka', 'voc-all', words.length],
+    ['view:lists', 'Moje listy', 'voc-lists', db.lists.filter((l) => l.id !== FAV_ID).length],
+    ['view:packs', 'Tematy', 'voc-topics', topicsList().length],
+    ['list:' + FAV_ID, 'Ulubione', 'voc-fav', fav ? fav.ids.length : 0],
+  ];
+  const statRow = (key, label, img, tint, ink, i) => heroRow({
+    icon: IMG(img, 'ph-icon'), label, fill: st(key) / total, tint, ink, i, right: heroNum(st(key)), attrs: `data-coll="auto:${key === 'new' ? 'new' : key}"`,
+  });
+  return `
+    ${pageHero({
+      title: 'Słownictwo',
+      badge: `<span class="ph-mode static">${itemsLabel(words)}</span>`,
+      art: `<div class="ph-art">${IMG('hero-words.png', '', '')}</div>`,
+      rows: `
+        ${statRow('known', 'Umiem', 'stat-check.png', '34, 197, 94', '#1fa45a', 0)}
+        ${statRow('learning', 'Uczę się', 'task-refresh.png', '59, 142, 240', '#2f7fe6', 1)}
+        ${statRow('new', 'Nowe', 'task-star.png', '255, 194, 26', '#e09a00', 2)}
+        <button class="ph-cta" data-act="${ready ? 'start' : 'extra'}"><span>${ready ? 'Ucz się' : 'Powtórz więcej'}</span></button>`,
+    })}
+    ${promos.length ? `
+    <div class="promos">${promos.map(([k, title, text, link, bg, ink]) => `
+      <section class="promo" style="--bg:${bg};--ink:${ink}">
+        <button class="promo-x" data-act="promo-off" data-p="${k}" aria-label="Ukryj">${ICON.close}</button>
+        ${IMG(`ui/promo-${k}.png`, 'promo-img')}
+        <b>${title}</b>
+        <span>${text}</span>
+        <button class="promo-go" data-act="promo" data-p="${k}">${link} ›</button>
+      </section>`).join('')}
+    </div>` : ''}
+    <section class="voc-menu">
+      ${menu.map(([ref, label, icon, n, alert]) => {
+        const [kind, key] = ref.split(':');
+        const attrs = kind === 'view' ? `data-view="${key}"` : `data-coll="${esc(ref)}"`;
+        return `<button class="voc-row" ${attrs}>${IMG(`ui/${icon}.png`, 'voc-ic')}<b>${label}</b><span class="voc-n ${alert && n ? 'alert' : ''}">${n}</span><span class="voc-chev" aria-hidden="true">›</span></button>`;
+      }).join('')}
+    </section>`;
+}
+
+// Moje listy: własne zestawy słówek (Ulubione są osobno w Słownictwie)
+function viewLists() {
+  const lists = db.lists.filter((l) => l.id !== FAV_ID).map((l) => collection('list:' + l.id)).filter(Boolean);
+  return `
+    ${subHero({
+      title: 'Moje listy',
+      back: 'data-view="words"',
+      sub: lists.length ? `${lists.length} ${plural(lists.length, 'lista', 'listy', 'list')}` : 'Twoje zestawy do powtórek',
+      art: `<div class="ph-art">${IMG('ui/cards.png', '', '')}</div>`,
+      rows: `
+        ${lists.map((l, i) => heroRow({ icon: sqIcon(ICON.words, '#8fb7ff', '#2f7fe6'), label: esc(l.name), sub: `umiesz ${l.known} z ${l.total}`, fill: l.total ? l.known / l.total : 0, right: heroNum(l.total), attrs: `data-coll="${esc(l.ref)}"`, tint: '59, 142, 240', ink: '#2f7fe6', i })).join('')}
+        ${lists.length ? '' : '<p class="sh-empty">Nie masz jeszcze list. Utwórz pierwszą albo dodawaj słówka serduszkiem do Ulubionych.</p>'}
+        <button class="ph-cta" data-act="new-list"><span>+ Nowa lista</span></button>`,
+    })}`;
+}
+
 function viewWords() {
   const q = Answer.norm(wordsFilter.q);
   const coll = collection(wordsFilter.coll);
@@ -1006,10 +1078,6 @@ function viewWords() {
   const chips = [['', 'Wszystkie', base.length], ['known', 'Umiem', statusCount('known')], ['learning', 'Uczę się', statusCount('learning')], ['new', 'Nowe', statusCount('new')]];
   const opt = (ref, label) => `<option value="${esc(ref)}" ${wordsFilter.coll === ref ? 'selected' : ''}>${esc(label)}</option>`;
 
-  const kindSeg = mixed ? `
-    <div class="segmented kind-seg" role="radiogroup" aria-label="Rodzaj">
-      ${kinds.map(([k, label, n]) => `<button class="seg ${kind === k ? 'on' : ''}" role="radio" aria-checked="${kind === k}" data-kind="${k}">${label} <span>${n}</span></button>`).join('')}
-    </div>` : '';
   const options = `
     ${mixed ? `
     <div class="segmented kind-seg" role="radiogroup" aria-label="Rodzaj">
@@ -1020,37 +1088,8 @@ function viewWords() {
     </div>`;
   const rows = list.length ? list.map(wordRow).join('') : '<p class="muted center empty">Brak słówek w tym widoku</p>';
 
-  // Zakładka Słownictwo: sekcja z postępem (jak Plan dnia) + wszystkie słowa z wyborem zestawu
-  if (!coll) {
-    const total = base.length || 1, ready = counts().dueLeft + counts().newLeft;
-    const statRow = (key, label, img, tint, ink, i) => heroRow({
-      icon: IMG(img, 'ph-icon'), label, fill: statusCount(key) / total, tint, ink, i,
-      right: heroNum(statusCount(key)), attrs: `data-status="${wordsFilter.status === key ? '' : key}"`, sel: wordsFilter.status === key,
-    });
-    return `
-    ${pageHero({
-      title: 'Słownictwo',
-      badge: `<span class="ph-mode static">${itemsLabel(base)}</span>`,
-      art: `<div class="ph-art">${IMG('hero-words.png', '', '')}</div>`,
-      rows: `
-        ${statRow('known', 'Umiem', 'stat-check.png', '34, 197, 94', '#1fa45a', 0)}
-        ${statRow('learning', 'Uczę się', 'task-refresh.png', '59, 142, 240', '#2f7fe6', 1)}
-        ${statRow('new', 'Nowe', 'task-star.png', '255, 194, 26', '#e09a00', 2)}
-        <button class="ph-cta" data-act="${ready ? 'start' : 'extra'}"><span>${ready ? 'Ucz się' : 'Powtórz więcej'}</span></button>`,
-    })}
-    <div class="filters hero-filters">
-      <input type="search" id="q" placeholder="Szukaj…" value="${esc(wordsFilter.q)}">
-      <select id="coll" aria-label="Zestaw">
-        <option value="">Wszystkie słówka</option>
-        <optgroup label="Tematy">${topicsList().map((t) => opt('topic:' + t.name, t.name)).join('')}</optgroup>
-        <optgroup label="Pakiety">${PACKS.filter((p) => p.key !== 'all').map((p) => opt('pack:' + p.key, p.name)).join('')}</optgroup>
-        <optgroup label="Moje listy">${opt('auto:last', 'Z ostatniej lekcji')}${opt('auto:hard', 'Trudne słowa')}${opt('auto:mistakes', 'Błędy z testów')}${db.lists.map((l) => opt('list:' + l.id, l.name)).join('')}</optgroup>
-      </select>
-    </div>
-    ${kindSeg}
-    <div class="word-list">${rows}</div>`;
-  }
-
+  // Zakładka Słownictwo: postęp, karty podpowiedzi i działy (jak w WRD, w stylu aplikacji)
+  if (!coll) return viewVocab();
   // Ekran pakietu / tematu / listy (jak w WRD): nagłówek, szukaj, lista z ikonami, „Ucz się” na dole
   const learnN = base.length;
   return `

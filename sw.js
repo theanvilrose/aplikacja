@@ -4,13 +4,13 @@
 importScripts('sw-assets.js');
 const MEDIA = 'slowik-media';
 const isMedia = (p) => p.includes('/assets/words/') || p.includes('/assets/audio/');
-const CACHE = 'slowik-v63';
+const CACHE = 'slowik-v64';
 const FILES = [
   './', 'index.html', 'sw-assets.js', 'styles.css', 'plan-hero.css', 'packs.css', 'tasks.css', 'dark.css', 'manifest.webmanifest', 'icon.svg',
   'js/seed-words.js', 'js/seed-lessons.js', 'js/parser.js', 'js/answer.js', 'js/builder.js', 'js/sync.js', 'js/exercises.js', 'js/srs.js', 'js/icons.js', 'js/word-icons.js', 'js/word-icons-extra.js', 'js/word-audio.js',
   'js/app/core.js', 'js/app/session.js', 'js/app/views.js', 'js/app/word.js', 'js/app/dev.js', 'js/app/actions.js',
   'assets/plan-rocket.webp', 'assets/hero-audio.png', 'assets/hero-words.png', 'assets/hero-profile.png', 'assets/hero-plan.png', 'assets/hero-tasks.png', 'assets/hero-packs.png',
-  'assets/ui/gradcap.png', 'assets/ui/trophy.png', 'assets/ui/globe.png', 'assets/ui/cup.png', 'assets/ui/suitcase.png', 'assets/ui/book.png', 'assets/ui/medal.png', 'assets/ui/cards.png', 'assets/ui/girl.png', 'assets/ui/ear.png', 'assets/ui/chest.png', 'assets/ui/speaker.png', 'assets/ui/turtle.png',
+  'assets/ui/gradcap.png', 'assets/ui/trophy.png', 'assets/ui/globe.png', 'assets/ui/cup.png', 'assets/ui/suitcase.png', 'assets/ui/book.png', 'assets/ui/medal.png', 'assets/ui/cards.png', 'assets/ui/girl.png', 'assets/ui/ear.png', 'assets/ui/chest.png', 'assets/ui/speaker.png', 'assets/ui/voc-learn.png', 'assets/ui/voc-mistakes.png', 'assets/ui/voc-mine.png', 'assets/ui/voc-all.png', 'assets/ui/voc-lists.png', 'assets/ui/voc-topics.png', 'assets/ui/voc-fav.png', 'assets/ui/promo-install.png', 'assets/ui/promo-listen.png', 'assets/ui/promo-sync.png', 'assets/ui/promo-backup.png', 'assets/ui/turtle.png',
   'assets/ui/ex-en2pl.png', 'assets/ui/ex-truefalse.png', 'assets/ui/ex-pic4.png', 'assets/ui/ex-pairs.png', 'assets/ui/ex-pl2en.png', 'assets/ui/ex-listen2pl.png', 'assets/ui/ex-build.png', 'assets/ui/ex-type.png', 'assets/ui/ex-dictation.png', 'assets/stat-check.png', 'assets/stat-gem.png', 'assets/stat-flame.png',
   'assets/task-refresh.png', 'assets/task-star.png', 'assets/task-clock.png', 'assets/task-chest.png',
   'assets/done-check.png', 'assets/gem-small.png',

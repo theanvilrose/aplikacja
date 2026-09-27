@@ -62,8 +62,23 @@ function go(v) {
   window.scrollTo(0, 0);
 }
 
+// „Dodaj na ekran główny”: przeglądarka daje własne okienko (Chrome/Edge) albo pokazujemy, jak zrobić to ręcznie
+let installPrompt = null;
+addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; });
+
+async function promoGo(p) {
+  if (p === 'install') {
+    if (installPrompt) { installPrompt.prompt(); installPrompt = null; return; }
+    const ios = /iphone|ipad/i.test(navigator.userAgent);
+    await ask({ title: 'Dodaj Słowika na ekran główny', text: ios ? 'Safari: dotknij „Udostępnij” (kwadrat ze strzałką) → „Do ekranu początkowego”.' : 'Chrome / Edge: menu ⋮ → „Zainstaluj aplikację” albo „Dodaj do ekranu głównego”. Słowik uruchomi się jak zwykła aplikacja, także bez internetu.', ok: 'Rozumiem', cancel: false });
+  } else if (p === 'listen') go('listen');
+  else if (p === 'sync') { go('profile'); setTimeout(() => document.querySelector('.sync-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60); }
+  else if (p === 'backup') exportBackup();
+}
+
 function openCollection(ref) {
-  if (ref && view !== 'words') collFrom = view === 'packs' ? 'packs' : 'home';
+  // skąd otwarto zestaw — tam wraca strzałka (Słownictwo, Moje listy, Pakiety albo ekran główny)
+  if (ref) collFrom = ['packs', 'words', 'lists'].includes(view) ? view : 'home';
   wordsFilter = { q: '', coll: ref, status: '', kind: '' };
   go('words');
 }
@@ -148,6 +163,8 @@ document.addEventListener('click', (e) => {
     case 'coll-player': if (coll) startPlayer(byKind(coll.ws).map((w) => w.id)); break;
     case 'coll-review': if (coll) startSession({ ids: byKind(coll.ws).filter((w) => db.cards[w.id]).map((w) => w.id), mode: 'extra' }); break;
     case 'all-words': go('packs'); break;
+    case 'promo': promoGo(ds.p); break;
+    case 'promo-off': db.settings.promoOff = [...new Set([...(db.settings.promoOff || []), ds.p])]; save(); render(); break;
     case 'new-list':
       createList(ds.word).then((l) => { if (l && !ds.word) openCollection('list:' + l.id); else render(); });
       break;
@@ -246,7 +263,7 @@ document.addEventListener('pointerdown', (e) => {
 });
 
 // Poziome paski (Pakiety słówek): przeciąganie myszą jak palcem na telefonie; kółko myszy też przewija w bok.
-const DRAG_ROWS = '.packs';
+const DRAG_ROWS = '.packs, .promos';
 let rowDrag = null;
 document.addEventListener('pointerdown', (e) => {
   const row = e.pointerType === 'mouse' && e.button === 0 && e.target.closest(DRAG_ROWS);
