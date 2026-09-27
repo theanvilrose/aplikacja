@@ -137,10 +137,12 @@ function planHead(title) {
     </div>`;
 }
 
-// Karta 1: Nauka — jak „Plan dzienny” w WRD: nowe słowa na dziś zmieniają się w dużym kafelku co 3 s,
+// Karta 1: Nauka — jak „Plan dzienny” w WRD: nowe słowa na dziś zmieniają się w dużym kafelku co 5 s (obrót kafelka, tekst wjeżdża),
 // „Ucz się” zaczyna od słowa, które właśnie widać.
-let LN = null; // { ids, i } — słowa pokazywane na karcie Nauka
-const LN_EVERY = 3000;
+let LN = null; // { ids, i, t } — słowa pokazywane na karcie Nauka, t = ile ms już widać bieżące
+const LN_EVERY = 5000, LN_STEP = 250;
+// kropki pod kafelkiem: która to z dzisiejszych; aktywna wypełnia się przez 5 s
+const lnDots = () => (LN.ids.length > 1 ? `<span class="ln-dots" style="--every:${LN_EVERY}ms" aria-hidden="true">${LN.ids.map((_, k) => `<i class="${k === LN.i ? 'on' : ''}"></i>`).join('')}</span>` : '');
 const lnTile = (w) => `
   <span class="ln-pic">${isPhrase(w) ? '<span class="wa-emoji">💬</span>' : wordArt(w)}</span>
   <span class="ln-new">${ICON.sparkle}${isPhrase(w) ? 'Nowy zwrot' : 'Nowe słowo'}</span>`;
@@ -154,6 +156,9 @@ function lnTick() {
   if (view !== 'home' || document.hidden || !LN || LN.ids.length < 2) return;
   const card = document.querySelector('.learn-hero');
   if (!card || (matchMedia('(hover: hover)').matches && card.matches(':hover'))) return; // myszka na karcie = pauza
+  LN.t += LN_STEP;
+  if (LN.t < LN_EVERY) return;
+  LN.t = 0;
   LN.i = (LN.i + 1) % LN.ids.length;
   const w = byId.get(LN.ids[LN.i]);
   const tile = card.querySelector('.ln-tile'), word = card.querySelector('.ln-word');
@@ -164,14 +169,17 @@ function lnTick() {
   tile.innerHTML = lnTile(w);
   word.innerHTML = lnWord(w);
   card.querySelectorAll('[data-act="learn-new"]').forEach((b) => { b.dataset.id = w.id; });
-  for (const el of [tile.querySelector('.ln-pic'), word]) { el.classList.remove('ln-in'); void el.offsetWidth; el.classList.add('ln-in'); } // animacja od nowa
+  const dots = card.querySelector('.ln-dots');
+  if (dots) dots.outerHTML = lnDots();
+  for (const [el, cls] of [[tile, 'ln-flip'], [word, 'ln-in']]) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); } // animacja od nowa
 }
-setInterval(lnTick, LN_EVERY);
+setInterval(lnTick, LN_STEP);
 
 function learnSlide(c, plan) {
   // dzisiejsze nowe słowa (po celu dnia — kolejna porcja), w kolejności nauki
   const ids = freshWords().slice(0, Math.min(10, c.newLeft || MORE_NEW)).map((x) => x.id);
-  if (!LN || LN.ids.join('|') !== ids.join('|')) LN = { ids, i: 0 };
+  if (!LN || LN.ids.join('|') !== ids.join('|')) LN = { ids, i: 0, t: 0 };
+  LN.t = 0; // kropka postępu rysuje się od nowa
   const w = byId.get(LN.ids[LN.i]);
   if (!w) {
     return `
@@ -193,6 +201,7 @@ function learnSlide(c, plan) {
       <div class="ph-grid ln-grid">
         <div class="ln-art">
           <button class="ln-tile" data-wopen="${esc(w.id)}" style="--tint:${wordTint(w)}" title="Szczegóły słówka" aria-label="${esc(w.en)} — szczegóły">${lnTile(w)}</button>
+          ${lnDots()}
         </div>
         <div class="ph-tasks ln-info">
           <div class="ln-word">${lnWord(w)}</div>

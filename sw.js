@@ -4,7 +4,7 @@
 importScripts('sw-assets.js');
 const MEDIA = 'slowik-media';
 const isMedia = (p) => p.includes('/assets/words/') || p.includes('/assets/audio/');
-const CACHE = 'slowik-v67';
+const CACHE = 'slowik-v68';
 const FILES = [
   './', 'index.html', 'sw-assets.js', 'styles.css', 'plan-hero.css', 'packs.css', 'tasks.css', 'dark.css', 'manifest.webmanifest', 'icon.svg',
   'js/seed-words.js', 'js/seed-lessons.js', 'js/parser.js', 'js/answer.js', 'js/builder.js', 'js/sync.js', 'js/exercises.js', 'js/srs.js', 'js/icons.js', 'js/word-icons.js', 'js/word-icons-extra.js', 'js/word-audio.js',

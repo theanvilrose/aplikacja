@@ -240,8 +240,23 @@ html, body { overflow-x: clip; }
 :root[data-theme="dark"] .ln-tile { background: linear-gradient(160deg, color-mix(in srgb, var(--tint, #efeaff) 42%, #2c2842) 0%, color-mix(in srgb, var(--tint, #efeaff) 24%, #1f1c2b) 100%); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 8px 0 color-mix(in srgb, var(--tint, #efeaff) 14%, #120f1e), 0 26px 40px -14px rgba(0, 0, 0, 0.6); }
 :root[data-theme="dark"] .ln-tile.done { --tint: #fff1c9; }
 :root[data-theme="dark"] .ln-art::before { background: radial-gradient(closest-side, rgba(140, 120, 255, 0.22), rgba(140, 120, 255, 0)); }
-/* słowa na karcie Nauka zmieniają się co 3 s (views.js: lnTick) */
+/* słowa na karcie Nauka zmieniają się co 5 s (views.js: lnTick): kafelek się obraca i błyska, tekst wjeżdża, kropki odliczają */
 .ln-pic { display: grid; place-items: center; width: 100%; height: 100%; border-radius: inherit; }
-.ln-in { animation: ln-in 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
-@keyframes ln-in { from { opacity: 0; transform: translateY(10px) scale(0.96); } }
-@media (prefers-reduced-motion: reduce) { .ln-in { animation: none; } }
+.ln-tile::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.7) 50%, transparent 65%) no-repeat; background-size: 250% 100%; }
+.ln-tile.ln-flip { animation: ln-flip 0.75s cubic-bezier(0.22, 1, 0.36, 1); }
+.ln-tile.ln-flip::after { animation: ln-shine 0.9s ease 0.4s; }
+.ln-tile.ln-flip .ln-new { animation: ln-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.35s both; }
+@keyframes ln-flip { 0% { transform: perspective(900px) rotateY(-100deg) scale(0.85); opacity: 0.2; } 60% { transform: perspective(900px) rotateY(12deg) scale(1.04); opacity: 1; } 100% { transform: none; } }
+@keyframes ln-shine { from { opacity: 1; background-position: 150% 0; } to { opacity: 1; background-position: -50% 0; } }
+@keyframes ln-pop { from { transform: translateX(-50%) scale(0); } to { transform: translateX(-50%) scale(1); } }
+.ln-word.ln-in > * { animation: ln-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.ln-word.ln-in > :nth-child(2) { animation-delay: 0.08s; }
+.ln-word.ln-in > :nth-child(3) { animation-delay: 0.16s; }
+@keyframes ln-in { from { opacity: 0; transform: translateX(26px); filter: blur(4px); } }
+.ln-dots { position: relative; z-index: 1; display: flex; justify-content: center; gap: 6px; margin-top: 22px; }
+.ln-dots i { position: relative; overflow: hidden; width: 8px; height: 8px; border-radius: 99px; background: rgba(19, 29, 76, 0.15); transition: width 0.35s ease, background 0.35s ease; }
+.ln-dots i.on { width: 30px; background: rgba(89, 129, 243, 0.25); }
+.ln-dots i.on::after { content: ""; position: absolute; inset: 0; width: 0; border-radius: inherit; background: linear-gradient(90deg, #38a5f1, #715bfa); animation: ln-fill var(--every, 5s) linear forwards; }
+@keyframes ln-fill { to { width: 100%; } }
+@media (hover: hover) { .learn-hero:hover .ln-dots i.on::after { animation-play-state: paused; } }
+@media (prefers-reduced-motion: reduce) { .ln-tile.ln-flip, .ln-tile.ln-flip::after, .ln-tile.ln-flip .ln-new, .ln-word.ln-in > * { animation: none; } }
