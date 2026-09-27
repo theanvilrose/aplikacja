@@ -189,3 +189,54 @@ html, body { overflow-x: clip; }
 .sub-hero .ph-label { overflow-wrap: anywhere; }
 .sub-hero .ph-label b { color: #5a3fe0; }
 @media (max-width: 719px) { .sub-hero .ph-art img { max-width: 230px; } }
+
+/* ---- karta Nauka (views.js: learnSlide) — jak „Plan dzienny” w WRD: następne słowo w dużym kafelku ---- */
+.ln-art { position: relative; display: grid; place-items: center; padding: 16px 0 10px; animation: ph-float 5s ease-in-out infinite; }
+.ln-art::before { content: ""; position: absolute; z-index: 0; width: min(330px, 86vw); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0)); pointer-events: none; }
+.ln-tile {
+  position: relative; z-index: 1; width: min(236px, 62vw); aspect-ratio: 1; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50px; cursor: pointer;
+  background: linear-gradient(160deg, #ffffff -20%, var(--tint, #efeaff) 60%);
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.95), inset 0 -5px 0 rgba(30, 40, 90, 0.05), 0 8px 0 color-mix(in srgb, var(--tint, #efeaff) 76%, #9c6a4c 24%), 0 26px 40px -14px rgba(40, 60, 120, 0.4);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+.ln-tile:hover { transform: translateY(-4px) rotate(-2deg) scale(1.03); }
+.ln-tile:active { transform: scale(0.97); }
+.ln-tile:has(.wa-img) { overflow: visible; }
+.ln-tile .wa-img { width: 100%; height: 100%; border-radius: inherit; box-shadow: none; }
+.ln-tile .wa-emoji { font-size: 118px; }
+.ln-tile.done { cursor: default; background: linear-gradient(160deg, #ffffff -20%, #fff1c9 60%); box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.95), 0 8px 0 #f1d68c, 0 26px 40px -14px rgba(40, 60, 120, 0.4); }
+.ln-trophy { width: 72%; height: auto; }
+.ln-new {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  padding: 6px 14px 6px 11px; border-radius: 999px; font-family: var(--display); font-size: 15px; font-weight: 800; color: #fff;
+  background: linear-gradient(90deg, #38a5f1 0%, #5981f3 50%, #715bfa 100%); box-shadow: 0 8px 16px -6px rgba(89, 110, 245, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.ln-new svg { width: 16px; height: 16px; }
+.ln-info { gap: 14px; }
+.ln-word { text-align: center; }
+.ln-chips { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+.ln-cefr { padding: 3px 12px; border-radius: 999px; font-family: var(--display); font-size: 14px; font-weight: 800; letter-spacing: 0.05em; color: #fff; background: linear-gradient(180deg, #8b6cff, #6143ff); box-shadow: 0 4px 10px rgba(97, 67, 255, 0.3); }
+.ln-topic { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 3px 12px; border-radius: 999px; font-family: var(--display); font-size: 14px; font-weight: 700; color: #4b5170; background: rgba(255, 255, 255, 0.78); box-shadow: 0 4px 12px rgba(40, 70, 140, 0.1); }
+.ln-en { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0; font-family: var(--display); font-size: 42px; font-weight: 800; line-height: 1.1; color: #131d4c; }
+.ln-en > span { min-width: 0; overflow-wrap: anywhere; }
+.ln-say {
+  flex-shrink: 0; width: 44px; height: 44px; border: 0; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+  color: #5981f3; background: #ffffff; box-shadow: 0 6px 16px rgba(40, 70, 140, 0.16); transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+.ln-say svg { width: 22px; height: 22px; }
+.ln-say:hover { transform: scale(1.1); box-shadow: 0 10px 22px rgba(40, 70, 140, 0.22); }
+.ln-say:active { transform: scale(0.92); }
+.ln-pl { margin: 6px 0 0; font-family: var(--display); font-size: 24px; font-weight: 600; color: #667090; }
+.ln-tile:focus-visible, .ln-say:focus-visible { outline: 3px solid #5a4dff; outline-offset: 4px; }
+@media (min-width: 720px) {
+  .ln-tile { width: min(290px, 100%); }
+  .ln-tile .wa-emoji { font-size: 140px; }
+  .ln-word { text-align: left; }
+  .ln-chips, .ln-en { justify-content: flex-start; }
+  .ln-en { font-size: 48px; }
+}
+@media (prefers-reduced-motion: reduce) { .ln-art { animation: none; } }
+/* ciemny motyw: kafelek w kolorze tematu, ale przygaszony (jak kafelek wyboru słów) */
+:root[data-theme="dark"] .ln-tile { background: linear-gradient(160deg, color-mix(in srgb, var(--tint, #efeaff) 42%, #2c2842) 0%, color-mix(in srgb, var(--tint, #efeaff) 24%, #1f1c2b) 100%); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 8px 0 color-mix(in srgb, var(--tint, #efeaff) 14%, #120f1e), 0 26px 40px -14px rgba(0, 0, 0, 0.6); }
+:root[data-theme="dark"] .ln-tile.done { --tint: #fff1c9; }
+:root[data-theme="dark"] .ln-art::before { background: radial-gradient(closest-side, rgba(140, 120, 255, 0.22), rgba(140, 120, 255, 0)); }

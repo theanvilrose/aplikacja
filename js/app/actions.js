@@ -129,6 +129,8 @@ document.addEventListener('click', (e) => {
   const coll = collection(wordsFilter.coll);
   switch (ds.act) {
     case 'start': startSession(); break;
+    case 'learn-new': startSession({ mode: 'new' }); break; // karta Nauka: same nowe słowa
+    case 'review': startSession({ mode: 'review' }); break; // karta Powtórka: same powtórki
     case 'extra': startSession({ mode: 'extra' }); break;
     case 'start-coll': if (coll) startPick(coll.ref); break;
     case 'resume': collFrom = 'packs'; wordsFilter = { q: '', coll: ds.ref, status: '', kind: '' }; view = 'words'; startPick(ds.ref); break;

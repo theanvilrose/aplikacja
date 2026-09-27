@@ -20,6 +20,34 @@ function examQueue(ex) {
   return recent.concat(rest).slice(0, ex.n).map((w) => ({ id: w.id, force: examType(w) }));
 }
 
+// Kolejność nowych słów z ustawień planu — ta sama dla karty „Nauka” na stronie głównej i dla sesji
+// (karta pokazuje dokładnie to słowo, od którego ruszy nauka).
+function freshWords(pool = words.filter(inPlan)) {
+  const s = db.settings;
+  const fresh = pool.filter((w) => !db.cards[w.id]);
+  if (s.newOrder === 'recent') return fresh.map((w, i) => [w, i]).sort((a, b) => (b[0].added || '').localeCompare(a[0].added || '') || a[1] - b[1]).map(([w]) => w);
+  if (s.newOrder === 'random') return seededShuffle(fresh, dayKey()); // losowo, ale przez cały dzień w tej samej kolejności
+  return fresh.map((w, i) => [w, i]).sort((a, b) => cefr(a[0]) - cefr(b[0]) || a[1] - b[1]).map(([w]) => w); // od A1 do C1
+}
+
+function seededShuffle(list, seed) {
+  let t = 2166136261;
+  for (const ch of String(seed)) t = Math.imul(t ^ ch.charCodeAt(0), 16777619);
+  const rnd = () => { // mulberry32
+    t = (t + 0x6d2b79f5) >>> 0;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+  const a = list.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+const MORE_NEW = 5; // „Ucz się dalej” po dziennym celu: tyle kolejnych nowych słów
+
+// mode: 'learn' (powtórki przeplatane nowymi), 'new' (Nauka: same nowe), 'review' (Powtórka: same powtórki),
+// 'extra' (powtórz więcej), 'listen', 'drill'
 function buildQueue({ ids = null, mode = 'learn', intro = false } = {}) {
   const now = Date.now();
   const only = ids && new Set(ids);
@@ -43,12 +71,13 @@ function buildQueue({ ids = null, mode = 'learn', intro = false } = {}) {
     .sort((a, b) => SRS.overdue(db.cards[b.id], now) - SRS.overdue(db.cards[a.id], now))
     .slice(0, only ? undefined : c.dueLeft);
 
-  // kolejność nowych słów z ustawień planu
-  let fresh = pool.filter((w) => !db.cards[w.id]);
-  if (s.newOrder === 'recent') fresh = fresh.map((w, i) => [w, i]).sort((a, b) => (b[0].added || '').localeCompare(a[0].added || '') || a[1] - b[1]).map(([w]) => w);
-  else if (s.newOrder === 'random') fresh = shuffle(fresh);
-  else fresh = fresh.map((w, i) => [w, i]).sort((a, b) => cefr(a[0]) - cefr(b[0]) || a[1] - b[1]).map(([w]) => w); // od A1 do C1
-  fresh = fresh.slice(0, only ? 8 : c.newLeft);
+  let fresh = freshWords(pool);
+  // Nauka: same nowe słowa — dzienny cel, a gdy już zrobiony, kolejne porcje (bez nowych → powtórka)
+  if (mode === 'new') {
+    if (!fresh.length) return buildQueue({ ids, mode: 'review' });
+    return fresh.slice(0, only ? 8 : c.newLeft || MORE_NEW).map((w) => ({ id: w.id, intro: true }));
+  }
+  fresh = mode === 'review' ? [] : fresh.slice(0, only ? 8 : c.newLeft);
 
   const queue = [];
   if (s.reviewsFirst) {

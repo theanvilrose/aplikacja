@@ -95,64 +95,114 @@ function bar(value, color, cls = '') {
   return `<span class="bar ${cls}"><i style="width:${pct(value)};${color ? `background:${color}` : ''}"></i></span>`;
 }
 
+// Karuzela na górze strony głównej: 1. Nauka (następne nowe słowo), 2. Powtórka (plan dnia), 3. Zadania z lekcji
 function planCard() {
   const c = counts();
   const plan = dayPlan();
-  const ready = c.dueLeft + c.newLeft;
-
   return `
   <div class="daily-carousel">
     <div class="daily-deck" id="dailyDeck">
-      <!-- Karta 1: Plan dnia (ilustracja + zadania, jak w projekcie design/plan-mockup.jpg) -->
-      <section class="plan-hero daily-slide">
-        <div class="ph-head">
-          <h2 class="ph-title">Plan dnia${db.settings.content !== 'all' ? `<button class="ph-mode" data-view="plan-settings" title="Zmień w ustawieniach planu">${db.settings.content === 'phrases' ? 'Tylko zwroty' : 'Tylko słówka'}</button>` : ''}</h2>
-          <button class="ph-settings" data-view="plan-settings" aria-label="Ustawienia planu dnia" title="Ustawienia planu">${ICON.sliders}</button>
-        </div>
-        <div class="ph-grid">
-          <div class="ph-art ${plan.complete ? 'launched' : ''}">${IMG('plan-rocket.webp')}</div>
-          <div class="ph-tasks">
-            ${plan.tasks.map((t, i) => {
-              const icon = ['task-refresh.png', 'task-star.png', 'task-clock.png'][i];
-              const tint = ['52, 192, 106', '255, 194, 26', '59, 142, 240'][i];
-              const ink = ['#1fa45a', '#e09a00', '#2f7fe6'][i];
-              const [have, need] = t.text.split('/');
-              return `
-              <button class="ph-task ${t.done ? 'done' : t.value > 0 ? 'going' : ''}" data-act="${ready ? 'start' : 'extra'}" style="--fill:${pct(t.value)};--tint:${tint};--ink:${ink};--i:${i}">
-                ${IMG(icon, 'ph-icon')}
-                <span class="ph-body">
-                  <span class="ph-label">${esc(t.label)}</span>
-                  <span class="ph-bar"><i></i></span>
-                </span>
-                ${t.done ? IMG('done-check.png', 'ph-done', 'Zrobione') : `<span class="ph-num"><b>${have}</b>/${need}</span>`}
-              </button>`;
-            }).join('')}
-            ${(() => {
-              // pasek skrzyni = postęp całego planu
-              const total = plan.claimed ? 1 : plan.tasks.reduce((s, t) => s + Math.min(1, t.value), 0) / plan.tasks.length;
-              return `
-            <button class="ph-task reward ${plan.claimed ? 'done' : total > 0 ? 'going' : ''}" data-act="${plan.claimed ? 'chest-info' : ready ? 'start' : 'extra'}" style="--fill:${pct(total)};--tint:255, 122, 0;--ink:#f07800;--i:3">
-              ${IMG('task-chest.png', 'ph-icon')}
-              <span class="ph-body">
-                <span class="ph-label">${plan.claimed ? 'Skrzynia otwarta — wracaj jutro!' : 'Ukończ plan i otwórz skrzynię'}</span>
-                <span class="ph-bar"><i></i></span>
-              </span>
-              <span class="ph-gems">${plan.claimed ? '✓' : `+${CHEST_BONUS}`}${IMG('gem-small.png', 'ph-gem')}</span>
-            </button>`;
-            })()}
-            ${c.seen || ready ? `<button class="ph-cta" data-act="${ready ? 'start' : 'extra'}"><span>${ready ? 'Ucz się' : 'Powtórz więcej'}</span></button>` : ''}
-          </div>
-        </div>
-      </section>
-
-      <!-- Karta 2: zadania z bieżącej lekcji (generator js/exercises.js) -->
+      ${learnSlide(c, plan)}
+      ${reviewSlide(c, plan)}
       ${lessonTasksCard()}
     </div>
     <div class="carousel-dots" id="carouselDots">
-      <button class="dot active" data-slide="0" aria-label="Plan dnia"></button>
-      <button class="dot" data-slide="1" aria-label="Zadania z lekcji"></button>
+      <button class="dot active" data-slide="0" aria-label="Nauka"></button>
+      <button class="dot" data-slide="1" aria-label="Powtórka"></button>
+      <button class="dot" data-slide="2" aria-label="Zadania z lekcji"></button>
     </div>
   </div>`;
+}
+
+// zadanie planu dnia: ikonka, nazwa, pasek, licznik (albo ptaszek)
+function planRow(t, icon, tint, ink, act, i) {
+  const [have, need] = t.text.split('/');
+  return `
+    <button class="ph-task ${t.done ? 'done' : t.value > 0 ? 'going' : ''}" data-act="${act}" style="--fill:${pct(t.value)};--tint:${tint};--ink:${ink};--i:${i}">
+      ${IMG(icon, 'ph-icon')}
+      <span class="ph-body">
+        <span class="ph-label">${esc(t.label)}</span>
+        <span class="ph-bar"><i></i></span>
+      </span>
+      ${t.done ? IMG('done-check.png', 'ph-done', 'Zrobione') : `<span class="ph-num"><b>${have}</b>/${need}</span>`}
+    </button>`;
+}
+
+function planHead(title) {
+  const mode = db.settings.content !== 'all' ? `<button class="ph-mode" data-view="plan-settings" title="Zmień w ustawieniach planu">${db.settings.content === 'phrases' ? 'Tylko zwroty' : 'Tylko słówka'}</button>` : '';
+  return `
+    <div class="ph-head">
+      <h2 class="ph-title">${title}${mode}</h2>
+      <button class="ph-settings" data-view="plan-settings" aria-label="Ustawienia planu dnia" title="Ustawienia planu">${ICON.sliders}</button>
+    </div>`;
+}
+
+// Karta 1: Nauka — jak „Plan dzienny” w WRD: następne nowe słowo w dużym kafelku i jeden przycisk „Ucz się”
+function learnSlide(c, plan) {
+  const w = freshWords()[0];
+  if (!w) {
+    return `
+      <section class="plan-hero daily-slide learn-hero">
+        ${planHead('Nauka')}
+        <div class="ph-grid ln-grid">
+          <div class="ln-art"><span class="ln-tile done">${IMG('ui/trophy.png', 'ln-trophy')}</span></div>
+          <div class="ph-tasks ln-info">
+            <div class="ln-word"><h3 class="ln-en">Wszystko poznane!</h3><p class="ln-pl">Nowe ${db.settings.content === 'phrases' ? 'zwroty' : 'słowa'} z planu już znasz — czas na powtórkę.</p></div>
+            ${c.seen ? `<button class="ph-cta" data-act="review"><span>Powtórz</span></button>` : ''}
+          </div>
+        </div>
+      </section>`;
+  }
+  const t = plan.tasks[1];
+  const art = isPhrase(w) ? '<span class="wa-emoji">💬</span>' : wordArt(w);
+  return `
+    <section class="plan-hero daily-slide learn-hero">
+      ${planHead('Nauka')}
+      <div class="ph-grid ln-grid">
+        <div class="ln-art">
+          <button class="ln-tile" data-wopen="${esc(w.id)}" style="--tint:${wordTint(w)}" title="Szczegóły słówka" aria-label="${esc(w.en)} — szczegóły">
+            ${art}
+            <span class="ln-new">${ICON.sparkle}${isPhrase(w) ? 'Nowy zwrot' : 'Nowe słowo'}</span>
+          </button>
+        </div>
+        <div class="ph-tasks ln-info">
+          <div class="ln-word">
+            <p class="ln-chips">${w.level ? `<span class="ln-cefr" title="Poziom CEFR">${esc(w.level)}</span>` : ''}<span class="ln-topic">${esc(w.icon || '📘')} ${esc(w.topic)}</span></p>
+            <h3 class="ln-en"><span>${esc(w.en)}</span><button class="ln-say" data-say="${esc(w.en)}" aria-label="Posłuchaj" title="Posłuchaj">${SPEAKER}</button></h3>
+            <p class="ln-pl">${esc(w.pl)}</p>
+          </div>
+          ${planRow(t, 'task-star.png', '255, 194, 26', '#e09a00', 'learn-new', 0)}
+          <button class="ph-cta" data-act="learn-new"><span>${c.newLeft ? 'Ucz się' : 'Ucz się dalej'}</span></button>
+        </div>
+      </div>
+    </section>`;
+}
+
+// Karta 2: Powtórka — dawny Plan dnia (powtórki, czas nauki, skrzynia za cały plan)
+function reviewSlide(c, plan) {
+  const act = c.dueLeft ? 'review' : c.seen ? 'extra' : 'learn-new';
+  // pasek skrzyni = postęp całego planu (razem z nowymi słowami z karty Nauka)
+  const total = plan.claimed ? 1 : plan.tasks.reduce((s, t) => s + Math.min(1, t.value), 0) / plan.tasks.length;
+  return `
+    <section class="plan-hero daily-slide">
+      ${planHead('Powtórka')}
+      <div class="ph-grid">
+        <div class="ph-art ${plan.complete ? 'launched' : ''}">${IMG('plan-rocket.webp')}</div>
+        <div class="ph-tasks">
+          ${planRow(plan.tasks[0], 'task-refresh.png', '52, 192, 106', '#1fa45a', act, 0)}
+          ${planRow(plan.tasks[2], 'task-clock.png', '59, 142, 240', '#2f7fe6', act, 1)}
+          <button class="ph-task reward ${plan.claimed ? 'done' : total > 0 ? 'going' : ''}" data-act="${plan.claimed ? 'chest-info' : act}" style="--fill:${pct(total)};--tint:255, 122, 0;--ink:#f07800;--i:2">
+            ${IMG('task-chest.png', 'ph-icon')}
+            <span class="ph-body">
+              <span class="ph-label">${plan.claimed ? 'Skrzynia otwarta — wracaj jutro!' : 'Ukończ naukę i powtórkę'}</span>
+              <span class="ph-bar"><i></i></span>
+            </span>
+            <span class="ph-gems">${plan.claimed ? '✓' : `+${CHEST_BONUS}`}${IMG('gem-small.png', 'ph-gem')}</span>
+          </button>
+          ${c.seen ? `<button class="ph-cta" data-act="${c.dueLeft ? 'review' : 'extra'}"><span>${c.dueLeft ? 'Powtórz' : 'Powtórz więcej'}</span></button>` : ''}
+        </div>
+      </div>
+    </section>`;
 }
 
 function packCard(c) {
@@ -272,10 +322,15 @@ function backupNag() {
   </section>`;
 }
 
+const HOME_TOPICS = 12;
+
 function viewHome() {
   const packs = PACKS.map((p) => collection('pack:' + p.key)).filter((x) => x && x.total >= MIN_PACK);
   const lists = [...['auto:last', 'auto:hard'].map(collection).filter((x) => x && x.total), ...db.lists.map((l) => collection('list:' + l.id))];
-  const topics = topicsList().map((tp) => collection('topic:' + tp.name));
+  // tematów jest ok. 200 — na stronie głównej tylko kilka (najpierw te, których się uczysz), reszta w Pakietach
+  const allTopics = topicsList().map((tp) => collection('topic:' + tp.name)).filter((t) => t && t.total);
+  const going = allTopics.filter((t) => collStage(t) === 'learning');
+  const topics = [...going, ...allTopics.filter((t) => !going.includes(t))].slice(0, HOME_TOPICS);
   const seen = counts().seen;
 
   return `
@@ -328,7 +383,7 @@ function viewHome() {
     </section>
   </div>
 
-  ${sectionHead('Tematy')}
+  ${sectionHead('Tematy', allTopics.length > topics.length ? `<button class="link" data-act="all-words">Wszystkie (${allTopics.length}) ›</button>` : '')}
   <div class="topic-grid">
     ${topics.map((tp) => `
       <button class="topic-tile" data-coll="${esc(tp.ref)}">
@@ -917,8 +972,15 @@ function viewSummary() {
       ${wrong.map((w) => `<div class="mini-word"><button class="icon-btn" data-say="${esc(w.en)}" aria-label="Posłuchaj">${SPEAKER}</button><b>${esc(w.en)}</b><span class="muted">${esc(w.pl)}</span></div>`).join('')}
     </section>` : ''}
     ${collSummaryButtons() || `
-    ${c.dueLeft + c.newLeft ? `<button class="btn pill wide" data-act="start">Jeszcze jedna sesja</button>` : ''}
+    ${againButton(c)}
     <button class="btn wide" data-act="home">Wróć</button>`}`;
+}
+
+// „jeszcze raz” w tym samym trybie: po Nauce kolejne nowe słowa, po Powtórce kolejne powtórki
+function againButton(c) {
+  if (S.mode === 'new') return freshWords().length ? '<button class="btn pill wide" data-act="learn-new">Ucz się dalej</button>' : '';
+  if (S.mode === 'review') return c.dueLeft ? '<button class="btn pill wide" data-act="review">Powtórz dalej</button>' : c.newLeft ? '<button class="btn pill wide" data-act="learn-new">Poznaj nowe słowa</button>' : '';
+  return c.dueLeft + c.newLeft ? '<button class="btn pill wide" data-act="start">Jeszcze jedna sesja</button>' : '';
 }
 
 // Po lekcji z pakietu: ucz się dalej w tym pakiecie albo wróć do jego listy.

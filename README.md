@@ -10,7 +10,10 @@ Zawsze uruchamiaj aplikację w ten sam sposób, bo postępy są zapisane w przeg
 ## Ekrany
 
 Zakładka **Nauka**:
-1. **Plan dnia** — 3 zadania (powtórki, nowe słowa, minuty), każde z kolorowym paskiem postępu; pasek przy skrzyni pokazuje postęp całego planu. Wszystkie zrobione = skrzynia z +10 💎 i ekran nagrody.
+1. **Nauka / Powtórka / Zadania z lekcji** — karuzela na górze strony głównej (przesuwasz palcem albo kropkami):
+   - **Nauka** (pierwsza, jak „Plan dzienny” w WRD): następne nowe słowo w dużym kafelku (obrazek, poziom CEFR, temat, 🔊), pasek „Poznaj 10 nowych słów” i jeden przycisk **Ucz się** — sesja z samymi nowymi słowami, od tego pokazanego. Po dziennym celu: **Ucz się dalej** (kolejne 5). Kliknięcie kafelka otwiera szczegóły słowa.
+   - **Powtórka** (dawny Plan dnia): powtórki na dziś, minuty nauki i skrzynia; **Powtórz** = sesja z samymi powtórkami (bez zaległych — „Powtórz więcej”). Pasek skrzyni pokazuje postęp całego planu (nowe słowa + powtórki + minuty); wszystko zrobione = skrzynia z +10 💎 i ekran nagrody.
+   - **Zadania z lekcji** — ćwiczenia gramatyczne z planu lekcji.
    **Zadania z lekcji** (druga karta, przesuń w bok): arkusz jak z lekcji na czacie — A. wybór (np. he / she / it), B. luki, C. przekształcenia (pytanie, skrót), D. tłumaczenie na angielski. Co kliknięcie „Nowy zestaw” inne zadania, z gramatyki lekcji i Twoich słówek. Domyślnie bieżąca lekcja z `program_A1.md` (📝), pod spodem wybór wcześniejszych. Obsługiwane lekcje: L1–L4 (kolejne dopisuje się w `js/exercises.js`). Wynik zapisuje się na karcie, każda dobra odpowiedź = +1 💎, czas liczy się do celu dnia. Kliknięcie części A–D = tylko ta część. Suwaki na karcie otwierają **Ustawienia zadań**: z jakich słów (wszystkie z lekcji albo tylko poznane w aplikacji), które części, ile zadań w części (Auto / 3 / 5 / 8). Zadania nigdy nie używają słów spoza Twoich słówek — jeśli do jakiejś części brakuje słów, jest pomijana (jedyny dodatek to imiona postaci: Tom, Anna…).
    Ikona suwaków otwiera **Ustawienia planu**: podgląd planu i prognoza (kiedy poznasz wszystkie słówka, czy zdążysz przed egzaminem), **co ćwiczyć** (wszystko / same słówka bez zwrotów / same zwroty — dotyczy nowych słów i powtórek w planie dnia), kolejność nowych słów (jak w lekcjach / najnowsze / losowo), rozgrzewka, najpierw powtórki, ćwiczenia ze słuchu i z pisania (do wyłączenia), nowe słowa dziennie, limit powtórek i dzienny cel.
 2. **Pakiety słówek** — Podróże (kraje, pochodzenie; bez przymiotników narodowości), Grzeczności i rozmowa, Rozmówki (wszystkie zwroty), Rzeczowniki, Przymiotniki, Czasowniki. Pakiet z mniej niż 5 słowami się nie pokazuje (`MIN_PACK` w `js/app/core.js`) — pojawi się sam, gdy dojdą słowa z lekcji.
@@ -95,7 +98,7 @@ js/word-icons.js    ikony słówek (mapa słowo → assets/words/*.png)
 js/builder.js       „Utwórz słowo”: sylaby, litery, pułapki
 js/sync.js          łączenie postępu z dwóch urządzeń (przeglądarka i serwer)
 sw-assets.js        lista ikon i nagrań do pracy offline — generuje tools/build-assets.js
-plan-hero.css       wygląd sekcji Plan dnia (gradient, karty zadań, efekty przycisków)
+plan-hero.css       wygląd sekcji na górze (gradient, karty Nauka i Powtórka, zadania, efekty przycisków)
 assets/             ikony i ilustracja Planu dnia wycięte z design/plan-mockup.jpg
 tools/cutter.html   wycina te grafiki (node tools/save-server.js → http://127.0.0.1:8766)
 packs.css           ekran Pakiety słówek i ikony pakietów
