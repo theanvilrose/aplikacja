@@ -1,5 +1,6 @@
 // Ikony słówek dodane w panelu dewelopera (tools/server.js) — nie edytuj ręcznie.
 window.EXTRA_WORD_IMG = {
+ "accent": "gen_accent",
  "africa": "gen_africa",
  "african": "gen_african",
  "american": "gen_american",
@@ -66,6 +67,7 @@ window.EXTRA_WORD_IMG = {
  "office": "gen_office",
  "ok": "gen_ok",
  "pakistani": "gen_pakistani",
+ "parent": "gen_parent",
  "phone": "gen_phone",
  "sad": "gen_sad",
  "saudi": "gen_saudi",
