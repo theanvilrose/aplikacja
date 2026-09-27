@@ -808,6 +808,17 @@ function introDone() {
   nextStep();
 }
 
+// „Później”: pomijamy nowe słowo w tej sesji — zostaje nowe i wróci w kolejnej.
+// „Wiem”: od razu wyuczone (jak na ekranie wyboru słówek), jutro wraca na szybkie sprawdzenie.
+function introSkip(known) {
+  const { w } = S.cur;
+  trackTime();
+  if (known) { markKnown(w.id); toast(`✓ „${w.en}” — umiesz`); }
+  S.queue = S.queue.filter((it, i) => i <= S.pos || it.id !== w.id);
+  S.pos++;
+  nextStep();
+}
+
 function insertLater(item, gap) {
   S.queue.splice(Math.min(S.pos + 1 + gap, S.queue.length), 0, item);
 }
@@ -1564,7 +1575,8 @@ function viewSession() {
       ${wordInfo(w)}
       ${w.pos ? `<div class="muted small">${esc(w.pos)}</div>` : ''}
     </section>
-    <button class="btn pill wide" data-act="intro-next">Dalej</button>`;
+    <button class="btn pill wide" data-act="intro-next">Naucz się</button>
+    <div class="wd-actions intro-actions"><button class="wd-link" data-act="intro-later" title="Słowo wróci w kolejnej sesji">Później</button><span></span><button class="wd-link" data-act="intro-known" title="Oznacz jako wyuczone — wróci jutro na szybkie sprawdzenie">Wiem</button></div>`;
   }
 
   const prompts = {
@@ -3087,6 +3099,8 @@ document.addEventListener('click', (e) => {
     case 'start-coll': if (coll) startPick(coll.ref); break;
     case 'resume': collFrom = 'packs'; wordsFilter = { q: '', coll: ds.ref, status: '', kind: '' }; view = 'words'; startPick(ds.ref); break;
     case 'pick-learn': pickWord('learn'); break;
+    case 'intro-later': introSkip(false); break;
+    case 'intro-known': introSkip(true); break;
     case 'pick-later': pickWord('later'); break;
     case 'pick-known': pickWord('known'); break;
     case 'pick-start': finishPick(); break;
