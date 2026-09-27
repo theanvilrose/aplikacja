@@ -146,6 +146,7 @@ function startSession(opts = {}) {
     gems: 0, streakUp: 0, chestOpened: false, badge: null, pathAdvanced: false,
     coll: opts.coll || null, // pakiet / temat, z którego ruszyła lekcja (powrót po podsumowaniu)
     pick: !!opts.pick, // jedno pytanie z karuzeli „Nowe słówka” — potem powrót do karuzeli
+    fix: !!opts.fix, // powtórka pomyłek: dobra odpowiedź zdejmuje słowo z listy Pomyłki
     retry: [], // utrwalenie: pytania z pomyłką — wracają na końcu, aż wszystkie będą dobrze
   };
   view = 'session';
@@ -454,9 +455,10 @@ function answer(correct, struggled = false, given = '') {
   if (prev && prev.due <= now && !S.newIds.has(w.id)) d.rv = (d.rv || 0) + 1; // zadanie „powtórki” w planie dnia
   // W teście nie zakładamy kart słowom, których jeszcze nie poznałeś w aplikacji.
   if (!exam || prev) db.cards[w.id] = SRS.review(card(w.id), g, now);
-  // Pomyłki: każde słowo z błędną odpowiedzią (w nauce i w testach) — znika po poprawnej odpowiedzi
-  if (correct) db.mistakes = db.mistakes.filter((id) => id !== w.id);
-  else if (!db.mistakes.includes(w.id) && (!exam || prev)) db.mistakes.push(w.id);
+  // Pomyłki: każde słowo z błędną odpowiedzią (w nauce i w testach) zostaje na liście, nawet gdy potem odpowiesz dobrze;
+  // znika dopiero po poprawnej odpowiedzi w powtórce samych pomyłek (Pomyłki → Powtórz)
+  if (correct && S.fix) db.mistakes = db.mistakes.filter((id) => id !== w.id);
+  else if (!correct && !db.mistakes.includes(w.id) && (!exam || prev)) db.mistakes.push(w.id);
 
   const wasCounted = counted(dayKey());
   d.n++;

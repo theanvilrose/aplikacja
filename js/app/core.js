@@ -357,7 +357,7 @@ function collection(ref) {
     }[key];
     c = { name: AUTO[0], ws: words.filter(AUTO[1]), bg: '#EFEAFF', art: ART.cardStack, desc: AUTO[2] };
   } else if (kind === 'auto' && key === 'mistakes') {
-    c = { name: 'Pomyłki', ws: db.mistakes.map((id) => byId.get(id)).filter(Boolean), bg: '#FFE6DF', art: ART.cardStack, desc: 'słowa z błędną odpowiedzią — znikają po poprawnej' };
+    c = { name: 'Pomyłki', ws: db.mistakes.map((id) => byId.get(id)).filter(Boolean), bg: '#FFE6DF', art: ART.cardStack, desc: 'słowa z błędną odpowiedzią — znikają po poprawnej odpowiedzi w powtórce pomyłek' };
   }
   if (!c) return null;
   c.ref = ref;

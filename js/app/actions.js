@@ -158,7 +158,7 @@ document.addEventListener('click', (e) => {
   const coll = collection(wordsFilter.coll);
   switch (ds.act) {
     case 'start': startSession(); break;
-    case 'drill-coll': { const c = collection(ds.ref); if (c && c.total) startSession({ ids: c.ws.map((w) => w.id), mode: 'drill' }); break; } // Pomyłki / Wyuczone: powtórka tych słów
+    case 'drill-coll': { const c = collection(ds.ref); if (c && c.total) startSession({ ids: c.ws.map((w) => w.id), mode: 'drill', fix: ds.ref === 'auto:mistakes' }); break; } // Pomyłki / Wyuczone: powtórka tych słów
     case 'learn-new': startPlanPick(ds.id); break; // karta Nauka: karuzela nowych słów, od słowa widocznego na karcie
     case 'review': startSession({ mode: 'review' }); break; // karta Powtórka: same powtórki
     case 'extra': startSession({ mode: 'extra' }); break;
@@ -184,7 +184,7 @@ document.addEventListener('click', (e) => {
     case 'word-known': markKnown(wordView.id); toast('✓ Wyuczone — jutro szybkie sprawdzenie'); render(); break;
     case 'word-relearn': relearn(wordView.id); toast('Słowo wróciło do nauki'); startSession({ ids: [wordView.id], mode: 'drill', intro: true }); break;
     case 'retry-wrong': startSession({ ids: S.answers.filter((a) => !a.correct).map((a) => a.id), mode: 'drill' }); break;
-    case 'drill-mistakes': startSession({ ids: db.mistakes, mode: 'drill' }); break;
+    case 'drill-mistakes': startSession({ ids: db.mistakes, mode: 'drill', fix: true }); break;
     case 'path-done': toast(ds.msg); break;
     case 'listen-quiz': startSession({ mode: 'listen' }); break;
     case 'player': startPlayer(); break;
