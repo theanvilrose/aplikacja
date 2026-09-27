@@ -204,6 +204,7 @@ function backToPick() {
   S = null;
   if (!PK) { go('home'); return; }
   if (PK.picked.length >= PK.goal || PK.i >= PK.ids.length) return finishPick();
+  PK.single = true; // karuzela tylko na początku — dalej pojedyncza karta „Nowe słówko”
   view = 'pick';
   render();
   window.scrollTo(0, 0);
@@ -224,12 +225,13 @@ function viewPick() {
   return `
   <header class="pick-top">
     <button class="pk-back" data-act="pick-back" aria-label="Wróć">${ICON.back}</button>
-    <h2>${PK.ref ? 'Nauka' : 'Nowe słówka'}</h2>
+    <h2>${PK.single || PK.ref ? 'Nauka' : 'Nowe słówka'}</h2>
     <span class="pick-count" title="Wybrane do nauki (po ${n} rusza lekcja)">${ICON.sparkle}<b>${PK.picked.length}/${n}</b></span>
   </header>
   <span class="pick-progress"><i style="width:${pct(PK.i / PK.ids.length)}"></i></span>
-  <section class="pc-stage ${PK.dir}">
-    ${card(byId.get(PK.ids[PK.i - 1]), 'prev')}${card(byId.get(PK.ids[PK.i + 1]), 'next')}${card(w, 'cur')}
+  ${PK.single ? `<p class="pick-label">${isPhrase(w) ? 'Nowy zwrot' : 'Nowe słówko'}</p>` : ''}
+  <section class="pc-stage ${PK.single ? 'single' : ''} ${PK.dir}">
+    ${PK.single ? '' : card(byId.get(PK.ids[PK.i - 1]), 'prev') + card(byId.get(PK.ids[PK.i + 1]), 'next')}${card(w, 'cur')}
   </section>
   <section class="pick-card pc-text">
     <p class="pick-meta">${w.level ? `<span class="ln-cefr" title="Poziom CEFR">${esc(w.level)}</span>` : ''}${posBadge(w)}</p>
@@ -237,9 +239,9 @@ function viewPick() {
     <p class="pick-pl">${esc(w.pl)}</p>
     ${info ? `<div class="pick-info" role="tooltip">${info}</div>` : ''}
   </section>
-  <div class="pc-dots" aria-label="Słowo ${PK.i + 1} z ${PK.ids.length}">${dots.join('')}</div>
-  <div class="pick-actions">
-    <button class="pick-go" data-act="pick-learn"><span>Naucz się</span></button>
+  ${PK.single ? '' : `<div class="pc-dots" aria-label="Słowo ${PK.i + 1} z ${PK.ids.length}">${dots.join('')}</div>`}
+  <div class="pick-actions ${PK.single ? 'single' : ''}">
+    <button class="pick-go" data-act="pick-learn"><span>${PK.single ? 'Ucz się' : 'Naucz się'}</span></button>
     <div class="wd-actions"><button class="wd-link" data-act="pick-later">Później</button><span></span><button class="wd-link" data-act="pick-known">Wiem</button></div>
   </div>`;
 }

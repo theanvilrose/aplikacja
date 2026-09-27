@@ -674,3 +674,11 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .pick-info h4:first-child { margin-top: 0; }
 .pick-info p { margin: 0; }
 .pc-text:has(.pick-q:hover) .pick-info, .pc-text:has(.pick-q:focus) .pick-info { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+
+/* pojedyncza karta „Nowe słówko” po pierwszym pytaniu (jak w WRD): bez sąsiednich kart, zielone „Ucz się” */
+.pc-stage.single { cursor: default; }
+.pc-stage.single .pc-card.cur { animation: pick-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.pick-label { margin: 10px 0 0; text-align: center; }
+.pick-actions.single { margin-top: 44px; }
+.pick-actions.single .pick-go { background: linear-gradient(90deg, #5fd61c, #3fc40f); box-shadow: 0 14px 30px -10px rgba(76, 200, 20, 0.8); }
+.pick-actions.single .pick-go:hover { box-shadow: 0 20px 36px -10px rgba(76, 200, 20, 0.9); }
