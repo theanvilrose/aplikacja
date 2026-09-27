@@ -61,7 +61,7 @@ Każde słowo przechodzi po kolei przez 6 poziomów ćwiczeń:
 
 Pomyłka: słowo wraca jeszcze w tej samej sesji, a potem po 10 minutach i spada o poziom niżej.
 
-Skróty klawiszowe: `1–4` wybór odpowiedzi · `Enter` lub `Spacja` dalej (przed odpowiedzią spacja odtwarza słowo) · `Esc` koniec sesji.
+Skróty klawiszowe: `1–4` wybór odpowiedzi (w „Czy to prawidłowe tłumaczenie?” `1`/`←` = nie, `2`/`→` = tak) · `Enter` lub `Spacja` dalej (przed odpowiedzią spacja odtwarza słowo) · `Esc` koniec sesji.
 
 ## Słówka
 

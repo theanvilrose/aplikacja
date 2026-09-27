@@ -763,10 +763,18 @@ function nextStep() {
   const opts = typeOpts();
   let type = item.intro ? 'intro' : item.force || SRS.pickType(card(w.id), w, opts);
   if ((SRS.isListening(type) && !opts.speak) || (SRS.isTyping(type) && !opts.typing)) type = SRS.pickType(card(w.id), w, opts);
+  // „Czy to prawidłowe tłumaczenie?” — co trzecie łatwe pytanie wyboru (poziomy en→pl i pl→en)
+  if (!item.force && S.mode !== 'exam' && (type === 'en2pl' || type === 'pl2en') && Math.random() < 0.33) type = 'truefalse';
   S.cur = { item, w, type, shownAt: Date.now(), answered: false, hints: 0, options: null, chosen: null, result: null, typed: '', earned: 0 };
   if (type.endsWith('2pl') || type === 'pl2en') S.cur.options = buildOptions(w, type === 'pl2en' ? 'en' : 'pl');
+  if (type === 'truefalse') {
+    // pół na pół: prawdziwe tłumaczenie albo podobne słowo z tego samego tematu
+    const other = buildOptions(w, 'pl').find((o) => o.id !== w.id);
+    const ok = !other || Math.random() < 0.5;
+    S.cur.tf = { text: ok ? w.pl : other.text, ok };
+  }
   render();
-  if (db.settings.autoplay && (type === 'intro' || type === 'en2pl' || SRS.isListening(type))) setTimeout(() => speak(w.en), 250);
+  if (db.settings.autoplay && (type === 'intro' || type === 'en2pl' || type === 'truefalse' || SRS.isListening(type))) setTimeout(() => speak(w.en), 250);
   const input = $('#typed');
   if (input) input.focus();
 }
@@ -890,6 +898,14 @@ function choose(i) {
   if (cur.answered || !cur.options[i]) return;
   cur.chosen = i;
   answer(cur.options[i].id === cur.w.id, false, cur.options[i].text);
+}
+
+// ✓ / ✗ w „Czy to prawidłowe tłumaczenie?”
+function chooseTf(yes) {
+  const cur = S.cur;
+  if (cur.answered || cur.type !== 'truefalse') return;
+  cur.chosen = yes;
+  answer(yes === cur.tf.ok, false, `${cur.tf.text} → ${yes ? 'tak' : 'nie'}`);
 }
 
 function submitTyped() {
@@ -1597,12 +1613,24 @@ function viewSession() {
     listen2pl: ['Posłuchaj i wybierz znaczenie', `<div class="listen-row"><button class="listen" data-say="${esc(w.en)}" aria-label="Odtwórz">🔊</button><button class="listen-slow" data-slow="${esc(w.en)}" aria-label="Odtwórz wolniej" title="Wolniej">🐢<span>wolniej</span></button></div>`],
     pl2en: ['Jak to powiesz po angielsku?', `<div class="prompt-pl">${esc(w.pl)}</div>`],
     type: ['Napisz po angielsku', `<div class="prompt-pl">${esc(w.pl)}</div>`],
+    truefalse: ['Czy to jest prawidłowe tłumaczenie?', S.cur.tf ? `
+      <div class="tf-tile">
+        <svg class="tf-art" viewBox="0 0 64 64" aria-hidden="true"><rect x="10" y="8" width="44" height="12" rx="6" fill="#cbc6f5"/><rect x="10" y="26" width="44" height="12" rx="6" fill="#6cb944"/><circle cx="17" cy="32" r="4.4" fill="#fff"/><path d="m14.8 32 1.6 1.6 3-3.2" fill="none" stroke="#6cb944" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><rect x="10" y="44" width="44" height="12" rx="6" fill="#cbc6f5"/></svg>
+        <div class="tf-pl">${esc(S.cur.tf.text)}</div>
+        <div class="tf-en">${esc(w.en)} <button class="icon-btn" data-say="${esc(w.en)}" aria-label="Posłuchaj">🔊</button><button class="icon-btn slow-btn" data-slow="${esc(w.en)}" aria-label="Posłuchaj wolniej" title="Wolniej">🐢</button></div>
+      </div>` : ''],
     dictation: ['Napisz, co słyszysz', `<div class="listen-row"><button class="listen" data-say="${esc(w.en)}" aria-label="Odtwórz">🔊</button><button class="listen-slow" data-slow="${esc(w.en)}" aria-label="Odtwórz wolniej" title="Wolniej">🐢<span>wolniej</span></button></div>`],
   };
   const [question, prompt] = prompts[type];
 
   let body = '';
-  if (options) {
+  if (type === 'truefalse') {
+    const cls = (yes) => (!answered ? '' : exam ? (chosen === yes ? 'picked' : 'dim') : yes === S.cur.tf.ok ? 'ok' : chosen === yes ? 'bad' : 'dim');
+    body = `<div class="tf-btns">
+      <button class="tf-btn no ${cls(false)}" data-act="tf-no" ${answered ? 'disabled' : ''} aria-label="Nie, to złe tłumaczenie" title="Nie (1 lub ←)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      <button class="tf-btn yes ${cls(true)}" data-act="tf-yes" ${answered ? 'disabled' : ''} aria-label="Tak, to dobre tłumaczenie" title="Tak (2 lub →)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5 9.5 17.5 19.5 6.5"/></svg></button>
+    </div>`;
+  } else if (options) {
     // obrazki słówek przy odpowiedziach po polsku (słuchanie, „co to znaczy?”) — przy pl→en zdradzałyby odpowiedź
     const pics = type === 'listen2pl' || type === 'en2pl';
     body = `<div class="options">${options.map((o, i) => {
@@ -3116,6 +3144,8 @@ document.addEventListener('click', (e) => {
     case 'start-coll': if (coll) startPick(coll.ref); break;
     case 'resume': collFrom = 'packs'; wordsFilter = { q: '', coll: ds.ref, status: '', kind: '' }; view = 'words'; startPick(ds.ref); break;
     case 'pick-learn': pickWord('learn'); break;
+    case 'tf-no': chooseTf(false); break;
+    case 'tf-yes': chooseTf(true); break;
     case 'intro-later': introSkip(false); break;
     case 'intro-known': introSkip(true); break;
     case 'pick-later': pickWord('later'); break;
@@ -3329,6 +3359,8 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     if (S.cur.type === 'intro') introDone();
     else if (S.cur.answered) advance();
+  } else if (!inInput && S.cur.type === 'truefalse' && ['1', '2', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+    chooseTf(e.key === '2' || e.key === 'ArrowRight');
   } else if (!inInput && /^[1-4]$/.test(e.key) && S.cur.options) {
     choose(+e.key - 1);
   } else if (e.key === ' ' && (!inInput || (e.target.id === 'typed' && S.cur.answered))) {

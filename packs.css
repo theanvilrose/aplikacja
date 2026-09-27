@@ -353,3 +353,23 @@ dialog.ask::backdrop { background: rgba(19, 22, 50, 0.45); backdrop-filter: blur
 .toast-undo:hover { background: rgba(255, 255, 255, 0.26); color: #fff; }
 .toast-time { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: #8b6cff; transform-origin: left; animation: toast-time linear forwards; }
 @keyframes toast-time { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+/* ćwiczenie „Czy to jest prawidłowe tłumaczenie?” */
+.tf-tile { margin: 6px auto 4px; max-width: 340px; padding: 22px 18px 20px; border-radius: 32px; background: #e6e5ff; box-shadow: 0 6px 0 #c3c0ff; text-align: center; }
+.tf-art { width: 92px; height: 92px; display: block; margin: 0 auto 10px; }
+.tf-pl { font-family: var(--display); font-size: 34px; font-weight: 700; color: #1b1f3e; line-height: 1.15; overflow-wrap: anywhere; }
+.tf-en { margin-top: 8px; font-size: 22px; font-weight: 800; color: #8f86d9; display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.tf-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 4px 0 14px; }
+.tf-btn { height: 72px; border: 2px solid #eceaf6; border-radius: 999px; background: #fff; box-shadow: 0 8px 18px -10px rgba(30, 40, 90, 0.3); cursor: pointer; display: grid; place-items: center; transition: transform 0.15s ease, background 0.2s ease; }
+.tf-btn svg { width: 38px; height: 38px; fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.tf-btn.no svg { stroke: #f16aa9; }
+.tf-btn.yes svg { stroke: #4cc81a; }
+.tf-btn:hover:not(:disabled) { transform: translateY(-2px); border-color: #d8d3f5; }
+.tf-btn:active:not(:disabled) { transform: scale(0.96); }
+.tf-btn:disabled { cursor: default; }
+.tf-btn.ok { border-color: var(--green); background: var(--ok-bg); }
+.tf-btn.bad { border-color: var(--bad); background: var(--bad-bg); }
+.tf-btn.picked { border-color: var(--accent); background: var(--accent-soft); }
+.tf-btn.dim { opacity: 0.45; }
+:root[data-theme="dark"] .tf-tile { background: #2b2a4a; box-shadow: 0 6px 0 #3c3a6b; }
+:root[data-theme="dark"] .tf-pl { color: #f1f0ff; }
+:root[data-theme="dark"] .tf-btn { background: #242640; }
