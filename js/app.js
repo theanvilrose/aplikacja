@@ -13,6 +13,7 @@ const DEFAULT_SETTINGS = {
   examName: 'Certyfikat Busuu A1', examDate: '2027-01-17',
   // ustawienia planu dnia
   newOrder: 'lesson', warmup: true, reviewsFirst: false, listening: true, typing: true, reviewCap: 0,
+  autoNext: false, // po dobrej odpowiedzi samo przechodzi dalej (wyłączone: czeka na „Dalej”)
   content: 'all', // co ćwiczyć w planie: 'all' | 'words' (bez zwrotów) | 'phrases' (same zwroty)
   // zadania z lekcji: słowa ('all' = z Twoich lekcji, 'known' = tylko poznane w aplikacji), części, ile zadań w części (0 = jak w lekcji)
   taskSource: 'all', taskParts: 'ABCD', taskCount: 0,
@@ -850,7 +851,7 @@ function answer(correct, struggled = false, given = '') {
 
   if (exam) { S.timer = setTimeout(advance, 450); return; }
   if (db.settings.autoplay && (type === 'pl2en' || SRS.isTyping(type) || !correct)) speak(w.en);
-  if (correct && !struggled) S.timer = setTimeout(advance, 1300);
+  if (correct && !struggled && db.settings.autoNext) S.timer = setTimeout(advance, 1300);
 }
 
 function advance() {
@@ -1321,7 +1322,7 @@ function viewPacks() {
 
 // ---------- ustawienia planu dnia ----------
 
-const PLAN_KEYS = ['content', 'newOrder', 'warmup', 'reviewsFirst', 'listening', 'typing', 'newPerDay', 'reviewCap', 'minutes'];
+const PLAN_KEYS = ['content', 'newOrder', 'warmup', 'reviewsFirst', 'listening', 'typing', 'autoNext', 'newPerDay', 'reviewCap', 'minutes'];
 
 const PLAN_ORDERS = [
   ['lesson', 'Jak w lekcjach', 'W kolejności z Twoich notatek — temat po temacie.'],
@@ -1339,6 +1340,7 @@ const PLAN_TOGGLES = [
   { key: 'warmup', icon: 'warm', tone: ['#FFE8D2', '#A5460A'], title: 'Rozgrzewka', desc: 'Sesja zaczyna się od 2 słów, które już znasz — łatwy start i szybkie diamenty.' },
   { key: 'reviewsFirst', icon: 'refresh', tone: ['#D4F3EC', '#0F7466'], title: 'Najpierw powtórki', desc: 'Zaległe powtórki przed nowymi słowami. Wyłączone: nowe słowa przeplatane z powtórkami.' },
   { key: 'listening', icon: 'listen', tone: ['#DDEFFF', '#1F5FA8'], title: 'Ćwiczenia ze słuchu', desc: 'Rozpoznawanie ze słuchu i dyktanda. Wyłącz, gdy nie możesz używać dźwięku — np. w autobusie.' },
+  { key: 'autoNext', icon: 'sparkle', tone: ['#E7E0FF', '#5A3FE0'], title: 'Automatycznie dalej', desc: 'Po dobrej odpowiedzi następne pytanie pojawia się samo. Wyłączone: masz czas, żeby się przyjrzeć i posłuchać — dalej przechodzisz przyciskiem „Dalej” albo Enterem.' },
   { key: 'typing', icon: 'keyboard', tone: ['#FFE6DF', '#B4260F'], title: 'Ćwiczenia z pisania', desc: 'Wpisywanie słów z klawiatury. Wyłącz na telefonie — zostaną wybory z 4 odpowiedzi.' },
 ];
 
