@@ -158,6 +158,7 @@ document.addEventListener('click', (e) => {
   const coll = collection(wordsFilter.coll);
   switch (ds.act) {
     case 'start': startSession(); break;
+    case 'drill-coll': { const c = collection(ds.ref); if (c && c.total) startSession({ ids: c.ws.map((w) => w.id), mode: 'drill' }); break; } // Pomyłki / Wyuczone: powtórka tych słów
     case 'learn-new': startPlanPick(ds.id); break; // karta Nauka: karuzela nowych słów, od słowa widocznego na karcie
     case 'review': startSession({ mode: 'review' }); break; // karta Powtórka: same powtórki
     case 'extra': startSession({ mode: 'extra' }); break;
@@ -357,6 +358,7 @@ document.addEventListener('change', (e) => {
   const t = e.target;
   if (t.id === 'coll') { wordsFilter.coll = t.value; wordsFilter.status = ''; collFrom = 'words'; render(); }
   if (t.id === 'listen-source') listenSource = t.value;
+  if (t.dataset.knownRange !== undefined) { knownRange = t.value; render(); } // karta Nauka: Wyuczone / tydzień / miesiąc
   if (t.id === 'tts-model') { ttsCfg().cur.model = t.value; ttsDefaults(); save(); render(); }
   if (t.id === 'tts-voice') { ttsCfg().cur.voice = t.value; save(); render(); }
   const key = t.dataset.set;

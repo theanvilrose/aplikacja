@@ -175,6 +175,25 @@ function lnTick() {
 }
 setInterval(lnTick, LN_STEP);
 
+// pod „Ucz się” (jak w WRD): Pomyłki i Wyuczone (z wyborem okresu) — „Powtórz” ćwiczy od razu te słowa,
+// kliknięcie nazwy otwiera ich listę
+let knownRange = 'known';
+const KNOWN_RANGES = [['known', 'Wyuczone'], ['known7', 'Ostatni tydzień'], ['known30', 'Ostatni miesiąc']];
+function lnReviewRows() {
+  const bad = collection('auto:mistakes'), known = collection('auto:' + knownRange);
+  const row = (c, icon, title) => `
+    <div class="ln-rv">
+      ${IMG(icon, 'ln-rv-ic')}
+      <span class="ln-rv-text">${title}<button class="ln-rv-open" data-coll="${c.ref}" title="Pokaż słówka">${wordsLabel(c.total)} ›</button></span>
+      <button class="ln-rv-go" data-act="drill-coll" data-ref="${c.ref}" ${c.total ? '' : 'disabled'}>Powtórz</button>
+    </div>`;
+  return `
+    <div class="ln-rvs">
+      ${bad.total ? row(bad, 'ui/voc-mistakes.png', '<b>Pomyłki</b>') : ''}
+      ${row(known, 'stat-check.png', `<label class="ln-rv-sel"><select data-known-range aria-label="Okres">${KNOWN_RANGES.map(([k, l]) => `<option value="${k}" ${k === knownRange ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`)}
+    </div>`;
+}
+
 function learnSlide(c, plan) {
   // dzisiejsze nowe słowa (po celu dnia — kolejna porcja), w kolejności nauki
   const ids = freshWords().slice(0, Math.min(10, c.newLeft || MORE_NEW)).map((x) => x.id);
@@ -190,6 +209,7 @@ function learnSlide(c, plan) {
           <div class="ph-tasks ln-info">
             <div class="ln-word"><h3 class="ln-en">Wszystko poznane!</h3><p class="ln-pl">Nowe ${db.settings.content === 'phrases' ? 'zwroty' : 'słowa'} z planu już znasz — czas na powtórkę.</p></div>
             ${c.seen ? `<button class="ph-cta" data-act="review"><span>Powtórz</span></button>` : ''}
+            ${lnReviewRows()}
           </div>
         </div>
       </section>`;
@@ -207,6 +227,7 @@ function learnSlide(c, plan) {
           <div class="ln-word">${lnWord(w)}</div>
           ${planRow(t, 'task-star.png', '255, 194, 26', '#e09a00', 'learn-new', 0)}
           <button class="ph-cta" data-act="learn-new" data-id="${esc(w.id)}"><span>${c.newLeft ? 'Ucz się' : 'Ucz się dalej'}</span></button>
+          ${lnReviewRows()}
         </div>
       </div>
     </section>`;
@@ -337,7 +358,7 @@ function mistakesCard() {
   return `
   <section class="card float-card">
     <span class="fc-icon">${ICON.refresh}</span>
-    <div class="fc-text"><b>Powtórka błędów</b><span class="muted small">${wordsLabel(n)} z testów</span></div>
+    <div class="fc-text"><b>Powtórka błędów</b><span class="muted small">${wordsLabel(n)} do poprawy</span></div>
     <button class="btn pill small-pill" data-act="drill-mistakes">Zacznij</button>
   </section>`;
 }
@@ -1163,11 +1184,11 @@ function viewVocab() {
   const st = (k) => words.filter((w) => wordStatus(w) === k).length;
   const total = words.length || 1, ready = counts().dueLeft + counts().newLeft;
   const fav = db.lists.find((l) => l.id === FAV_ID);
-  const hard = collection('auto:hard');
+  const hard = collection('auto:mistakes');
   const promos = PROMOS.filter(([k]) => !(db.settings.promoOff || []).includes(k));
   const menu = [
     ['auto:new', 'Słówka do nauczenia', 'voc-learn', total - seen],
-    ['auto:hard', 'Pomyłki', 'voc-mistakes', hard ? hard.total : 0, true],
+    ['auto:mistakes', 'Pomyłki', 'voc-mistakes', hard ? hard.total : 0, true],
     ['auto:seen', 'Moje słówka', 'voc-mine', seen],
     ['pack:all', 'Wszystkie słówka', 'voc-all', words.length],
     ['view:lists', 'Moje listy', 'voc-lists', db.lists.filter((l) => l.id !== FAV_ID).length],

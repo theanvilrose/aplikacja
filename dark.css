@@ -83,6 +83,11 @@
 :root[data-theme="dark"] .ln-say { background: #201d2a; }
 :root[data-theme="dark"] .ln-pl { color: #a0a7bc; }
 :root[data-theme="dark"] .ln-tile::after { background: linear-gradient(115deg, transparent 35%, rgba(32, 29, 42, 0.7) 50%, transparent 65%) no-repeat; }
+:root[data-theme="dark"] .ln-rv { background: rgba(32, 29, 42, 0.55); }
+:root[data-theme="dark"] .ln-rv-text { color: #d8dae3; }
+:root[data-theme="dark"] .ln-rv-open { color: #a5aabc; }
+:root[data-theme="dark"] .ln-rv-sel select { color: #d8dae3; }
+:root[data-theme="dark"] .ln-rv-go { background: #201d2a; }
 
 /* packs.css */
 :root[data-theme="dark"] .pk-top { background: #1b1836; }

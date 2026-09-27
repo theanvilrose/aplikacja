@@ -260,3 +260,18 @@ html, body { overflow-x: clip; }
 @keyframes ln-fill { to { width: 100%; } }
 @media (hover: hover) { .learn-hero:hover .ln-dots i.on::after { animation-play-state: paused; } }
 @media (prefers-reduced-motion: reduce) { .ln-tile.ln-flip, .ln-tile.ln-flip::after, .ln-tile.ln-flip .ln-new, .ln-word.ln-in > * { animation: none; } }
+
+/* ---- pod „Ucz się” na karcie Nauka: Pomyłki i Wyuczone z „Powtórz” (views.js: lnReviewRows) ---- */
+.ln-rvs { display: flex; flex-direction: column; gap: 4px; margin-top: 2px; }
+.ln-rv { display: flex; align-items: center; gap: 12px; padding: 8px 6px 8px 8px; border-radius: 20px; background: rgba(255, 255, 255, 0.55); box-shadow: 0 6px 16px rgba(60, 100, 170, 0.08); }
+.ln-rv-ic { width: 40px; height: 40px; flex-shrink: 0; object-fit: contain; }
+.ln-rv-text { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; font-family: var(--display); font-size: 18px; line-height: 1.2; color: #1b1f3e; }
+.ln-rv-text b { font-weight: 700; }
+.ln-rv-open { padding: 0; border: 0; background: none; cursor: pointer; font: 600 14px Nunito, sans-serif; color: #6b7390; }
+.ln-rv-open:hover { color: #5a3fe0; text-decoration: underline; }
+.ln-rv-sel select { max-width: 100%; padding: 0 22px 0 0; border: 0; cursor: pointer; appearance: none; -webkit-appearance: none; font-family: var(--display); font-size: 18px; font-weight: 700; color: #1b1f3e;
+  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231b1f3e' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right center / 14px; }
+.ln-rv-go { flex-shrink: 0; padding: 8px 18px; border: 2.5px solid #7c4dff; border-radius: 999px; cursor: pointer; background: #ffffff; font-family: var(--display); font-size: 16px; font-weight: 800; color: #6d3df0; transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease; }
+.ln-rv-go:hover:not(:disabled) { background: #7c4dff; color: #ffffff; transform: translateY(-1px); }
+.ln-rv-go:active:not(:disabled) { transform: scale(0.96); }
+.ln-rv-go:disabled { opacity: 0.45; cursor: default; }

@@ -454,7 +454,9 @@ function answer(correct, struggled = false, given = '') {
   if (prev && prev.due <= now && !S.newIds.has(w.id)) d.rv = (d.rv || 0) + 1; // zadanie „powtórki” w planie dnia
   // W teście nie zakładamy kart słowom, których jeszcze nie poznałeś w aplikacji.
   if (!exam || prev) db.cards[w.id] = SRS.review(card(w.id), g, now);
+  // Pomyłki: każde słowo z błędną odpowiedzią (w nauce i w testach) — znika po poprawnej odpowiedzi
   if (correct) db.mistakes = db.mistakes.filter((id) => id !== w.id);
+  else if (!db.mistakes.includes(w.id) && (!exam || prev)) db.mistakes.push(w.id);
 
   const wasCounted = counted(dayKey());
   d.n++;

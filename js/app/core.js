@@ -345,8 +345,11 @@ function collection(ref) {
   } else if (kind === 'auto' && key === 'last') {
     const d = lastLessonDate();
     c = { name: 'Z ostatniej lekcji', ws: d ? words.filter((w) => w.added === d) : [], bg: '#DDF6E8', art: ART.book, desc: d ? `dodane ${formatDate(d, false)}` : '' };
-  } else if (kind === 'auto' && ['new', 'seen', 'known', 'learning'].includes(key)) {
+  } else if (kind === 'auto' && ['new', 'seen', 'known', 'learning', 'known7', 'known30'].includes(key)) {
+    const since = (days) => (w) => wordStatus(w) === 'known' && db.cards[w.id].last >= Date.now() - days * DAY; // wyuczone i ćwiczone w ostatnich dniach
     const AUTO = {
+      known7: ['Wyuczone — ostatni tydzień', since(7), 'wyuczone, ćwiczone w ostatnich 7 dniach'],
+      known30: ['Wyuczone — ostatni miesiąc', since(30), 'wyuczone, ćwiczone w ostatnich 30 dniach'],
       new: ['Słówka do nauczenia', (w) => !db.cards[w.id], 'jeszcze nie ćwiczone'],
       seen: ['Moje słówka', (w) => !!db.cards[w.id], 'wszystkie, które już poznałeś'],
       known: ['Umiem', (w) => wordStatus(w) === 'known', 'wyuczone'],
@@ -354,7 +357,7 @@ function collection(ref) {
     }[key];
     c = { name: AUTO[0], ws: words.filter(AUTO[1]), bg: '#EFEAFF', art: ART.cardStack, desc: AUTO[2] };
   } else if (kind === 'auto' && key === 'mistakes') {
-    c = { name: 'Błędy z testów', ws: db.mistakes.map((id) => byId.get(id)).filter(Boolean), bg: '#FFE6DF', art: ART.cardStack, desc: 'znikają po poprawnej odpowiedzi' };
+    c = { name: 'Pomyłki', ws: db.mistakes.map((id) => byId.get(id)).filter(Boolean), bg: '#FFE6DF', art: ART.cardStack, desc: 'słowa z błędną odpowiedzią — znikają po poprawnej' };
   }
   if (!c) return null;
   c.ref = ref;
